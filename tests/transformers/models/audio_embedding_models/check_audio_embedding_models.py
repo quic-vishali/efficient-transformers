@@ -5,14 +5,13 @@
 #
 # -----------------------------------------------------------------------------
 
-import json
+import copy
 import os
 from typing import List, Optional
 
 import numpy as np
 import onnx
 import onnxruntime
-import pytest
 import torch
 from datasets import load_dataset
 from transformers import AutoModelForCTC, AutoProcessor
@@ -20,15 +19,10 @@ from transformers import AutoModelForCTC, AutoProcessor
 from QEfficient.transformers.models.modeling_auto import QEFFAutoModelForCTC
 from QEfficient.transformers.quantizers.auto import replace_transformers_quantizers
 from QEfficient.utils import hf_download
-from QEfficient.utils._utils import create_json, load_hf_processor
-from QEfficient.utils.constants import WAV2VEC2_MAX_SEQ_LEN, QnnConstants
+from QEfficient.utils._utils import load_hf_processor
+from QEfficient.utils.constants import WAV2VEC2_MAX_SEQ_LEN
 
 from ..check_model_results import dump_and_compare_results
-
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "../../../configs/audio_model_configs.json")
-with open(CONFIG_PATH, "r") as f:
-    config_data = json.load(f)
-    test_models = config_data["audio_embedding_models"]
 
 
 def load_ctc_model(model_config, torch_dtype: Optional[torch.dtype] = torch.float32):
@@ -57,7 +51,7 @@ def load_ctc_model(model_config, torch_dtype: Optional[torch.dtype] = torch.floa
     return model_hf
 
 
-def run_ctc_pytorch_hf(model, processor: AutoProcessor, inputs: np.ndarray, sample_rate: int) -> List[str]:
+def run_ctc_pytorch_hf(model, processor: AutoProcessor, inputs: np.ndarray, sample_rate: int, torch_dtype=torch.float32) -> List[str]:
     """
     Run pytorch inference on model
 
@@ -77,7 +71,7 @@ def run_ctc_pytorch_hf(model, processor: AutoProcessor, inputs: np.ndarray, samp
     # prepare inputs
     input_features = processor(
         inputs[0], return_tensors="pt", max_length=seq_len, truncating=True, padding="max_length"
-    ).input_values
+    ).input_values.to(torch_dtype)
 
     model_inputs = dict(
         input_values=input_features,
@@ -86,13 +80,13 @@ def run_ctc_pytorch_hf(model, processor: AutoProcessor, inputs: np.ndarray, samp
     return outputs
 
 
-def run_ctc_ort(onnx_path, config, processor: AutoProcessor, inputs: np.ndarray, sample_rate: int) -> List[str]:
+def run_ctc_ort(onnx_path, config, processor: AutoProcessor, inputs: np.ndarray, sample_rate: int, torch_dtype=torch.float32) -> List[str]:
     """
     Run onnxruntime inference on model
 
     ``Mandatory`` Args:
         :model: The transformed PyTorch model used for generating transcripts
-        :processor: autoprocessor to process inputs and decode logits
+        :processor: autoprocessor to process inputs and decode logits  
         :inputs (np.ndarray): inputs to run the execution.
         :sample_rate (int): sampling rate at which input audio is stored in inputs (needed for processor)
 
@@ -122,7 +116,7 @@ def run_ctc_ort(onnx_path, config, processor: AutoProcessor, inputs: np.ndarray,
     # prepare inputs
     input_features = processor(
         inputs[0], return_tensors="pt", max_length=seq_len, truncation=True, padding="max_length"
-    ).input_values
+    ).input_values.to(torch_dtype)
 
     model_inputs = dict(input_values=(input_features).numpy())
     outputs = session.run(None, model_inputs)
@@ -132,110 +126,74 @@ def run_ctc_ort(onnx_path, config, processor: AutoProcessor, inputs: np.ndarray,
 
 def check_ctc_pytorch_vs_kv_vs_ort_vs_ai100(
     model_name: str,
-    manual_cleanup: callable,
     num_devices: int = 1,
     n_layer: int = -1,
+    torch_dtype = torch.float32,
     enable_qnn: Optional[bool] = False,
     qnn_config: Optional[str] = None,
     compare_results: Optional[bool] = False,
+    export_compile_only: Optional[bool] = False,
+    manual_cleanup: callable = None,
 ):
+
+    torch.manual_seed(42)
     replace_transformers_quantizers()
     model_config = {"model_name": model_name}
     model_config["n_layer"] = n_layer
-
     model_hf = load_ctc_model(model_config)
-
-    processor = load_hf_processor(pretrained_model_name_or_path=model_name)
     batch_size = 1
-
+    processor = load_hf_processor(pretrained_model_name_or_path=model_name)
     ds = load_dataset("hf-internal-testing/librispeech_asr_dummy", "clean", split="validation")
     data = ds[0]["audio"]["array"]
     data = torch.tensor(data).unsqueeze(0).numpy()
     sample_rate = ds[0]["audio"]["sampling_rate"]
+
     pytorch_tokens = run_ctc_pytorch_hf(model_hf, processor, data, sample_rate)
     predicted_ids = torch.argmax(pytorch_tokens, dim=-1)
     pytorch_output = processor.batch_decode(predicted_ids)
 
-    qeff_model = QEFFAutoModelForCTC(model_hf, pretrained_model_name_or_path=model_name)
-    qeff_model.export()
-    ort_tokens = run_ctc_ort(qeff_model.onnx_path, qeff_model.model.config, processor, data, sample_rate)
-    predicted_ids = torch.argmax(ort_tokens, dim=-1)
-    ort_output = processor.batch_decode(predicted_ids)
-    assert pytorch_output == ort_output, "Tokens don't match for pytorch output and ORT output."
-
-    qeff_model.compile(
-        batch_size=batch_size,
-        enable_qnn=enable_qnn,
-        qnn_config=qnn_config,
-        num_devices=num_devices,
+    qeff_model = QEFFAutoModelForCTC.from_pretrained(
+        model_name, torch_dtype=torch_dtype
     )
-    cloud_ai_100_output = qeff_model.generate(processor, data)
-    assert pytorch_output == cloud_ai_100_output, "Tokens don't match for pytorch output and Cloud AI 100 output."
-    assert os.path.isfile(os.path.join(os.path.dirname(qeff_model.qpc_path), "qconfig.json"))
+    try:
+        qeff_model.export()
+        ort_tokens = run_ctc_ort(qeff_model.onnx_path, qeff_model.model.config, processor, data, sample_rate, torch_dtype=torch_dtype)
+        predicted_ids = torch.argmax(ort_tokens, dim=-1)
+        ort_output = processor.batch_decode(predicted_ids)
+        assert pytorch_output == ort_output, "Tokens don't match for pytorch output and ORT output."
 
-    manual_cleanup(qeff_model.onnx_path)
-    if compare_results is False:
-        return
+        qeff_model.compile(
+            batch_size=batch_size,
+            enable_qnn=enable_qnn,
+            qnn_config=qnn_config,
+            num_devices=num_devices,
+        )
 
-    compile_params = {
-        "batch_size": batch_size,
-        "enable_qnn": enable_qnn,
-        "qnn_config": qnn_config,
-        "num_devices": num_devices,
-        "n_layer": n_layer,
-    }
-    assert dump_and_compare_results(
-        model_name,
-        compile_params,
-        "ctc_model_results.json",
-        cloud_ai_100_output,
-        pytorch_hf_tokens=pytorch_output,
-        ort_tokens=ort_output,
-    )
+        if export_compile_only:
+            return
 
+        cloud_ai_100_output = qeff_model.generate(processor, data)
+        assert os.path.isfile(os.path.join(os.path.dirname(qeff_model.qpc_path), "qconfig.json"))
+        assert pytorch_output == cloud_ai_100_output, "Tokens don't match for pytorch output and Cloud AI 100 output."
 
-@pytest.mark.full_layers
-@pytest.mark.on_qaic
-@pytest.mark.llm_model
-@pytest.mark.parametrize("model_name", test_models)
-def test_full_ctc_pytorch_vs_kv_vs_ort_vs_ai100(model_name, manual_cleanup):
-    torch.manual_seed(42)
-    check_ctc_pytorch_vs_kv_vs_ort_vs_ai100(
-        model_name=model_name, compare_results=True, manual_cleanup=manual_cleanup, num_devices=4
-    )
+        if compare_results is False:
+            return
 
-
-@pytest.mark.on_qaic
-@pytest.mark.llm_model
-@pytest.mark.parametrize("model_name", test_models)
-def test_few_ctc_pytorch_vs_kv_vs_ort_vs_ai100(model_name, manual_cleanup):
-    torch.manual_seed(42)
-    check_ctc_pytorch_vs_kv_vs_ort_vs_ai100(model_name=model_name, n_layer=4, manual_cleanup=manual_cleanup)
-
-
-# =================== QNN Tests ======================
-
-
-@pytest.mark.on_qaic
-@pytest.mark.llm_model
-@pytest.mark.qnn
-@pytest.mark.skip(reason="Wav2Vec2 is currently not supported on QNN")
-@pytest.mark.parametrize("model_name", test_models)
-def test_ctc_pytorch_vs_kv_vs_ort_vs_ai100_qnn(model_name, manual_cleanup):
-    """
-    QNN Compilation path test.
-    Test function to validate the PyTorch model, the PyTorch model after the ONNX model, and the Cloud AI 100 model.
-    ``Mandatory`` Args:
-        :model_name (str): Hugging Face Model Card name, Example: ``gpt2``
-    """
-    qnn_config_json_path = os.path.join(os.getcwd(), "qnn_config.json")
-    create_json(qnn_config_json_path, QnnConstants.QNN_SAMPLE_CONFIG)
-
-    check_ctc_pytorch_vs_kv_vs_ort_vs_ai100(
-        model_name=model_name,
-        n_layer=4,
-        enable_qnn=True,
-        qnn_config=qnn_config_json_path,
-        manual_cleanup=manual_cleanup,
-        num_devices=4,
-    )
+        compile_params = {
+            "batch_size": batch_size,
+            "enable_qnn": enable_qnn,
+            "qnn_config": qnn_config,
+            "num_devices": num_devices,
+            "n_layer": n_layer,
+        }
+        assert dump_and_compare_results(
+            model_name,
+            compile_params,
+            "ctc_model_results.json",
+            cloud_ai_100_output,
+            pytorch_hf_tokens=pytorch_output,
+            ort_tokens=ort_output,
+        )
+    finally:
+        if manual_cleanup is not None and hasattr(qeff_model, "onnx_path") and qeff_model.onnx_path:
+            manual_cleanup(qeff_model.onnx_path)
