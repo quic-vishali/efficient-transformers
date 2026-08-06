@@ -1,0 +1,126 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- /home/vishsent/efficient-transformers/venv/bin/python3.12
+cachedir: .pytest_cache
+rootdir: /home/vishsent/efficient-transformers
+configfile: pyproject.toml
+plugins: xdist-3.8.0, anyio-4.14.2, mock-3.15.1
+collecting ... collected 4 items
+
+tests/transformers/models/audio_embedding_models/test_models.py::test_export_compile[facebook/wav2vec2-base-960h] Fetching 9 files:   0%|          | 0/9 [00:00<?, ?it/s]Fetching 9 files: 100%|██████████| 9/9 [00:00<00:00, 6760.16it/s]
+Loading weights:   0%|          | 0/212 [00:00<?, ?it/s]Loading weights:   8%|▊         | 17/212 [00:00<00:01, 154.90it/s]Loading weights:  16%|█▌        | 33/212 [00:00<00:02, 61.15it/s] Loading weights:  21%|██        | 45/212 [00:00<00:02, 66.79it/s]Loading weights:  30%|██▉       | 63/212 [00:00<00:01, 90.59it/s]Loading weights:  35%|███▌      | 75/212 [00:00<00:01, 89.15it/s]Loading weights:  42%|████▏     | 89/212 [00:01<00:01, 97.92it/s]Loading weights:  48%|████▊     | 101/212 [00:01<00:01, 87.43it/s]Loading weights:  56%|█████▌    | 119/212 [00:01<00:00, 93.38it/s]Loading weights:  61%|██████    | 129/212 [00:01<00:00, 88.42it/s]Loading weights:  67%|██████▋   | 142/212 [00:01<00:00, 93.61it/s]Loading weights:  74%|███████▍  | 157/212 [00:01<00:00, 105.22it/s]Loading weights:  81%|████████  | 172/212 [00:01<00:00, 105.29it/s]Loading weights:  86%|████████▋ | 183/212 [00:02<00:00, 93.72it/s] Loading weights:  91%|█████████ | 193/212 [00:02<00:00, 87.99it/s]Loading weights: 100%|██████████| 212/212 [00:02<00:00, 96.23it/s]
+
+.............Cleaned up /home/vishsent/.cache/qeff_models/Wav2Vec2ForCTC/Wav2Vec2ForCTC-2565439032fcffca
+PASSED
+tests/transformers/models/audio_embedding_models/test_models.py::test_generate[facebook/wav2vec2-base-960h] Fetching 9 files:   0%|          | 0/9 [00:00<?, ?it/s]Fetching 9 files: 100%|██████████| 9/9 [00:00<00:00, 8738.13it/s]
+Loading weights:   0%|          | 0/212 [00:00<?, ?it/s]Loading weights: 100%|██████████| 212/212 [00:00<00:00, 5377.87it/s]
+Fetching 6 files:   0%|          | 0/6 [00:00<?, ?it/s]Fetching 6 files: 100%|██████████| 6/6 [00:00<00:00, 5377.31it/s]
+['MISTER QUILTER IS THE APOSTLE OF THE MIDDLE CLASSES AND WE ARE GLAD TO WELCOME HIS GOSPEL']
+['MISTER QUILTER IS THE APOSTLE OF THE MIDDLE CLASSES AND WE ARE GLAD TO WELCOME HIS GOSPEL']
+PyTorch output: ['MISTER QUILTER IS THE APOSTLE OF THE MIDDLE CLASSES AND WE ARE GLAD TO WELCOME HIS GOSPEL']
+Cloud AI 100 output: ['MISTER QUILTER IS THE APOSTLE OF THE MIDDLE CLASSES AND WE ARE GLAD TO WELCOME HIS GOSPEL']
+
+.............Cleaned up /home/vishsent/.cache/qeff_models/Wav2Vec2ForCTC/Wav2Vec2ForCTC-2565439032fcffca
+PASSED
+tests/transformers/models/audio_embedding_models/test_models.py::test_export_compile_fp16[facebook/wav2vec2-base-960h] Fetching 9 files:   0%|          | 0/9 [00:00<?, ?it/s]Fetching 9 files: 100%|██████████| 9/9 [00:00<00:00, 8911.41it/s]
+Loading weights:   0%|          | 0/212 [00:00<?, ?it/s]Loading weights: 100%|██████████| 212/212 [00:00<00:00, 3749.62it/s]
+
+.............Cleaned up /home/vishsent/.cache/qeff_models/Wav2Vec2ForCTC/Wav2Vec2ForCTC-5ba9c8d8b78c28c1
+PASSED
+tests/transformers/models/audio_embedding_models/test_models.py::test_generate_fp16[facebook/wav2vec2-base-960h] Fetching 9 files:   0%|          | 0/9 [00:00<?, ?it/s]Fetching 9 files: 100%|██████████| 9/9 [00:00<00:00, 4821.65it/s]
+Loading weights:   0%|          | 0/212 [00:00<?, ?it/s]Loading weights: 100%|██████████| 212/212 [00:00<00:00, 4639.64it/s]
+Fetching 6 files:   0%|          | 0/6 [00:00<?, ?it/s]Fetching 6 files: 100%|██████████| 6/6 [00:00<00:00, 8662.93it/s]
+PyTorch output: ['T']
+Cloud AI 100 output: ['MISTER QUILTER IS THE APOSTLE OF THE MIDDLE CLASSES AND WE ARE GLAD TO WELCOME HIS GOSPEL']
+
+.............Cleaned up /home/vishsent/.cache/qeff_models/Wav2Vec2ForCTC/Wav2Vec2ForCTC-5ba9c8d8b78c28c1
+FAILED
+.............Cleaned up /home/vishsent/.cache/qeff_models
+
+
+=================================== FAILURES ===================================
+_______________ test_generate_fp16[facebook/wav2vec2-base-960h] ________________
+
+model_name = 'facebook/wav2vec2-base-960h'
+manual_cleanup = <function qeff_models_clean_up at 0x7fef60bb1440>
+
+    @pytest.mark.qaic
+    @pytest.mark.llm
+    @pytest.mark.parametrize("model_name", test_models)
+    def test_generate_fp16(model_name, manual_cleanup):
+    
+>       check_ctc_pytorch_vs_kv_vs_ort_vs_ai100(model_name, manual_cleanup=manual_cleanup, torch_dtype=torch.float16)
+
+tests/transformers/models/audio_embedding_models/test_models.py:53: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+model_name = 'facebook/wav2vec2-base-960h', num_devices = 1, n_layer = -1
+torch_dtype = torch.float16, enable_qnn = False, qnn_config = None
+compare_results = False, export_compile_only = False
+manual_cleanup = <function qeff_models_clean_up at 0x7fef60bb1440>
+
+    def check_ctc_pytorch_vs_kv_vs_ort_vs_ai100(
+        model_name: str,
+        num_devices: int = 1,
+        n_layer: int = -1,
+        torch_dtype = torch.float32,
+        enable_qnn: Optional[bool] = False,
+        qnn_config: Optional[str] = None,
+        compare_results: Optional[bool] = False,
+        export_compile_only: Optional[bool] = False,
+        manual_cleanup: callable = None,
+    ):
+    
+        torch.manual_seed(42)
+        replace_transformers_quantizers()
+        model_config = {"model_name": model_name}
+        model_config["n_layer"] = n_layer
+        model_hf = load_ctc_model(model_config, torch_dtype)
+        batch_size = 1
+    
+        qeff_model = QEFFAutoModelForCTC(
+            copy.deepcopy(model_hf), pretrained_model_name_or_path=model_name, torch_dtype=torch_dtype
+        )
+        try:
+            qeff_model.export()
+            qeff_model.compile(
+                batch_size=batch_size,
+                enable_qnn=enable_qnn,
+                qnn_config=qnn_config,
+                num_devices=num_devices,
+            )
+    
+            if export_compile_only:
+                return
+    
+            processor = load_hf_processor(pretrained_model_name_or_path=model_name)
+            ds = load_dataset("hf-internal-testing/librispeech_asr_dummy", "clean", split="validation")
+            data = ds[0]["audio"]["array"]
+            data = torch.tensor(data).unsqueeze(0).numpy()
+            sample_rate = ds[0]["audio"]["sampling_rate"]
+    
+            pytorch_tokens = run_ctc_pytorch_hf(model_hf, processor, data, sample_rate, torch_dtype)
+            predicted_ids = torch.argmax(pytorch_tokens, dim=-1)
+            pytorch_output = processor.batch_decode(predicted_ids)
+    
+            # ORT runs fp32 internally — skip comparison for fp16 models
+            if torch_dtype == torch.float32:
+                ort_tokens = run_ctc_ort(qeff_model.onnx_path, qeff_model.model.config, processor, data, sample_rate, torch_dtype=torch_dtype)
+                predicted_ids = torch.argmax(ort_tokens, dim=-1)
+                ort_output = processor.batch_decode(predicted_ids)
+                print(pytorch_output)
+                print(ort_output)
+                assert pytorch_output == ort_output, "Tokens don't match for pytorch output and ORT output."
+            else:
+                ort_output = None
+    
+            cloud_ai_100_output = qeff_model.generate(processor, data)
+            print(f"PyTorch output: {pytorch_output}")
+            print(f"Cloud AI 100 output: {cloud_ai_100_output}")
+>           assert pytorch_output == cloud_ai_100_output, "Tokens don't match for pytorch output and Cloud AI 100 output."
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AssertionError: Tokens don't match for pytorch output and Cloud AI 100 output.
+
+tests/transformers/models/audio_embedding_models/check_audio_embedding_models.py:185: AssertionError
+=========================== short test summary info ============================
+FAILED tests/transformers/models/audio_embedding_models/test_models.py::test_generate_fp16[facebook/wav2vec2-base-960h] - AssertionError: Tokens don't match for pytorch output and Cloud AI 100 output.
+=================== 1 failed, 3 passed in 811.90s (0:13:31) ====================

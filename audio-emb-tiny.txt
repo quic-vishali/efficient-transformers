@@ -1,0 +1,191 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- /home/vishsent/efficient-transformers/venv/bin/python3.12
+cachedir: .pytest_cache
+rootdir: /home/vishsent/efficient-transformers
+configfile: pyproject.toml
+plugins: xdist-3.8.0, anyio-4.14.2, mock-3.15.1
+collecting ... collected 4 items
+
+tests/transformers/models/audio_embedding_models/test_models.py::test_export_compile[hf-internal-testing/tiny-random-Wav2Vec2ForCTC] Fetching 7 files:   0%|          | 0/7 [00:00<?, ?it/s]Fetching 7 files: 100%|██████████| 7/7 [00:00<00:00, 38279.18it/s]
+Loading weights:   0%|          | 0/81 [00:00<?, ?it/s]Loading weights: 100%|██████████| 81/81 [00:00<00:00, 24710.06it/s]
+PASSED
+tests/transformers/models/audio_embedding_models/test_models.py::test_generate[hf-internal-testing/tiny-random-Wav2Vec2ForCTC] Fetching 7 files:   0%|          | 0/7 [00:00<?, ?it/s]Fetching 7 files: 100%|██████████| 7/7 [00:00<00:00, 7769.28it/s]
+Loading weights:   0%|          | 0/81 [00:00<?, ?it/s]Loading weights: 100%|██████████| 81/81 [00:00<00:00, 35701.83it/s]
+Fetching 5 files:   0%|          | 0/5 [00:00<?, ?it/s]Fetching 5 files: 100%|██████████| 5/5 [00:00<00:00, 107546.26it/s]
+torch.float32
+tensor(False)
+tensor(False)
+["WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGQJ RGQ K<s>CGQGUJLJECGVRULG<s>JEQ<s>QEQEQ<s>PETLHQSKAQ CQ K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE CL<s>ENJG<s><unk>REJGNPSWER</s>HK RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BRQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>QGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>LCGN<s>PG<unk>QLR<unk>AKQG HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> AKM<unk>X</s>W<unk> A<unk> <s>HCGE L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> AKNQWHAKRVG<unk>HR<unk></s> H<unk>A B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK KUWE<unk>H<unk>H<unk>"]
+["WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGQJ RGQ K<s>CGQGUJLJECGVRULG<s>JEQ<s>QEQEQ<s>PETLHQSKAQ CQ K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE CL<s>ENJG<s><unk>REJGNPSWER</s>HK RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BRQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>QGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>LCGN<s>PG<unk>QLR<unk>AKQG HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> AKM<unk>X</s>W<unk> A<unk> <s>HCGE L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> AKNQWHAKRVG<unk>HR<unk></s> H<unk>A B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK KUWE<unk>H<unk>H<unk>"]
+PyTorch output: ["WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGQJ RGQ K<s>CGQGUJLJECGVRULG<s>JEQ<s>QEQEQ<s>PETLHQSKAQ CQ K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE CL<s>ENJG<s><unk>REJGNPSWER</s>HK RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BRQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>QGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>LCGN<s>PG<unk>QLR<unk>AKQG HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> AKM<unk>X</s>W<unk> A<unk> <s>HCGE L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> AKNQWHAKRVG<unk>HR<unk></s> H<unk>A B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK KUWE<unk>H<unk>H<unk>"]
+Cloud AI 100 output: ["WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGCQJ RGQ K<s>CGQGUJLJECGVRULG<s>JNQ<s>QEQEQ<s>PETLHQSKAQ CQ K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE CL<s>ENJG<s><unk>REJGNPSWER</s>HK RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BWQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>PGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>L GN<s>PG<unk>QLR<unk>AKQG HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> AKM<unk>X</s>W<unk> A<unk> <s>HCGE L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> AKNQWHAKRVG<unk>HR<unk></s> H<unk>A B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK KUWE<unk>H<unk>H<unk>"]
+FAILED
+tests/transformers/models/audio_embedding_models/test_models.py::test_export_compile_fp16[hf-internal-testing/tiny-random-Wav2Vec2ForCTC] Fetching 7 files:   0%|          | 0/7 [00:00<?, ?it/s]Fetching 7 files: 100%|██████████| 7/7 [00:00<00:00, 61039.77it/s]
+Loading weights:   0%|          | 0/81 [00:00<?, ?it/s]Loading weights:   1%|          | 1/81 [00:01<02:39,  1.99s/it]Loading weights: 100%|██████████| 81/81 [00:01<00:00, 40.53it/s]
+PASSED
+tests/transformers/models/audio_embedding_models/test_models.py::test_generate_fp16[hf-internal-testing/tiny-random-Wav2Vec2ForCTC] Fetching 7 files:   0%|          | 0/7 [00:00<?, ?it/s]Fetching 7 files: 100%|██████████| 7/7 [00:00<00:00, 29448.47it/s]
+Loading weights:   0%|          | 0/81 [00:00<?, ?it/s]Loading weights: 100%|██████████| 81/81 [00:00<00:00, 10735.59it/s]
+Fetching 5 files:   0%|          | 0/5 [00:00<?, ?it/s]Fetching 5 files: 100%|██████████| 5/5 [00:00<00:00, 20743.34it/s]
+torch.float16
+tensor(False)
+tensor(False)
+["WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGQJ RGQ K<s>CGQGUJLJECGVRULG<s>JEQ<s>QEQEQ<s>PETLHQSKAQ CQ K'<unk>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE CL<s>ENJG<s><unk>REJGNPSWER</s>HK RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BRQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>PGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>LCGN<s>PG<unk>QLR<unk>AKQG HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> AKM<unk>X</s>W<unk> A<unk> <s>HCGE L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> AKNQWHAKRVG<unk>HR<unk></s> H<unk>A B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK KUWE<unk>H<unk>H<unk>"]
+["WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGQJ RGQ K<s>CGQGUJLJECGVRULG<s>JNQ<s>QEQEQ<s>PETLHQSKAQ CQ K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQLNQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE CL<s>ENJG<s><unk>REJGNPSWER</s>HK RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BRQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>PGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>LCGN<s>PG<unk>QLR<unk>AKQG HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> AKM<unk>X</s>W<unk> A<unk> <s>HCGE L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> AKNQWHAKRVG<unk>HR<unk></s> H<unk>A B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK KUWE<unk>H<unk>H<unk>"]
+FAILED
+.............Cleaned up /home/vishsent/.cache/qeff_models
+
+
+=================================== FAILURES ===================================
+________ test_generate[hf-internal-testing/tiny-random-Wav2Vec2ForCTC] _________
+
+model_name = 'hf-internal-testing/tiny-random-Wav2Vec2ForCTC'
+
+    @pytest.mark.qaic
+    @pytest.mark.llm
+    @pytest.mark.parametrize("model_name", test_models)
+    def test_generate(model_name):
+    
+>       check_ctc_pytorch_vs_kv_vs_ort_vs_ai100(model_name)
+
+tests/transformers/models/audio_embedding_models/test_models.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+model_name = 'hf-internal-testing/tiny-random-Wav2Vec2ForCTC', num_devices = 1
+n_layer = -1, torch_dtype = torch.float32, enable_qnn = False, qnn_config = None
+compare_results = False, export_compile_only = False
+
+    def check_ctc_pytorch_vs_kv_vs_ort_vs_ai100(
+        model_name: str,
+        num_devices: int = 1,
+        n_layer: int = -1,
+        torch_dtype = torch.float32,
+        enable_qnn: Optional[bool] = False,
+        qnn_config: Optional[str] = None,
+        compare_results: Optional[bool] = False,
+        export_compile_only: Optional[bool] = False,
+    ):
+    
+        torch.manual_seed(42)
+        replace_transformers_quantizers()
+        model_config = {"model_name": model_name}
+        model_config["n_layer"] = n_layer
+        model_hf = load_ctc_model(model_config, torch_dtype)
+        batch_size = 1
+    
+        qeff_model = QEFFAutoModelForCTC(
+            copy.deepcopy(model_hf), pretrained_model_name_or_path=model_name, torch_dtype=torch_dtype
+        )
+        qeff_model.export()
+        qeff_model.compile(
+            batch_size=batch_size,
+            enable_qnn=enable_qnn,
+            qnn_config=qnn_config,
+            num_devices=num_devices,
+        )
+    
+        if export_compile_only:
+            return
+    
+        processor = load_hf_processor(pretrained_model_name_or_path=model_name)
+        ds = load_dataset("hf-internal-testing/librispeech_asr_dummy", "clean", split="validation")
+        data = ds[0]["audio"]["array"]
+        data = torch.tensor(data).unsqueeze(0).numpy()
+        sample_rate = ds[0]["audio"]["sampling_rate"]
+    
+        pytorch_tokens = run_ctc_pytorch_hf(model_hf, processor, data, sample_rate, torch_dtype)
+        predicted_ids = torch.argmax(pytorch_tokens, dim=-1)
+        pytorch_output = processor.batch_decode(predicted_ids)
+    
+        ort_tokens = run_ctc_ort(qeff_model.onnx_path, qeff_model.model.config, processor, data, sample_rate, torch_dtype=torch_dtype)
+        predicted_ids = torch.argmax(ort_tokens, dim=-1)
+        ort_output = processor.batch_decode(predicted_ids)
+    
+        print(pytorch_output)
+        print(ort_output)
+    
+        assert pytorch_output == ort_output, "Tokens don't match for pytorch output and ORT output."
+    
+        cloud_ai_100_output = qeff_model.generate(processor, data)
+        print(f"PyTorch output: {pytorch_output}")
+        print(f"Cloud AI 100 output: {cloud_ai_100_output}")
+>       assert pytorch_output == cloud_ai_100_output, "Tokens don't match for pytorch output and Cloud AI 100 output."
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Tokens don't match for pytorch output and Cloud AI 100 output.
+
+tests/transformers/models/audio_embedding_models/check_audio_embedding_models.py:187: AssertionError
+______ test_generate_fp16[hf-internal-testing/tiny-random-Wav2Vec2ForCTC] ______
+
+model_name = 'hf-internal-testing/tiny-random-Wav2Vec2ForCTC'
+
+    @pytest.mark.qaic
+    @pytest.mark.llm
+    @pytest.mark.parametrize("model_name", test_models)
+    def test_generate_fp16(model_name):
+    
+>       check_ctc_pytorch_vs_kv_vs_ort_vs_ai100(model_name, torch_dtype=torch.float16)
+
+tests/transformers/models/audio_embedding_models/test_models.py:53: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+model_name = 'hf-internal-testing/tiny-random-Wav2Vec2ForCTC', num_devices = 1
+n_layer = -1, torch_dtype = torch.float16, enable_qnn = False, qnn_config = None
+compare_results = False, export_compile_only = False
+
+    def check_ctc_pytorch_vs_kv_vs_ort_vs_ai100(
+        model_name: str,
+        num_devices: int = 1,
+        n_layer: int = -1,
+        torch_dtype = torch.float32,
+        enable_qnn: Optional[bool] = False,
+        qnn_config: Optional[str] = None,
+        compare_results: Optional[bool] = False,
+        export_compile_only: Optional[bool] = False,
+    ):
+    
+        torch.manual_seed(42)
+        replace_transformers_quantizers()
+        model_config = {"model_name": model_name}
+        model_config["n_layer"] = n_layer
+        model_hf = load_ctc_model(model_config, torch_dtype)
+        batch_size = 1
+    
+        qeff_model = QEFFAutoModelForCTC(
+            copy.deepcopy(model_hf), pretrained_model_name_or_path=model_name, torch_dtype=torch_dtype
+        )
+        qeff_model.export()
+        qeff_model.compile(
+            batch_size=batch_size,
+            enable_qnn=enable_qnn,
+            qnn_config=qnn_config,
+            num_devices=num_devices,
+        )
+    
+        if export_compile_only:
+            return
+    
+        processor = load_hf_processor(pretrained_model_name_or_path=model_name)
+        ds = load_dataset("hf-internal-testing/librispeech_asr_dummy", "clean", split="validation")
+        data = ds[0]["audio"]["array"]
+        data = torch.tensor(data).unsqueeze(0).numpy()
+        sample_rate = ds[0]["audio"]["sampling_rate"]
+    
+        pytorch_tokens = run_ctc_pytorch_hf(model_hf, processor, data, sample_rate, torch_dtype)
+        predicted_ids = torch.argmax(pytorch_tokens, dim=-1)
+        pytorch_output = processor.batch_decode(predicted_ids)
+    
+        ort_tokens = run_ctc_ort(qeff_model.onnx_path, qeff_model.model.config, processor, data, sample_rate, torch_dtype=torch_dtype)
+        predicted_ids = torch.argmax(ort_tokens, dim=-1)
+        ort_output = processor.batch_decode(predicted_ids)
+    
+        print(pytorch_output)
+        print(ort_output)
+    
+>       assert pytorch_output == ort_output, "Tokens don't match for pytorch output and ORT output."
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Tokens don't match for pytorch output and ORT output.
+
+tests/transformers/models/audio_embedding_models/check_audio_embedding_models.py:182: AssertionError
+=========================== short test summary info ============================
+FAILED tests/transformers/models/audio_embedding_models/test_models.py::test_generate[hf-internal-testing/tiny-random-Wav2Vec2ForCTC] - AssertionError: Tokens don't match for pytorch output and Cloud AI 100 output.
+FAILED tests/transformers/models/audio_embedding_models/test_models.py::test_generate_fp16[hf-internal-testing/tiny-random-Wav2Vec2ForCTC] - AssertionError: Tokens don't match for pytorch output and ORT output.
+=================== 2 failed, 2 passed in 335.42s (0:05:35) ====================

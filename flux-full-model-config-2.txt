@@ -1,0 +1,98 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- /home/vishsent/efficient-transformers/venv/bin/python3.12
+cachedir: .pytest_cache
+rootdir: /home/vishsent/efficient-transformers
+configfile: pyproject.toml
+plugins: xdist-3.8.0, anyio-4.14.2, mock-3.15.1
+collecting ... collected 2 items
+
+tests/diffusers/test_flux.py::test_flux_pipeline [33;20mWARNING - QEfficient.base.modeling_qeff - BFloat16 dtype is not yet supported; converting to float16 precision![0m
+[33;20mWARNING - QEfficient.base.modeling_qeff - BFloat16 dtype is not yet supported; converting to float16 precision![0m
+
+================================================================================
+FLUX PIPELINE TEST - 64x64 Resolution, 2 Layers
+================================================================================
+height : 64
+width : 64
+num_transformer_layers : 2
+num_single_layers : 2
+================================================================================
+
+Exporting modules:   0%|          | 0/4 [00:00<?, ?module/s]
+Exporting modules:  25%|██▌       | 1/4 [00:18<00:54, 18.11s/module]Exporting modules:  50%|█████     | 2/4 [04:53<05:39, 169.51s/module]Exporting modules:  75%|███████▌  | 3/4 [13:11<05:19, 319.45s/module]Exporting modules: 100%|██████████| 4/4 [13:14<00:00, 194.54s/module]Exporting modules: 100%|██████████| 4/4 [13:14<00:00, 198.63s/module]
+Compiling modules:   0%|          | 0/4 [00:00<?, ?module/s]Compiling modules:  25%|██▌       | 1/4 [00:10<00:32, 10.86s/module]Compiling modules:  50%|█████     | 2/4 [00:35<00:38, 19.24s/module]Compiling modules:  75%|███████▌  | 3/4 [01:01<00:21, 21.89s/module]Compiling modules: 100%|██████████| 4/4 [01:08<00:00, 16.06s/module]Compiling modules: 100%|██████████| 4/4 [01:08<00:00, 17.03s/module]
+ Performing MAD validation for text encoders...
+CLIP_TEXT_ENCODER MAD: 0.00649786
+T5_TEXT_ENCODER MAD: 0.01343083
+  0%|          | 0/2 [00:00<?, ?it/s] 50%|█████     | 1/2 [00:21<00:21, 21.10s/it]100%|██████████| 2/2 [00:35<00:00, 17.09s/it]100%|██████████| 2/2 [00:35<00:00, 17.69s/it]
+TRANSFORMER MAD step 0 (t=1000.0): 0.08592850
+TRANSFORMER MAD step 1 (t=1.0): 0.07944036
+VAE_DECODER MAD: 0.00569355
+
+ IMAGE VALIDATION PASSED
+   - Size: (64, 64)
+   - Mode: RGB
+   - Variance: 46.90
+   - Mean pixel value: 118.30
+Image saved successfully at: test_flux_64x64_2layers.png
+
+ ONNX Export Validation:
+file exist: True; text_encoder ONNX: /home/vishsent/.cache/qeff_models/CLIPTextModel/CLIPTextModel-c0eef11943372f85/CLIPTextModel.onnx
+file exist: True; text_encoder_2 ONNX: /home/vishsent/.cache/qeff_models/T5EncoderModel/T5EncoderModel-834aa785c0b2089c/T5EncoderModel.onnx
+file exist: True; transformer ONNX: /home/vishsent/.cache/qeff_models/FluxTransformer2DModel/FluxTransformer2DModel-4d0811ba2d87d8d8/FluxTransformer2DModel.onnx
+file exist: True; vae_decode ONNX: /home/vishsent/.cache/qeff_models/AutoencoderKL/AutoencoderKL-d90df190b494ed3b/AutoencoderKL.onnx
+
+ Compilation Validation:
+file exist: True; text_encoder QPC: /home/vishsent/.cache/qeff_models/CLIPTextModel/CLIPTextModel-c0eef11943372f85/qpc-ff3c305b6e1e6762/qpc
+file exist: True; text_encoder_2 QPC: /home/vishsent/.cache/qeff_models/T5EncoderModel/T5EncoderModel-834aa785c0b2089c/qpc-61147843d01df742/qpc
+file exist: True; transformer QPC: /home/vishsent/.cache/qeff_models/FluxTransformer2DModel/FluxTransformer2DModel-4d0811ba2d87d8d8/qpc-382816f72bb17bba/qpc
+file exist: True; vae_decode QPC: /home/vishsent/.cache/qeff_models/AutoencoderKL/AutoencoderKL-d90df190b494ed3b/qpc-5fc065af4668f599/qpc
+
+Total execution time: 947.4368s
+PASSED
+tests/diffusers/test_flux.py::test_flux_pipeline_first_block_cache [33;20mWARNING - QEfficient.base.modeling_qeff - BFloat16 dtype is not yet supported; converting to float16 precision![0m
+[33;20mWARNING - QEfficient.base.modeling_qeff - BFloat16 dtype is not yet supported; converting to float16 precision![0m
+
+================================================================================
+FLUX PIPELINE FIRST-BLOCK-CACHE TEST - 64x64 Resolution, 2 Layers
+================================================================================
+height : 64
+width : 64
+num_transformer_layers : 2
+num_single_layers : 2
+================================================================================
+Exporting modules:   0%|          | 0/4 [00:00<?, ?module/s]Exporting modules:  75%|███████▌  | 3/4 [09:40<03:13, 193.34s/module]Exporting modules: 100%|██████████| 4/4 [09:40<00:00, 145.01s/module]
+Compiling modules:   0%|          | 0/4 [00:00<?, ?module/s]Compiling modules: 100%|██████████| 4/4 [01:03<00:00, 15.92s/module]Compiling modules: 100%|██████████| 4/4 [01:03<00:00, 15.92s/module]
+ Performing MAD validation for text encoders...
+CLIP_TEXT_ENCODER MAD: 0.00649786
+T5_TEXT_ENCODER MAD: 0.01343083
+  0%|          | 0/2 [00:00<?, ?it/s] 50%|█████     | 1/2 [00:15<00:15, 15.88s/it]100%|██████████| 2/2 [00:22<00:00, 10.45s/it]100%|██████████| 2/2 [00:22<00:00, 11.27s/it]
+TRANSFORMER MAD step 0 (t=1000.0): 0.08592850
+TRANSFORMER MAD step 1 (t=1.0): 0.07944560
+VAE_DECODER MAD: 0.00581479
+
+ IMAGE VALIDATION PASSED
+   - Size: (64, 64)
+   - Mode: RGB
+   - Variance: 46.90
+   - Mean pixel value: 118.31
+Image saved successfully at: test_flux_64x64_2layers.png
+
+ ONNX Export Validation:
+file exist: True; text_encoder ONNX: /home/vishsent/.cache/qeff_models/CLIPTextModel/CLIPTextModel-c0eef11943372f85/CLIPTextModel.onnx
+file exist: True; text_encoder_2 ONNX: /home/vishsent/.cache/qeff_models/T5EncoderModel/T5EncoderModel-834aa785c0b2089c/T5EncoderModel.onnx
+file exist: True; transformer ONNX: /home/vishsent/.cache/qeff_models/FluxTransformer2DModel/FluxTransformer2DModel-a19b31f6a232cb50/FluxTransformer2DModel.onnx
+file exist: True; vae_decode ONNX: /home/vishsent/.cache/qeff_models/AutoencoderKL/AutoencoderKL-d90df190b494ed3b/AutoencoderKL.onnx
+
+ Compilation Validation:
+file exist: True; text_encoder QPC: /home/vishsent/.cache/qeff_models/CLIPTextModel/CLIPTextModel-c0eef11943372f85/qpc-ff3c305b6e1e6762/qpc
+file exist: True; text_encoder_2 QPC: /home/vishsent/.cache/qeff_models/T5EncoderModel/T5EncoderModel-834aa785c0b2089c/qpc-61147843d01df742/qpc
+file exist: True; transformer QPC: /home/vishsent/.cache/qeff_models/FluxTransformer2DModel/FluxTransformer2DModel-a19b31f6a232cb50/qpc-cb7b5a2af4bfd5b2/qpc
+file exist: True; vae_decode QPC: /home/vishsent/.cache/qeff_models/AutoencoderKL/AutoencoderKL-d90df190b494ed3b/qpc-5fc065af4668f599/qpc
+
+Total execution time: 708.5996s
+PASSED
+.............Cleaned up /home/vishsent/.cache/qeff_models
+
+
+======================== 2 passed in 1948.67s (0:32:28) ========================

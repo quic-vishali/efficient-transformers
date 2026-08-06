@@ -10,6 +10,7 @@ Test for wan pipeline
 """
 
 import copy
+import os
 import time
 from typing import Any, Callable, Dict, List, Optional, Union
 
@@ -42,7 +43,7 @@ NON_UNIFIED_CONFIG_PATH = "tests/diffusers/wan_test_non_unified_config.json"
 INITIAL_TEST_CONFIG = load_json(CONFIG_PATH)
 NON_UNIFIED_TEST_CONFIG = load_json(NON_UNIFIED_CONFIG_PATH)
 TEST_SEED = 42
-
+model_id = "Wan-AI/Wan2.2-T2V-A14B-Diffusers"
 
 def wan_pipeline_call_with_mad_validation(
     pipeline,
@@ -60,10 +61,8 @@ def wan_pipeline_call_with_mad_validation(
     latents: Optional[torch.Tensor] = None,
     prompt_embeds: Optional[torch.Tensor] = None,
     negative_prompt_embeds: Optional[torch.Tensor] = None,
-    output_type: Optional[str] = "np",
-    return_dict: bool = True,
+    export_compile_only: bool = False,
     attention_kwargs: Optional[Dict[str, Any]] = None,
-    callback_on_step_end: Optional[Callable[[int, int, Dict], None]] = None,
     callback_on_step_end_tensor_inputs: List[str] = ["latents"],
     max_sequence_length: int = 512,
     custom_config_path: Optional[str] = None,
@@ -86,6 +85,7 @@ def wan_pipeline_call_with_mad_validation(
     device = "cpu"
 
     # Step 1: Compile() (export and compile)
+    _t_compile_start = time.time()
     pipeline.cl, pipeline.latent_height, pipeline.latent_width, pipeline.latent_frames = (
         calculate_latent_dimensions_with_frames(
             height,
@@ -105,6 +105,9 @@ def wan_pipeline_call_with_mad_validation(
         num_frames=num_frames,
         use_onnx_subfunctions=use_onnx_subfunctions,
     )
+    print(f"\n[Timing] Export + Compile: {(time.time() - _t_compile_start) / 60:.2f}min")
+    if export_compile_only:
+        return
 
     # Step 2: Check inputs
     pipeline.model.check_inputs(
@@ -145,6 +148,7 @@ def wan_pipeline_call_with_mad_validation(
         batch_size = prompt_embeds.shape[0]
 
     # Step 4: Encode input prompt(using CPU text encoder for now)
+    _t_encode_start = time.time()
     prompt_embeds, negative_prompt_embeds = pipeline.model.encode_prompt(
         prompt=prompt,
         negative_prompt=negative_prompt,
@@ -169,6 +173,7 @@ def wan_pipeline_call_with_mad_validation(
         max_sequence_length=max_sequence_length,
         device=device,
     )
+    print(f"\n[Timing] Text encoding (pipeline + PyTorch ref): {(time.time() - _t_encode_start) / 60:.2f}min")
 
     if pipeline.use_unified:
         transformer_dtype = pipeline.transformer.model.transformer_high.dtype
@@ -245,6 +250,7 @@ def wan_pipeline_call_with_mad_validation(
     transformer_perf = []
 
     # Step 8: Denoising loop with transformer MAD validation
+    _t_denoise_start = time.time()
     if pipeline.model.config.boundary_ratio is not None:
         boundary_timestep = pipeline.model.config.boundary_ratio * pipeline.scheduler.config.num_train_timesteps
     else:
@@ -374,6 +380,7 @@ def wan_pipeline_call_with_mad_validation(
     else:
         release_qpc_session(pipeline.transformer_high)
         release_qpc_session(pipeline.transformer_low)
+    print(f"\n[Timing] Denoising loop: {(time.time() - _t_denoise_start) / 60:.2f}min")
     # Step 9: Decode latents to video QAIC VAE decoder
     latents = latents.to(pipeline.vae_decoder.model.dtype)
     latents_mean = (
@@ -416,6 +423,11 @@ def wan_pipeline_call_with_mad_validation(
     video_tensor = torch.from_numpy(video["sample"])
     video = pipeline.model.video_processor.postprocess_video(video_tensor)
 
+    first_frame = video[0][0]          # first video, first frame
+    arr = np.array(first_frame)
+    print("PIL frame shape:", arr.shape)   # (height, width, 3)
+    print("pixel values:\n", arr)
+    
     # Build performance metrics
     perf_data = {
         "transformer": transformer_perf,
@@ -424,6 +436,15 @@ def wan_pipeline_call_with_mad_validation(
 
     # Convert metrics to pipeline output format.
     perf_metrics = [ModulePerf(module_name=name, perf=perf_data[name]) for name in perf_data.keys()]
+
+    print(
+        f"\n[Timing] Phase summary:"
+        f"\n  Export + Compile : (see above)"
+        f"\n  Text encoding    : (see above)"
+        f"\n  Denoising loop   : (see above)"
+        f"\n  Transformer steps: {sum(transformer_perf) / 60:.4f}min total ({len(transformer_perf)} steps)"
+        f"\n  VAE decode       : {vae_decoder_perf / 60:.4f}min"
+    )
 
     return QEffPipelineOutput(
         pipeline_module=perf_metrics,
@@ -436,82 +457,105 @@ def _build_wan_pipeline(use_unified: bool = True, enable_first_block_cache: bool
     torch.manual_seed(TEST_SEED)
     np.random.seed(TEST_SEED)
 
-    config = INITIAL_TEST_CONFIG["model_setup"]
-    model_id = "Wan-AI/Wan2.2-T2V-A14B-Diffusers"
-    pipe_cfg = WanPipeline.load_config(model_id)
+    _t_load_start = time.time()
+    if os.environ.get("QEFF_TEST_PROFILE", "").strip().lower() == "tiny_model":
+        config = INITIAL_TEST_CONFIG["model_setup"]
+        pipe_cfg = WanPipeline.load_config(model_id)
 
-    vae_config = AutoencoderKLWan.load_config(model_id, subfolder="vae")
-    t_config = WanTransformer3DModel.load_config(model_id, subfolder="transformer")
-    tiny_vae_config = dict(vae_config)
-    # Reduced configs
-    tiny_vae_config.update(
-        {
-            "num_res_blocks": 1,
-            "base_dim": 16,
-            "dim_mult": [1, 1, 2, 2],
-            "z_dim": 16,
-            "temperal_downsample": [False, True, True],
-        }
-    )
-    vae = AutoencoderKLWan.from_config(tiny_vae_config)
-    # vae = AutoencoderKLWan.from_config(vae_config)  # Uncomment to use full VAE config.
+        vae_config = AutoencoderKLWan.load_config(model_id, subfolder="vae")
+        t_config = WanTransformer3DModel.load_config(model_id, subfolder="transformer")
+        tiny_vae_config = dict(vae_config)
+        # Reduced configs
+        tiny_vae_config.update(
+            {
+                "num_res_blocks": 1,
+                "base_dim": 16,
+                "dim_mult": [1, 1, 2, 2],
+                "z_dim": 16,
+                "temperal_downsample": [False, True, True],
+            }
+        )
+        vae = AutoencoderKLWan.from_config(tiny_vae_config)
+        # vae = AutoencoderKLWan.from_config(vae_config)  # Uncomment to use full VAE config.
 
-    # Keep transformer shallow for quicker tests.
-    t_config["num_layers"] = config["num_transformer_layers_high"]
-    transformer_high = WanTransformer3DModel.from_config(t_config)
-    transformer_low = WanTransformer3DModel.from_config(t_config)
+        # Keep transformer shallow for quicker tests.
+        t_config["num_layers"] = config["num_transformer_layers_high"]
+        transformer_high = WanTransformer3DModel.from_config(t_config)
+        transformer_low = WanTransformer3DModel.from_config(t_config)
 
-    # Random-init text encoder and scheduler from config to avoid model weight downloads.
-    text_encoder_cfg = UMT5EncoderModel.config_class.from_pretrained(model_id, subfolder="text_encoder")
-    text_encoder = UMT5EncoderModel(text_encoder_cfg)
-    tokenizer = T5TokenizerFast.from_pretrained(model_id, subfolder="tokenizer")
-    scheduler_cfg = FlowMatchEulerDiscreteScheduler.load_config(model_id, subfolder="scheduler")
-    scheduler = FlowMatchEulerDiscreteScheduler.from_config(scheduler_cfg)
+        # Random-init text encoder and scheduler from config to avoid model weight downloads.
+        text_encoder_cfg = UMT5EncoderModel.config_class.from_pretrained(model_id, subfolder="text_encoder")
+        text_encoder = UMT5EncoderModel(text_encoder_cfg)
+        tokenizer = T5TokenizerFast.from_pretrained(model_id, subfolder="tokenizer")
+        scheduler_cfg = FlowMatchEulerDiscreteScheduler.load_config(model_id, subfolder="scheduler")
+        scheduler = FlowMatchEulerDiscreteScheduler.from_config(scheduler_cfg)
 
-    pytorch_pipeline = WanPipeline(
-        tokenizer=tokenizer,
-        text_encoder=text_encoder,
-        vae=vae,
-        scheduler=scheduler,
-        transformer=transformer_high,
-        transformer_2=transformer_low,
-        boundary_ratio=pipe_cfg.get("boundary_ratio"),
-        expand_timesteps=pipe_cfg.get("expand_timesteps", False),
-    )
-    vae.eval()
-    transformer_high.eval()
-    transformer_low.eval()
-    text_encoder.eval()
+        pytorch_pipeline = WanPipeline(
+            tokenizer=tokenizer,
+            text_encoder=text_encoder,
+            vae=vae,
+            scheduler=scheduler,
+            transformer=transformer_high,
+            transformer_2=transformer_low,
+            boundary_ratio=pipe_cfg.get("boundary_ratio"),
+            expand_timesteps=pipe_cfg.get("expand_timesteps", False),
+        )
+        vae.eval()
+        transformer_high.eval()
+        transformer_low.eval()
+        text_encoder.eval()
 
-    pytorch_pipeline_copy = copy.deepcopy(pytorch_pipeline)
-    pipeline = QEffWanPipeline(
-        pytorch_pipeline_copy,
-        use_unified=use_unified,
-        enable_first_block_cache=enable_first_block_cache,
-    )
+        pytorch_pipeline_copy = copy.deepcopy(pytorch_pipeline)
+        pipeline = QEffWanPipeline(
+            pytorch_pipeline_copy,
+            use_unified=use_unified,
+            enable_first_block_cache=enable_first_block_cache,
+        )
+    else:
+        pytorch_pipeline = WanPipeline.from_pretrained(model_id, dtype=torch.float32)
+        pipeline = QEffWanPipeline(
+            copy.deepcopy(pytorch_pipeline),
+            pretrained_model_name_or_path=model_id,
+            use_unified=use_unified,
+            enable_first_block_cache=enable_first_block_cache,
+        )
 
+    print(f"\n[Timing] Model loading: {(time.time() - _t_load_start) / 60:.2f}min")
     return pipeline, pytorch_pipeline
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def wan_pipeline():
     return _build_wan_pipeline(use_unified=True)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def wan_pipeline_non_unified():
     return _build_wan_pipeline(use_unified=False)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def wan_pipeline_non_unified_first_block_cache():
     return _build_wan_pipeline(use_unified=False, enable_first_block_cache=True)
 
 
 @pytest.mark.diffusion_models
-@pytest.mark.on_qaic
+@pytest.mark.non_qaic
 @pytest.mark.wan
-def test_wan_pipeline(wan_pipeline):
+def test_export_compile(wan_pipeline):
+    _run_wan_pipeline_test_case(
+        wan_pipeline,
+        INITIAL_TEST_CONFIG,
+        CONFIG_PATH,
+        "WAN PIPELINE EXPORT COMPILE TEST",
+        export_compile_only=True,
+    )
+
+
+@pytest.mark.diffusion_models
+@pytest.mark.qaic
+@pytest.mark.wan
+def test_generate(wan_pipeline):
     _run_wan_pipeline_test_case(
         wan_pipeline,
         INITIAL_TEST_CONFIG,
@@ -521,9 +565,22 @@ def test_wan_pipeline(wan_pipeline):
 
 
 @pytest.mark.diffusion_models
-@pytest.mark.on_qaic
+@pytest.mark.non_qaic
 @pytest.mark.wan
-def test_wan_pipeline_non_unified(wan_pipeline_non_unified):
+def test_export_compile_non_unified(wan_pipeline_non_unified):
+    _run_wan_pipeline_test_case(
+        wan_pipeline_non_unified,
+        NON_UNIFIED_TEST_CONFIG,
+        NON_UNIFIED_CONFIG_PATH,
+        "WAN PIPELINE NON-UNIFIED EXPORT COMPILE TEST",
+        export_compile_only=True,
+    )
+
+
+@pytest.mark.diffusion_models
+@pytest.mark.qaic
+@pytest.mark.wan
+def test_generate_non_unified(wan_pipeline_non_unified):
     _run_wan_pipeline_test_case(
         wan_pipeline_non_unified,
         NON_UNIFIED_TEST_CONFIG,
@@ -533,9 +590,22 @@ def test_wan_pipeline_non_unified(wan_pipeline_non_unified):
 
 
 @pytest.mark.diffusion_models
-@pytest.mark.on_qaic
+@pytest.mark.non_qaic
 @pytest.mark.wan
-def test_wan_pipeline_non_unified_first_block_cache(wan_pipeline_non_unified_first_block_cache):
+def test_export_compile_non_unified_first_block_cache(wan_pipeline_non_unified_first_block_cache):
+    _run_wan_pipeline_test_case(
+        wan_pipeline_non_unified_first_block_cache,
+        NON_UNIFIED_TEST_CONFIG,
+        NON_UNIFIED_CONFIG_PATH,
+        "WAN PIPELINE NON-UNIFIED FIRST-BLOCK-CACHE EXPORT COMPILE TEST",
+        export_compile_only=True,
+    )
+
+
+@pytest.mark.diffusion_models
+@pytest.mark.qaic
+@pytest.mark.wan
+def test_generate_non_unified_first_block_cache(wan_pipeline_non_unified_first_block_cache):
     _run_wan_pipeline_test_case(
         wan_pipeline_non_unified_first_block_cache,
         NON_UNIFIED_TEST_CONFIG,
@@ -553,6 +623,7 @@ def _run_wan_pipeline_test_case(
     config,
     compile_config_path: str,
     test_label: str,
+    export_compile_only: bool = False,
     pipeline_call_overrides: Optional[Dict[str, Any]] = None,
 ):
     """
@@ -566,10 +637,7 @@ def _run_wan_pipeline_test_case(
     pipeline, pytorch_pipeline = wan_pipeline_data
 
     # Print test header
-    DiffusersTestUtils.print_test_header(
-        f"{test_label} - {config['model_setup']['height']}x{config['model_setup']['width']} Resolution, {config['model_setup']['num_frames']} Frames, 2 Layers Total",
-        config,
-    )
+    DiffusersTestUtils.print_test_header(test_label)
 
     # Test parameters
     test_prompt = config["pipeline_params"]["test_prompt"]
@@ -602,11 +670,43 @@ def _run_wan_pipeline_test_case(
             mad_tolerances=config["mad_validation"]["tolerances"],
             use_onnx_subfunctions=config["pipeline_params"]["use_onnx_subfunctions"],
             parallel_compile=True,
-            return_dict=True,
+            export_compile_only=export_compile_only,
             **pipeline_call_overrides,
         )
 
+        if export_compile_only:
+            return
+
         execution_time = time.time() - start_time
+
+        if config["validation_checks"]["onnx_export"]:
+            print("\n ONNX Export Validation:")
+            if pipeline.use_unified:
+                DiffusersTestUtils.check_file_exists(str(pipeline.transformer.onnx_path), "transformer ONNX")
+            else:
+                DiffusersTestUtils.check_file_exists(str(pipeline.transformer_high.onnx_path), "transformer_high ONNX")
+                DiffusersTestUtils.check_file_exists(str(pipeline.transformer_low.onnx_path), "transformer_low ONNX")
+
+        if config["validation_checks"]["compilation"]:
+            print("\n Compilation Validation:")
+            if pipeline.use_unified:
+                DiffusersTestUtils.check_file_exists(str(pipeline.transformer.qpc_path), "transformer QPC")
+            else:
+                DiffusersTestUtils.check_file_exists(str(pipeline.transformer_high.qpc_path), "transformer_high QPC")
+                DiffusersTestUtils.check_file_exists(str(pipeline.transformer_low.qpc_path), "transformer_low QPC")
+
+        if pipeline.use_unified:
+            DiffusersTestUtils.print_artifact_sizes({
+                "transformer ONNX": str(pipeline.transformer.onnx_path) if pipeline.transformer.onnx_path else None,
+                "transformer QPC":  str(pipeline.transformer.qpc_path) if pipeline.transformer.qpc_path else None,
+            })
+        else:
+            DiffusersTestUtils.print_artifact_sizes({
+                "transformer_high ONNX": str(pipeline.transformer_high.onnx_path) if pipeline.transformer_high.onnx_path else None,
+                "transformer_high QPC":  str(pipeline.transformer_high.qpc_path) if pipeline.transformer_high.qpc_path else None,
+                "transformer_low ONNX":  str(pipeline.transformer_low.onnx_path) if pipeline.transformer_low.onnx_path else None,
+                "transformer_low QPC":   str(pipeline.transformer_low.qpc_path) if pipeline.transformer_low.qpc_path else None,
+            })
 
         # Validate video generation
         if config["pipeline_params"]["validate_gen_video"]:
@@ -648,22 +748,6 @@ def _run_wan_pipeline_test_case(
             export_to_video(frames, "test_wan_output_t2v.mp4", fps=16)
             print("\n VIDEO SAVED: test_wan_output_t2v.mp4")
             print(result)
-
-        if config["validation_checks"]["onnx_export"]:
-            print("\n ONNX Export Validation:")
-            if pipeline.use_unified:
-                DiffusersTestUtils.check_file_exists(str(pipeline.transformer.onnx_path), "transformer ONNX")
-            else:
-                DiffusersTestUtils.check_file_exists(str(pipeline.transformer_high.onnx_path), "transformer_high ONNX")
-                DiffusersTestUtils.check_file_exists(str(pipeline.transformer_low.onnx_path), "transformer_low ONNX")
-
-        if config["validation_checks"]["compilation"]:
-            print("\n Compilation Validation:")
-            if pipeline.use_unified:
-                DiffusersTestUtils.check_file_exists(str(pipeline.transformer.qpc_path), "transformer QPC")
-            else:
-                DiffusersTestUtils.check_file_exists(str(pipeline.transformer_high.qpc_path), "transformer_high QPC")
-                DiffusersTestUtils.check_file_exists(str(pipeline.transformer_low.qpc_path), "transformer_low QPC")
 
         # Print test summary
         print(f"\nTotal execution time: {execution_time:.4f}s")

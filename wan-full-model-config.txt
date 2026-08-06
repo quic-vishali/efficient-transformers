@@ -1,0 +1,471 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- /home/vishsent/efficient-transformers/venv/bin/python3.12
+cachedir: .pytest_cache
+rootdir: /home/vishsent/efficient-transformers
+configfile: pyproject.toml
+plugins: xdist-3.8.0, anyio-4.14.2, mock-3.15.1
+collecting ... collected 3 items
+
+tests/diffusers/test_wan.py::test_wan_pipeline Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+================================================================================
+WAN PIPELINE TEST - 48x64 Resolution, 81 Frames, 2 Layers Total
+================================================================================
+height : 48
+width : 64
+num_frames : 81
+num_transformer_layers_high : 1
+num_transformer_layers_low : 1
+================================================================================
+Exporting modules:   0%|          | 0/2 [00:00<?, ?module/s][31;20mERROR - QEfficient.base.modeling_qeff - ONNX export or transforms failed: ONNX export failed. Could not open file or directory: /home/vishsent/.cache/qeff_models/WanUnifiedWrapper/WanUnifiedWrapper-989d7e5c645c3712/Constant_540_attr__value  (modeling_qeff.py:485)[0m
+Exporting modules:   0%|          | 0/2 [13:52<?, ?module/s]
+
+TEST FAILED: ONNX export failed. Could not open file or directory: /home/vishsent/.cache/qeff_models/WanUnifiedWrapper/WanUnifiedWrapper-989d7e5c645c3712/Constant_540_attr__value
+FAILED
+tests/diffusers/test_wan.py::test_wan_pipeline_non_unified 
+================================================================================
+WAN PIPELINE NON-UNIFIED TEST - 48x64 Resolution, 81 Frames, 2 Layers Total
+================================================================================
+height : 48
+width : 64
+num_frames : 81
+num_transformer_layers_high : 1
+num_transformer_layers_low : 1
+================================================================================
+Exporting modules:   0%|          | 0/3 [00:00<?, ?module/s]Exporting modules:  33%|███▎      | 1/3 [31:24<1:02:48, 1884.28s/module]Exporting modules:  67%|██████▋   | 2/3 [56:33<27:43, 1663.48s/module]  Exporting modules: 100%|██████████| 3/3 [57:38<00:00, 933.56s/module] Exporting modules: 100%|██████████| 3/3 [57:38<00:00, 1152.72s/module]
+Compiling modules:   0%|          | 0/3 [00:00<?, ?module/s]Compiling modules:  33%|███▎      | 1/3 [02:38<05:17, 158.69s/module]Compiling modules:  67%|██████▋   | 2/3 [07:24<03:53, 233.45s/module]Compiling modules: 100%|██████████| 3/3 [12:26<00:00, 264.75s/module]Compiling modules: 100%|██████████| 3/3 [12:26<00:00, 248.82s/module]
+  0%|          | 0/2 [00:00<?, ?it/s] 50%|█████     | 1/2 [00:18<00:18, 18.56s/it]100%|██████████| 2/2 [00:39<00:00, 20.05s/it]100%|██████████| 2/2 [00:39<00:00, 19.83s/it]
+ Performing MAD validation for transformer final latent output...
+TRANSFORMER MAD final latents after 2 steps: 0.06702769
+ Performing MAD validation for VAE decoder...
+VAE_DECODER MAD video decoding: 1.49775970
+
+TEST FAILED: vae_decoder MAD 1.497760 exceeds tolerance 1.300000
+FAILED
+tests/diffusers/test_wan.py::test_wan_pipeline_non_unified_first_block_cache 
+================================================================================
+WAN PIPELINE NON-UNIFIED FIRST-BLOCK-CACHE TEST - 48x64 Resolution, 81 Frames, 2 Layers Total
+================================================================================
+height : 48
+width : 64
+num_frames : 81
+num_transformer_layers_high : 1
+num_transformer_layers_low : 1
+================================================================================
+Exporting modules:   0%|          | 0/3 [00:00<?, ?module/s]Exporting modules:  33%|███▎      | 1/3 [14:12<28:24, 852.49s/module]Exporting modules:  67%|██████▋   | 2/3 [25:07<12:16, 736.59s/module]Exporting modules: 100%|██████████| 3/3 [25:08<00:00, 502.67s/module]
+Compiling modules:   0%|          | 0/3 [00:00<?, ?module/s]Compiling modules:  67%|██████▋   | 2/3 [02:20<01:10, 70.24s/module]Compiling modules: 100%|██████████| 3/3 [02:22<00:00, 42.00s/module]Compiling modules: 100%|██████████| 3/3 [02:22<00:00, 47.65s/module]
+  0%|          | 0/2 [00:00<?, ?it/s] 50%|█████     | 1/2 [00:14<00:14, 14.27s/it]100%|██████████| 2/2 [00:26<00:00, 12.97s/it]100%|██████████| 2/2 [00:26<00:00, 13.17s/it]
+ Performing MAD validation for transformer final latent output...
+TRANSFORMER MAD final latents after 2 steps: 0.06696677
+ Performing MAD validation for VAE decoder...
+VAE_DECODER MAD video decoding: 1.49876821
+
+TEST FAILED: vae_decoder MAD 1.498768 exceeds tolerance 1.300000
+FAILED
+.............Cleaned up /home/vishsent/.cache/qeff_models
+
+
+=================================== FAILURES ===================================
+______________________________ test_wan_pipeline _______________________________
+
+wan_pipeline = (<QEfficient.diffusers.pipelines.wan.pipeline_wan.QEffWanPipeline object at 0x7f7c1f7e0b00>, WanPipeline {
+  "_class_n...rmer_2": [
+    "diffusers",
+    "WanTransformer3DModel"
+  ],
+  "vae": [
+    "diffusers",
+    "AutoencoderKLWan"
+  ]
+}
+)
+
+    @pytest.mark.diffusion_models
+    @pytest.mark.on_qaic
+    @pytest.mark.wan
+    def test_wan_pipeline(wan_pipeline):
+>       _run_wan_pipeline_test_case(
+            wan_pipeline,
+            INITIAL_TEST_CONFIG,
+            CONFIG_PATH,
+            "WAN PIPELINE TEST",
+        )
+
+tests/diffusers/test_wan.py:515: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/diffusers/test_wan.py:589: in _run_wan_pipeline_test_case
+    result = wan_pipeline_call_with_mad_validation(
+tests/diffusers/test_wan.py:100: in wan_pipeline_call_with_mad_validation
+    pipeline.compile(
+QEfficient/diffusers/pipelines/wan/pipeline_wan.py:393: in compile
+    self.export(use_onnx_subfunctions=use_onnx_subfunctions)
+QEfficient/diffusers/pipelines/wan/pipeline_wan.py:324: in export
+    module_obj.export(**export_params)
+QEfficient/diffusers/pipelines/pipeline_module.py:759: in export
+    return self._export(
+QEfficient/utils/export_utils.py:62: in wrapper
+    onnx_path = func(self, *args, **kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+QEfficient/base/modeling_qeff.py:486: in _export
+    raise e
+QEfficient/base/modeling_qeff.py:438: in _export
+    torch.onnx.export(
+venv/lib/python3.12/site-packages/torch/onnx/__init__.py:396: in export
+    export(
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:529: in export
+    _export(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+model = QEffWanUnifiedWrapper(
+  (transformer_high): QEffWanTransformer3DModel(
+    (rope): WanRotaryPosEmbed()
+    (patch_emb...5120,), eps=1e-06, elementwise_affine=False)
+    (proj_out): Linear(in_features=5120, out_features=64, bias=True)
+  )
+)
+args = (tensor([[[[[ 9.9520e-01, -1.3349e+00, -2.4160e-03,  ..., -8.7744e-01,
+            -1.1185e+00, -3.2489e-01],
+        ... 1.7948, -1.7149, -1.8575],
+         [ 0.2961,  0.5413,  1.4199,  ...,  0.1669,  0.3515,  0.3457]]]), tensor([1]), ...)
+f = '/home/vishsent/.cache/qeff_models/WanUnifiedWrapper/WanUnifiedWrapper-989d7e5c645c3712/WanUnifiedWrapper.onnx'
+export_params = True, verbose = False, training = <TrainingMode.EVAL: 0>
+input_names = ['hidden_states', 'encoder_hidden_states', 'rotary_emb', 'temb', 'timestep_proj', 'tsp']
+output_names = ['output'], operator_export_type = <OperatorExportTypes.ONNX: 0>
+export_type = None, opset_version = 17, do_constant_folding = True
+dynamic_axes = {'hidden_states': {0: 'batch_size', 1: 'num_channels', 2: 'latent_frames', 3: 'latent_height', ...}, 'timestep': {0: 'steps'}, 'encoder_hidden_states': {0: 'batch_size', 1: 'sequence_length'}, 'rotary_emb': {1: 'cl'}, ...}
+keep_initializers_as_inputs = False, fixed_batch_size = False
+custom_opsets = {}, add_node_names = True, onnx_shape_inference = True
+export_modules_as_functions = {<class 'diffusers.models.transformers.transformer_wan.WanTransformerBlock'>}
+autograd_inlining = True
+
+    def _export(
+        model,
+        args,
+        f,
+        export_params=True,
+        verbose=False,
+        training=_C_onnx.TrainingMode.EVAL,
+        input_names=None,
+        output_names=None,
+        operator_export_type=_C_onnx.OperatorExportTypes.ONNX,
+        export_type=None,
+        opset_version=None,
+        do_constant_folding=True,
+        dynamic_axes=None,
+        keep_initializers_as_inputs=None,
+        fixed_batch_size=False,
+        custom_opsets=None,
+        add_node_names=True,
+        onnx_shape_inference=True,
+        export_modules_as_functions: Any = False,
+        autograd_inlining=True,
+    ):
+        assert GLOBALS.in_onnx_export is False
+    
+        if isinstance(model, torch.nn.DataParallel):
+            raise ValueError(
+                "torch.nn.DataParallel is not supported by ONNX "
+                "exporter, please use 'attribute' module to "
+                "unwrap model from torch.nn.DataParallel. Try "
+                "torch.onnx.export(model.module, ...)"
+            )
+    
+        GLOBALS.onnx_shape_inference = onnx_shape_inference
+    
+        if opset_version is None:
+            opset_version = _constants.ONNX_DEFAULT_OPSET
+    
+        # torch.onnx.export does not support opset versions >=18
+        if opset_version > _constants.ONNX_TORCHSCRIPT_EXPORTER_MAX_OPSET:
+            # We do not want to fail because we should still allow users to create
+            # custom symbolic functions for opset>17
+            warnings.warn(
+                f"Exporting to ONNX opset version {opset_version} is not supported. "
+                f"by 'torch.onnx.export()'. "
+                f"The highest opset version supported is {_constants.ONNX_TORCHSCRIPT_EXPORTER_MAX_OPSET}. "
+                f"To use a newer opset version, consider 'torch.onnx.export(..., dynamo=True)'. ",
+                category=errors.OnnxExporterWarning,
+            )
+    
+        if export_modules_as_functions and opset_version < 15:
+            raise ValueError(
+                "`export_modules_as_functions` is not supported for `opset_version` < 15."
+                "This is because `opset_version` < 15 implies IR version < 8, which means "
+                "no local function support. "
+            )
+        if not operator_export_type:
+            operator_export_type = _C_onnx.OperatorExportTypes.ONNX
+    
+        # By default, training=TrainingMode.EVAL,
+        # which is good because running a model in training mode could result in
+        # internal buffers getting updated, dropout getting applied, etc.
+        # If you really know what you're doing, you can turn
+        # training=TrainingMode.TRAINING or training=TrainingMode.PRESERVE,
+        # (to preserve whatever the original training mode was.)
+        GLOBALS.export_onnx_opset_version = opset_version
+        GLOBALS.operator_export_type = operator_export_type
+    
+        try:
+            GLOBALS.in_onnx_export = True
+            _autograd_inlining_previous = GLOBALS.autograd_inlining
+            GLOBALS.autograd_inlining = autograd_inlining
+    
+            module_typenames_to_export_as_functions: set[str] = set()
+            if isinstance(model, (torch.nn.Module, torch.jit.ScriptModule)):
+                module_typenames_to_export_as_functions = _setup_trace_module_map(
+                    model, export_modules_as_functions
+                )
+    
+            with exporter_context(model, training, verbose):
+                val_keep_init_as_ip = _decide_keep_init_as_input(
+                    keep_initializers_as_inputs,
+                    operator_export_type,
+                    opset_version,
+                )
+                val_add_node_names = _decide_add_node_names(
+                    add_node_names, operator_export_type
+                )
+                val_do_constant_folding = _decide_constant_folding(
+                    do_constant_folding, operator_export_type, training
+                )
+                # Normally f can be a file-like object, but for large models, the external data format requires a
+                # valid `model_file_location`. Code in export.cpp will enforce this.
+                if isinstance(f, str):
+                    model_file_location = f
+                else:
+                    model_file_location = ""
+                args = _decide_input_format(model, args)
+                if dynamic_axes is None:
+                    dynamic_axes = {}
+                _validate_dynamic_axes(dynamic_axes, model, input_names, output_names)
+    
+                graph, params_dict, torch_out = _model_to_graph(
+                    model,
+                    args,
+                    verbose,
+                    input_names,
+                    output_names,
+                    operator_export_type,
+                    val_do_constant_folding,
+                    fixed_batch_size=fixed_batch_size,
+                    training=training,
+                    dynamic_axes=dynamic_axes,
+                )
+    
+                if custom_opsets is None:
+                    custom_opsets = {}
+    
+                _C._jit_pass_dce_allow_deleting_nodes_with_side_effects(graph)
+                node_attr_to_name = {}  # type: ignore[var-annotated]
+                if module_typenames_to_export_as_functions:
+                    # NOTE: cannot call DCE after this pass. DCE will remove function definition nodes.
+                    node_attr_to_name = _C._jit_pass_onnx_function_extraction(
+                        graph,
+                        module_typenames_to_export_as_functions,
+                        list(params_dict.keys()),
+                    )
+    
+                if keep_initializers_as_inputs is not True:
+                    params_dict = _C._jit_pass_onnx_deduplicate_initializers(  # type: ignore[assignment]
+                        graph,
+                        params_dict,  # type: ignore[arg-type]
+                        getattr(model, "training", False),  # type: ignore[arg-type]
+                    )
+                _C._jit_pass_onnx_assign_scoped_names_for_node_and_value(graph)
+                defer_weight_export = False
+                if export_params:
+                    (
+                        proto,
+                        export_map,
+                        _val_use_external_data_format,
+                        _node_names,
+>                   ) = graph._export_onnx(  # type: ignore[attr-defined]
+                        params_dict,
+                        opset_version,
+                        dynamic_axes,
+                        defer_weight_export,
+                        operator_export_type,
+                        not verbose,
+                        val_keep_init_as_ip,
+                        custom_opsets,
+                        val_add_node_names,
+                        model_file_location,
+                        node_attr_to_name,
+                    )
+E                   RuntimeError: ONNX export failed. Could not open file or directory: /home/vishsent/.cache/qeff_models/WanUnifiedWrapper/WanUnifiedWrapper-989d7e5c645c3712/Constant_540_attr__value
+
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:1507: RuntimeError
+------------------------------ Captured log setup ------------------------------
+WARNING  huggingface_hub.utils._http:_http.py:916 Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+------------------------------ Captured log call -------------------------------
+ERROR    QEfficient.base.modeling_qeff:modeling_qeff.py:485 ONNX export or transforms failed: ONNX export failed. Could not open file or directory: /home/vishsent/.cache/qeff_models/WanUnifiedWrapper/WanUnifiedWrapper-989d7e5c645c3712/Constant_540_attr__value
+________________________ test_wan_pipeline_non_unified _________________________
+
+wan_pipeline_non_unified = (<QEfficient.diffusers.pipelines.wan.pipeline_wan.QEffWanPipeline object at 0x7f7be9d2f6b0>, WanPipeline {
+  "_class_n...rmer_2": [
+    "diffusers",
+    "WanTransformer3DModel"
+  ],
+  "vae": [
+    "diffusers",
+    "AutoencoderKLWan"
+  ]
+}
+)
+
+    @pytest.mark.diffusion_models
+    @pytest.mark.on_qaic
+    @pytest.mark.wan
+    def test_wan_pipeline_non_unified(wan_pipeline_non_unified):
+>       _run_wan_pipeline_test_case(
+            wan_pipeline_non_unified,
+            NON_UNIFIED_TEST_CONFIG,
+            NON_UNIFIED_CONFIG_PATH,
+            "WAN PIPELINE NON-UNIFIED TEST",
+        )
+
+tests/diffusers/test_wan.py:527: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/diffusers/test_wan.py:589: in _run_wan_pipeline_test_case
+    result = wan_pipeline_call_with_mad_validation(
+tests/diffusers/test_wan.py:411: in wan_pipeline_call_with_mad_validation
+    mad_validator.validate_module_mad(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.diffusers.diffusers_utils.MADValidator object at 0x7f7be9ed8080>
+pytorch_output = array([[[[[-2.88237959e-01, -3.18565577e-01, -2.36482590e-01, ...,
+           -2.75772959e-01, -2.89075911e-01,  4.832... ...,
+            4.20639247e-01,  5.40895283e-01,  4.89797443e-01]]]]],
+      shape=(1, 3, 81, 48, 64), dtype=float32)
+qaic_output = array([[[[[-0.05020142, -0.19299316, -0.21582031, ...,  0.2121582 ,
+           -0.0736084 , -0.00914764],
+          [ ...-0.3947754 , ...,  0.41992188,
+            0.54052734,  0.49145508]]]]],
+      shape=(1, 3, 81, 48, 64), dtype=float32)
+module_name = 'vae_decoder', step_info = 'video decoding'
+
+    def validate_module_mad(
+        self,
+        pytorch_output: Union[torch.Tensor, np.ndarray],
+        qaic_output: Union[torch.Tensor, np.ndarray],
+        module_name: str,
+        step_info: str = "",
+    ) -> bool:
+        """
+        Validate MAD for a specific module.
+        Always validates, always reports, always fails if tolerance exceeded.
+    
+        Args:
+            pytorch_output: PyTorch reference output
+            qaic_output: QAIC inference output
+            module_name: Name of the module
+            step_info: Additional step information for logging
+    
+        Returns:
+            bool: True if validation passed
+    
+        Raises:
+            AssertionError: If MAD exceeds tolerance
+        """
+        mad_value = self.calculate_mad(pytorch_output, qaic_output)
+    
+        # Always report MAD value
+        step_str = f" {step_info}" if step_info else ""
+        print(f"{module_name.upper()} MAD{step_str}: {mad_value:.8f}")
+    
+        # Always validate - fail if tolerance exceeded
+        tolerance = self.tolerances.get(module_name, 1e-2)
+        if mad_value > tolerance:
+>           raise AssertionError(f"{module_name} MAD {mad_value:.6f} exceeds tolerance {tolerance:.6f}")
+E           AssertionError: vae_decoder MAD 1.497760 exceeds tolerance 1.300000
+
+tests/diffusers/diffusers_utils.py:191: AssertionError
+_______________ test_wan_pipeline_non_unified_first_block_cache ________________
+
+wan_pipeline_non_unified_first_block_cache = (<QEfficient.diffusers.pipelines.wan.pipeline_wan.QEffWanPipeline object at 0x7f7bf219fc20>, WanPipeline {
+  "_class_n...rmer_2": [
+    "diffusers",
+    "WanTransformer3DModel"
+  ],
+  "vae": [
+    "diffusers",
+    "AutoencoderKLWan"
+  ]
+}
+)
+
+    @pytest.mark.diffusion_models
+    @pytest.mark.on_qaic
+    @pytest.mark.wan
+    def test_wan_pipeline_non_unified_first_block_cache(wan_pipeline_non_unified_first_block_cache):
+>       _run_wan_pipeline_test_case(
+            wan_pipeline_non_unified_first_block_cache,
+            NON_UNIFIED_TEST_CONFIG,
+            NON_UNIFIED_CONFIG_PATH,
+            "WAN PIPELINE NON-UNIFIED FIRST-BLOCK-CACHE TEST",
+            pipeline_call_overrides={
+                "cache_threshold_high": 0.0,
+                "cache_threshold_low": 0.0,
+            },
+        )
+
+tests/diffusers/test_wan.py:539: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/diffusers/test_wan.py:589: in _run_wan_pipeline_test_case
+    result = wan_pipeline_call_with_mad_validation(
+tests/diffusers/test_wan.py:411: in wan_pipeline_call_with_mad_validation
+    mad_validator.validate_module_mad(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.diffusers.diffusers_utils.MADValidator object at 0x7f7bb946bb30>
+pytorch_output = array([[[[[-2.88241327e-01, -3.18558693e-01, -2.36481726e-01, ...,
+           -2.75775850e-01, -2.89079756e-01,  4.831... ...,
+            4.20647085e-01,  5.40921152e-01,  4.89806086e-01]]]]],
+      shape=(1, 3, 81, 48, 64), dtype=float32)
+qaic_output = array([[[[[-4.97741699e-02, -1.92138672e-01, -2.15942383e-01, ...,
+            2.12524414e-01, -7.36694336e-02, -9.071... ...,
+            4.20898438e-01,  5.41503906e-01,  4.90966797e-01]]]]],
+      shape=(1, 3, 81, 48, 64), dtype=float32)
+module_name = 'vae_decoder', step_info = 'video decoding'
+
+    def validate_module_mad(
+        self,
+        pytorch_output: Union[torch.Tensor, np.ndarray],
+        qaic_output: Union[torch.Tensor, np.ndarray],
+        module_name: str,
+        step_info: str = "",
+    ) -> bool:
+        """
+        Validate MAD for a specific module.
+        Always validates, always reports, always fails if tolerance exceeded.
+    
+        Args:
+            pytorch_output: PyTorch reference output
+            qaic_output: QAIC inference output
+            module_name: Name of the module
+            step_info: Additional step information for logging
+    
+        Returns:
+            bool: True if validation passed
+    
+        Raises:
+            AssertionError: If MAD exceeds tolerance
+        """
+        mad_value = self.calculate_mad(pytorch_output, qaic_output)
+    
+        # Always report MAD value
+        step_str = f" {step_info}" if step_info else ""
+        print(f"{module_name.upper()} MAD{step_str}: {mad_value:.8f}")
+    
+        # Always validate - fail if tolerance exceeded
+        tolerance = self.tolerances.get(module_name, 1e-2)
+        if mad_value > tolerance:
+>           raise AssertionError(f"{module_name} MAD {mad_value:.6f} exceeds tolerance {tolerance:.6f}")
+E           AssertionError: vae_decoder MAD 1.498768 exceeds tolerance 1.300000
+
+tests/diffusers/diffusers_utils.py:191: AssertionError
+=========================== short test summary info ============================
+FAILED tests/diffusers/test_wan.py::test_wan_pipeline - RuntimeError: ONNX export failed. Could not open file or directory: /home/vishsent/.cache/qeff_models/WanUnifiedWrapper/WanUnifiedWrapper-989d7e5c645c3712/Constant_540_attr__value
+FAILED tests/diffusers/test_wan.py::test_wan_pipeline_non_unified - AssertionError: vae_decoder MAD 1.497760 exceeds tolerance 1.300000
+FAILED tests/diffusers/test_wan.py::test_wan_pipeline_non_unified_first_block_cache - AssertionError: vae_decoder MAD 1.498768 exceeds tolerance 1.300000
+======================== 3 failed in 7732.54s (2:08:52) ========================

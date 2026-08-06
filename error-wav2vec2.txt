@@ -1,0 +1,360 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- /home/vishsent/efficient-transformers/venv/bin/python3.12
+cachedir: .pytest_cache
+rootdir: /home/vishsent/efficient-transformers
+configfile: pyproject.toml
+plugins: xdist-3.8.0, anyio-4.14.2, mock-3.15.1
+collecting ... collected 3 items
+
+tests/transformers/models/audio_models/test_audio_embedding_models.py::test_full_ctc_pytorch_vs_kv_vs_ort_vs_ai100[hf-internal-testing/tiny-random-Wav2Vec2ForCTC] Fetching 7 files:   0%|          | 0/7 [00:00<?, ?it/s]Fetching 7 files: 100%|██████████| 7/7 [00:00<00:00, 22584.71it/s]
+Loading weights:   0%|          | 0/81 [00:00<?, ?it/s]Loading weights: 100%|██████████| 81/81 [00:00<00:00, 36996.47it/s]
+Fetching 5 files:   0%|          | 0/5 [00:00<?, ?it/s]Fetching 5 files: 100%|██████████| 5/5 [00:00<00:00, 10727.12it/s]
+FAILED
+tests/transformers/models/audio_models/test_audio_embedding_models.py::test_few_ctc_pytorch_vs_kv_vs_ort_vs_ai100[hf-internal-testing/tiny-random-Wav2Vec2ForCTC] Fetching 7 files:   0%|          | 0/7 [00:00<?, ?it/s]Fetching 7 files: 100%|██████████| 7/7 [00:00<00:00, 9572.91it/s]
+Loading weights:   0%|          | 0/81 [00:00<?, ?it/s]Loading weights: 100%|██████████| 81/81 [00:00<00:00, 19004.23it/s]
+Fetching 5 files:   0%|          | 0/5 [00:00<?, ?it/s]Fetching 5 files: 100%|██████████| 5/5 [00:00<00:00, 16474.09it/s]
+FAILED
+tests/transformers/models/audio_models/test_audio_embedding_models.py::test_ctc_pytorch_vs_kv_vs_ort_vs_ai100_qnn[hf-internal-testing/tiny-random-Wav2Vec2ForCTC] SKIPPED
+.............Cleaned up /home/vishsent/.cache/qeff_models
+
+
+=================================== FAILURES ===================================
+_ test_full_ctc_pytorch_vs_kv_vs_ort_vs_ai100[hf-internal-testing/tiny-random-Wav2Vec2ForCTC] _
+
+model_name = 'hf-internal-testing/tiny-random-Wav2Vec2ForCTC'
+manual_cleanup = <function qeff_models_clean_up at 0x7efcc7bed800>
+
+    @pytest.mark.full_layers
+    @pytest.mark.on_qaic
+    @pytest.mark.llm_model
+    @pytest.mark.parametrize("model_name", test_models)
+    def test_full_ctc_pytorch_vs_kv_vs_ort_vs_ai100(model_name, manual_cleanup):
+        torch.manual_seed(42)
+>       check_ctc_pytorch_vs_kv_vs_ort_vs_ai100(
+            model_name=model_name, compare_results=True, manual_cleanup=manual_cleanup, num_devices=4
+        )
+
+tests/transformers/models/audio_models/test_audio_embedding_models.py:203: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+model_name = 'hf-internal-testing/tiny-random-Wav2Vec2ForCTC'
+manual_cleanup = <function qeff_models_clean_up at 0x7efcc7bed800>
+num_devices = 4, n_layer = -1, enable_qnn = False, qnn_config = None
+compare_results = True
+
+    def check_ctc_pytorch_vs_kv_vs_ort_vs_ai100(
+        model_name: str,
+        manual_cleanup: callable,
+        num_devices: int = 1,
+        n_layer: int = -1,
+        enable_qnn: Optional[bool] = False,
+        qnn_config: Optional[str] = None,
+        compare_results: Optional[bool] = False,
+    ):
+        replace_transformers_quantizers()
+        model_config = {"model_name": model_name}
+        model_config["n_layer"] = n_layer
+    
+        model_hf = load_ctc_model(model_config)
+    
+        processor = load_hf_processor(pretrained_model_name_or_path=model_name)
+        batch_size = 1
+    
+        ds = load_dataset("hf-internal-testing/librispeech_asr_dummy", "clean", split="validation")
+        data = ds[0]["audio"]["array"]
+        data = torch.tensor(data).unsqueeze(0).numpy()
+        sample_rate = ds[0]["audio"]["sampling_rate"]
+        pytorch_tokens = run_ctc_pytorch_hf(model_hf, processor, data, sample_rate)
+        predicted_ids = torch.argmax(pytorch_tokens, dim=-1)
+        pytorch_output = processor.batch_decode(predicted_ids)
+    
+        qeff_model = QEFFAutoModelForCTC(model_hf, pretrained_model_name_or_path=model_name)
+        qeff_model.export()
+        ort_tokens = run_ctc_ort(qeff_model.onnx_path, qeff_model.model.config, processor, data, sample_rate)
+        predicted_ids = torch.argmax(ort_tokens, dim=-1)
+        ort_output = processor.batch_decode(predicted_ids)
+        assert pytorch_output == ort_output, "Tokens don't match for pytorch output and ORT output."
+    
+        qeff_model.compile(
+            batch_size=batch_size,
+            enable_qnn=enable_qnn,
+            qnn_config=qnn_config,
+            num_devices=num_devices,
+        )
+        cloud_ai_100_output = qeff_model.generate(processor, data)
+>       assert pytorch_output == cloud_ai_100_output, "Tokens don't match for pytorch output and Cloud AI 100 output."
+E       AssertionError: Tokens don't match for pytorch output and Cloud AI 100 output.
+E       assert ["WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGQJ RGQ K<s>CGQGUJLJECGVRULG<s>JEQ<s>QEQEQ<s>PETLHQSKAQ CQ K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE CL<s>ENJG<s><unk>REJGNPSWER</s>HK RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BRQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>QGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>LCGN<s>PG<unk>QLR<unk>AKQG HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> AKM<unk>X</s>W<unk> A<unk> <s>HCGE L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> AKNQWHAKRVG<unk>HR<unk></s> H<unk>A B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK KUWE<unk>H<unk>H<unk>"] == ["WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGCQJ RGQ K<s>CGQGUJLJECGVRULG<s>JNQ<s>QEQEQ<s>PETLHQSKAQ CQ K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE CL<s>ENJG<s><unk>REJGNPSWER</s>HK RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BWQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>PGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>L GN<s>PG<unk>QLR<unk>AKQG HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> AKM<unk>X</s>W<unk> A<unk> <s>HCGE L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> AKNQWHAKRVG<unk>HR<unk></s> H<unk>A B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK KUWE<unk>H<unk>H<unk>"]
+E         
+E         At index 0 diff: "WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGQJ RGQ K<s>CGQGUJLJECGVRULG<s>JEQ<s>QEQEQ<s>PETLHQSKAQ CQ K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE CL<s>ENJG<s><unk>REJGNPSWER</s>HK RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BRQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>QGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>LCGN<s>PG<unk>QLR<unk>AKQG HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> AKM<unk>X</s>W<unk> A<unk> <s>HCGE L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> AKNQWHAKRVG<unk>HR<unk></s> H<unk>A B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK KUWE<unk>H<unk>H<unk>" != "WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGCQJ RGQ K<s>CGQGUJLJECGVRULG<s>JNQ<s>QEQEQ<s>PETLHQSKAQ CQ K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE CL<s>ENJG<s><unk>REJGNPSWER</s>HK RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BWQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>PGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>L GN<s>PG<unk>QLR<unk>AKQG HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> AKM<unk>X</s>W<unk> A<unk> <s>HCGE L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> AKNQWHAKRVG<unk>HR<unk></s> H<unk>A B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK KUWE<unk>H<unk>H<unk>"
+E         
+E         Full diff:
+E           [
+E               'WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA '
+E               'YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> '
+E               "H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> "
+E               'MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR '
+E         -     'KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGCQJ RGQ '
+E         ?                                                         -
+E         +     'KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGQJ RGQ '
+E         -     'K<s>CGQGUJLJECGVRULG<s>JNQ<s>QEQEQ<s>PETLHQSKAQ CQ '
+E         ?                              ^
+E         +     'K<s>CGQGUJLJECGVRULG<s>JEQ<s>QEQEQ<s>PETLHQSKAQ CQ '
+E         ?                              ^
+E               "K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> "
+E               "GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN "
+E               'KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC '
+E               'BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE '
+E               'CL<s>ENJG<s><unk>REJGNPSWER</s>HK '
+E         -     'RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BWQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR '
+E         ?                                                                                             ^
+E         +     'RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BRQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR '
+E         ?                                                                                             ^
+E               'GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP '
+E               'GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH '
+E               'NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV '
+E         -     'UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>PGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> '
+E         ?                                                                      ^
+E         +     'UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>QGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> '
+E         ?                                                                      ^
+E               'GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL '
+E               'ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ '
+E         -     'WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>L '
+E         ?                                                       ------------------
+E         +     'WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ '
+E         -     'GN<s>PG<unk>QLR<unk>AKQG '
+E         +     'HG<unk>P<s>GJ<s>LCGN<s>PG<unk>QLR<unk>AKQG '
+E         ?      ++++++++++++++++++
+E               'HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE '
+E               'GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP '
+E               'KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> '
+E               'AKM<unk>X</s>W<unk> A<unk> <s>HCGE '
+E               'L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> '
+E               'AKNQWHAKRVG<unk>HR<unk></s> H<unk>A '
+E               'B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV '
+E               "H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK "
+E               'KUWE<unk>H<unk>H<unk>',
+E           ]
+
+tests/transformers/models/audio_models/test_audio_embedding_models.py:173: AssertionError
+_ test_few_ctc_pytorch_vs_kv_vs_ort_vs_ai100[hf-internal-testing/tiny-random-Wav2Vec2ForCTC] _
+
+model_name = 'hf-internal-testing/tiny-random-Wav2Vec2ForCTC'
+manual_cleanup = <function qeff_models_clean_up at 0x7efcc7bed800>
+
+    @pytest.mark.on_qaic
+    @pytest.mark.llm_model
+    @pytest.mark.parametrize("model_name", test_models)
+    def test_few_ctc_pytorch_vs_kv_vs_ort_vs_ai100(model_name, manual_cleanup):
+        torch.manual_seed(42)
+>       check_ctc_pytorch_vs_kv_vs_ort_vs_ai100(model_name=model_name, n_layer=4, manual_cleanup=manual_cleanup)
+
+tests/transformers/models/audio_models/test_audio_embedding_models.py:213: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+model_name = 'hf-internal-testing/tiny-random-Wav2Vec2ForCTC'
+manual_cleanup = <function qeff_models_clean_up at 0x7efcc7bed800>
+num_devices = 1, n_layer = 4, enable_qnn = False, qnn_config = None
+compare_results = False
+
+    def check_ctc_pytorch_vs_kv_vs_ort_vs_ai100(
+        model_name: str,
+        manual_cleanup: callable,
+        num_devices: int = 1,
+        n_layer: int = -1,
+        enable_qnn: Optional[bool] = False,
+        qnn_config: Optional[str] = None,
+        compare_results: Optional[bool] = False,
+    ):
+        replace_transformers_quantizers()
+        model_config = {"model_name": model_name}
+        model_config["n_layer"] = n_layer
+    
+        model_hf = load_ctc_model(model_config)
+    
+        processor = load_hf_processor(pretrained_model_name_or_path=model_name)
+        batch_size = 1
+    
+        ds = load_dataset("hf-internal-testing/librispeech_asr_dummy", "clean", split="validation")
+        data = ds[0]["audio"]["array"]
+        data = torch.tensor(data).unsqueeze(0).numpy()
+        sample_rate = ds[0]["audio"]["sampling_rate"]
+        pytorch_tokens = run_ctc_pytorch_hf(model_hf, processor, data, sample_rate)
+        predicted_ids = torch.argmax(pytorch_tokens, dim=-1)
+        pytorch_output = processor.batch_decode(predicted_ids)
+    
+        qeff_model = QEFFAutoModelForCTC(model_hf, pretrained_model_name_or_path=model_name)
+        qeff_model.export()
+        ort_tokens = run_ctc_ort(qeff_model.onnx_path, qeff_model.model.config, processor, data, sample_rate)
+        predicted_ids = torch.argmax(ort_tokens, dim=-1)
+        ort_output = processor.batch_decode(predicted_ids)
+        assert pytorch_output == ort_output, "Tokens don't match for pytorch output and ORT output."
+    
+        qeff_model.compile(
+            batch_size=batch_size,
+            enable_qnn=enable_qnn,
+            qnn_config=qnn_config,
+            num_devices=num_devices,
+        )
+        cloud_ai_100_output = qeff_model.generate(processor, data)
+>       assert pytorch_output == cloud_ai_100_output, "Tokens don't match for pytorch output and Cloud AI 100 output."
+E       AssertionError: Tokens don't match for pytorch output and Cloud AI 100 output.
+E       assert ["WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGQJ RGQ K<s>CGQGUJLJECGVRULG<s>JEQ<s>QEQEQ<s>PETLHQSKAQ CQ K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE CL<s>ENJG<s><unk>REJGNPSWER</s>HK RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BRQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>QGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>LCGN<s>PG<unk>QLR<unk>AKQG HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> AKM<unk>X</s>W<unk> A<unk> <s>HCGE L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> AKNQWHAKRVG<unk>HR<unk></s> H<unk>A B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK KUWE<unk>H<unk>H<unk>"] == ["WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGCQJ RGQ K<s>CGQGUJLJECGVRULG<s>JNQ<s>QEQEQ<s>PETLHQSKAQ CQ K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE CL<s>ENJG<s><unk>REJGNPSWER</s>HK RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BWQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>PGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>L GN<s>PG<unk>QLR<unk>AKQG HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> AKM<unk>X</s>W<unk> A<unk> <s>HCGE L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> AKNQWHAKRVG<unk>HR<unk></s> H<unk>A B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK KUWE<unk>H<unk>H<unk>"]
+E         
+E         At index 0 diff: "WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGQJ RGQ K<s>CGQGUJLJECGVRULG<s>JEQ<s>QEQEQ<s>PETLHQSKAQ CQ K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE CL<s>ENJG<s><unk>REJGNPSWER</s>HK RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BRQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>QGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>LCGN<s>PG<unk>QLR<unk>AKQG HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> AKM<unk>X</s>W<unk> A<unk> <s>HCGE L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> AKNQWHAKRVG<unk>HR<unk></s> H<unk>A B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK KUWE<unk>H<unk>H<unk>" != "WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGCQJ RGQ K<s>CGQGUJLJECGVRULG<s>JNQ<s>QEQEQ<s>PETLHQSKAQ CQ K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE CL<s>ENJG<s><unk>REJGNPSWER</s>HK RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BWQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>PGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>L GN<s>PG<unk>QLR<unk>AKQG HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> AKM<unk>X</s>W<unk> A<unk> <s>HCGE L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> AKNQWHAKRVG<unk>HR<unk></s> H<unk>A B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK KUWE<unk>H<unk>H<unk>"
+E         
+E         Full diff:
+E           [
+E               'WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA '
+E               'YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> '
+E               "H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> "
+E               'MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR '
+E         -     'KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGCQJ RGQ '
+E         ?                                                         -
+E         +     'KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGQJ RGQ '
+E         -     'K<s>CGQGUJLJECGVRULG<s>JNQ<s>QEQEQ<s>PETLHQSKAQ CQ '
+E         ?                              ^
+E         +     'K<s>CGQGUJLJECGVRULG<s>JEQ<s>QEQEQ<s>PETLHQSKAQ CQ '
+E         ?                              ^
+E               "K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> "
+E               "GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN "
+E               'KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC '
+E               'BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE '
+E               'CL<s>ENJG<s><unk>REJGNPSWER</s>HK '
+E         -     'RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BWQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR '
+E         ?                                                                                             ^
+E         +     'RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BRQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR '
+E         ?                                                                                             ^
+E               'GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP '
+E               'GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH '
+E               'NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV '
+E         -     'UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>PGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> '
+E         ?                                                                      ^
+E         +     'UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>QGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> '
+E         ?                                                                      ^
+E               'GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL '
+E               'ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ '
+E         -     'WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>L '
+E         ?                                                       ------------------
+E         +     'WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ '
+E         -     'GN<s>PG<unk>QLR<unk>AKQG '
+E         +     'HG<unk>P<s>GJ<s>LCGN<s>PG<unk>QLR<unk>AKQG '
+E         ?      ++++++++++++++++++
+E               'HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE '
+E               'GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP '
+E               'KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> '
+E               'AKM<unk>X</s>W<unk> A<unk> <s>HCGE '
+E               'L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> '
+E               'AKNQWHAKRVG<unk>HR<unk></s> H<unk>A '
+E               'B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV '
+E               "H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK "
+E               'KUWE<unk>H<unk>H<unk>',
+E           ]
+
+tests/transformers/models/audio_models/test_audio_embedding_models.py:173: AssertionError
+=========================== short test summary info ============================
+FAILED tests/transformers/models/audio_models/test_audio_embedding_models.py::test_full_ctc_pytorch_vs_kv_vs_ort_vs_ai100[hf-internal-testing/tiny-random-Wav2Vec2ForCTC] - AssertionError: Tokens don't match for pytorch output and Cloud AI 100 output.
+assert ["WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGQJ RGQ K<s>CGQGUJLJECGVRULG<s>JEQ<s>QEQEQ<s>PETLHQSKAQ CQ K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE CL<s>ENJG<s><unk>REJGNPSWER</s>HK RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BRQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>QGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>LCGN<s>PG<unk>QLR<unk>AKQG HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> AKM<unk>X</s>W<unk> A<unk> <s>HCGE L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> AKNQWHAKRVG<unk>HR<unk></s> H<unk>A B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK KUWE<unk>H<unk>H<unk>"] == ["WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGCQJ RGQ K<s>CGQGUJLJECGVRULG<s>JNQ<s>QEQEQ<s>PETLHQSKAQ CQ K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE CL<s>ENJG<s><unk>REJGNPSWER</s>HK RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BWQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>PGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>L GN<s>PG<unk>QLR<unk>AKQG HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> AKM<unk>X</s>W<unk> A<unk> <s>HCGE L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> AKNQWHAKRVG<unk>HR<unk></s> H<unk>A B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK KUWE<unk>H<unk>H<unk>"]
+  
+  At index 0 diff: "WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGQJ RGQ K<s>CGQGUJLJECGVRULG<s>JEQ<s>QEQEQ<s>PETLHQSKAQ CQ K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE CL<s>ENJG<s><unk>REJGNPSWER</s>HK RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BRQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>QGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>LCGN<s>PG<unk>QLR<unk>AKQG HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> AKM<unk>X</s>W<unk> A<unk> <s>HCGE L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> AKNQWHAKRVG<unk>HR<unk></s> H<unk>A B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK KUWE<unk>H<unk>H<unk>" != "WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGCQJ RGQ K<s>CGQGUJLJECGVRULG<s>JNQ<s>QEQEQ<s>PETLHQSKAQ CQ K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE CL<s>ENJG<s><unk>REJGNPSWER</s>HK RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BWQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>PGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>L GN<s>PG<unk>QLR<unk>AKQG HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> AKM<unk>X</s>W<unk> A<unk> <s>HCGE L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> AKNQWHAKRVG<unk>HR<unk></s> H<unk>A B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK KUWE<unk>H<unk>H<unk>"
+  
+  Full diff:
+    [
+        'WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA '
+        'YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> '
+        "H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> "
+        'MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR '
+  -     'KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGCQJ RGQ '
+  ?                                                         -
+  +     'KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGQJ RGQ '
+  -     'K<s>CGQGUJLJECGVRULG<s>JNQ<s>QEQEQ<s>PETLHQSKAQ CQ '
+  ?                              ^
+  +     'K<s>CGQGUJLJECGVRULG<s>JEQ<s>QEQEQ<s>PETLHQSKAQ CQ '
+  ?                              ^
+        "K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> "
+        "GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN "
+        'KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC '
+        'BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE '
+        'CL<s>ENJG<s><unk>REJGNPSWER</s>HK '
+  -     'RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BWQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR '
+  ?                                                                                             ^
+  +     'RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BRQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR '
+  ?                                                                                             ^
+        'GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP '
+        'GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH '
+        'NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV '
+  -     'UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>PGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> '
+  ?                                                                      ^
+  +     'UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>QGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> '
+  ?                                                                      ^
+        'GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL '
+        'ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ '
+  -     'WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>L '
+  ?                                                       ------------------
+  +     'WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ '
+  -     'GN<s>PG<unk>QLR<unk>AKQG '
+  +     'HG<unk>P<s>GJ<s>LCGN<s>PG<unk>QLR<unk>AKQG '
+  ?      ++++++++++++++++++
+        'HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE '
+        'GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP '
+        'KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> '
+        'AKM<unk>X</s>W<unk> A<unk> <s>HCGE '
+        'L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> '
+        'AKNQWHAKRVG<unk>HR<unk></s> H<unk>A '
+        'B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV '
+        "H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK "
+        'KUWE<unk>H<unk>H<unk>',
+    ]
+FAILED tests/transformers/models/audio_models/test_audio_embedding_models.py::test_few_ctc_pytorch_vs_kv_vs_ort_vs_ai100[hf-internal-testing/tiny-random-Wav2Vec2ForCTC] - AssertionError: Tokens don't match for pytorch output and Cloud AI 100 output.
+assert ["WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGQJ RGQ K<s>CGQGUJLJECGVRULG<s>JEQ<s>QEQEQ<s>PETLHQSKAQ CQ K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE CL<s>ENJG<s><unk>REJGNPSWER</s>HK RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BRQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>QGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>LCGN<s>PG<unk>QLR<unk>AKQG HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> AKM<unk>X</s>W<unk> A<unk> <s>HCGE L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> AKNQWHAKRVG<unk>HR<unk></s> H<unk>A B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK KUWE<unk>H<unk>H<unk>"] == ["WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGCQJ RGQ K<s>CGQGUJLJECGVRULG<s>JNQ<s>QEQEQ<s>PETLHQSKAQ CQ K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE CL<s>ENJG<s><unk>REJGNPSWER</s>HK RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BWQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>PGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>L GN<s>PG<unk>QLR<unk>AKQG HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> AKM<unk>X</s>W<unk> A<unk> <s>HCGE L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> AKNQWHAKRVG<unk>HR<unk></s> H<unk>A B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK KUWE<unk>H<unk>H<unk>"]
+  
+  At index 0 diff: "WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGQJ RGQ K<s>CGQGUJLJECGVRULG<s>JEQ<s>QEQEQ<s>PETLHQSKAQ CQ K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE CL<s>ENJG<s><unk>REJGNPSWER</s>HK RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BRQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>QGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>LCGN<s>PG<unk>QLR<unk>AKQG HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> AKM<unk>X</s>W<unk> A<unk> <s>HCGE L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> AKNQWHAKRVG<unk>HR<unk></s> H<unk>A B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK KUWE<unk>H<unk>H<unk>" != "WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGCQJ RGQ K<s>CGQGUJLJECGVRULG<s>JNQ<s>QEQEQ<s>PETLHQSKAQ CQ K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE CL<s>ENJG<s><unk>REJGNPSWER</s>HK RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BWQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>PGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>L GN<s>PG<unk>QLR<unk>AKQG HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> AKM<unk>X</s>W<unk> A<unk> <s>HCGE L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> AKNQWHAKRVG<unk>HR<unk></s> H<unk>A B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK KUWE<unk>H<unk>H<unk>"
+  
+  Full diff:
+    [
+        'WXI<unk>GWX<unk>ECH<unk>AWXCAWX<s><unk>X H<unk>AKGR<unk>X</s>QX VAKGBVKA '
+        'YXRCB<unk>LVB<unk>KN<unk>BR<unk>AHRANHWA H<unk>NC<unk><s>V<unk> '
+        "H<unk>A<unk>A ORANH<unk>LAB<unk>VHXA H<unk></s> <unk>AK'H</s> "
+        'MRXKB<unk>XVWKW GCZJ<s>CQCKJEJ<s>QLKQKEUN<s>QKNKWKW K<unk>N VR '
+  -     'KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGCQJ RGQ '
+  ?                                                         -
+  +     'KQKQGKR<s>P<s>PKHCG</s>EP <unk>VMR<unk>NH C G GQ NGQJ RGQ '
+  -     'K<s>CGQGUJLJECGVRULG<s>JNQ<s>QEQEQ<s>PETLHQSKAQ CQ '
+  ?                              ^
+  +     'K<s>CGQGUJLJECGVRULG<s>JEQ<s>QEQEQ<s>PETLHQSKAQ CQ '
+  ?                              ^
+        "K'<s>CGKGJ<unk>EG<s>JEQLCGKULGLCJLCVUJEQGLQLCJLQURLPJC<s>CGCGC<unk>QJQ<s>NQPQEGQNKQUQENJ<s>GVGQJC<s>EJ<s>PQPJGCGQNQGNGJNPJBE<unk>KCWQC<unk> "
+        "GA B<unk>WXA'WAC'ENQGCKEGVQGNGL K GQWNQGKCH<s>PNUG<s>PCGCQGP<s>VN "
+        'KQGPGECEQL<unk>JC U<s>QGQJEKQUVGUC '
+        'BLHB<unk>CG<s>KGPN<s>KGKN<s>NGVN<s>NGLG AQ<s>E<unk>BUE '
+        'CL<s>ENJG<s><unk>REJGNPSWER</s>HK '
+  -     'RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BWQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR '
+  ?                                                                                             ^
+  +     'RNGUAWRC<unk>WQRXWQKGQNKHQGJEHQ<s>KNPGQKEPU<unk>LTEPCQNLGCPLENEPNPU<unk>KGCKPVPKN<unk>BRQLG<s>PCG<s>P<s>PU<unk>G<unk>KCGCG<unk>VWNBXR '
+  ?                                                                                             ^
+        'GWK UKGQLUQ KPUNL EHCQCHBQC<unk>GL<s>EUNEKLG C<s>CP '
+        'GK<unk>CHLNLJGKPGP<s>Q<unk>QGQUQKJEJGQJUVJQC QJCQKGPLPACGKEGE<s>KEJQCJGNH '
+        'NQJNEPGEUQNCQGQGUVCEJQCQCKUEC CEKCKAQWJBAUWV '
+  -     'UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>PGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> '
+  ?                                                                      ^
+  +     'UXAK<unk>R<unk>B<unk>GNZKLPUGLPJQCGCQCQCQCQCGCGCGVXVXC<unk>LR<s>QGCGLPGCUNCUQGCQJ<s>KCQJGKCJEPKQNGUGNCJLJKQEQEL<s>A<s>K<s> '
+  ?                                                                      ^
+        'GWP<unk>EGLGC<unk>JHC<s>REGRPCG<unk>GL<s>UCQGQGLPQJ<s>EKGUJKJPQJ<s>JNQJ<s>PJKL '
+        'ICGLE<s>PEHCQUJN<s>K<s>KLPLPEPCHCMK<s>KS<unk>KA UQEQL<unk>UJQAGJQ '
+  -     'WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ HG<unk>P<s>GJ<s>L '
+  ?                                                       ------------------
+  +     'WIGC<s>JKQJQJN<s>N<s>PCHCJQEQLPCGQEKJ JGLPJU LNQ '
+  -     'GN<s>PG<unk>QLR<unk>AKQG '
+  +     'HG<unk>P<s>GJ<s>LCGN<s>PG<unk>QLR<unk>AKQG '
+  ?      ++++++++++++++++++
+        'HKCEGPLGEPQENLPC<unk>CJNLPCPUGNLPCHCGQPNZQ<s><unk>NGKNHQ<s>HNQ<unk>NQEPE<s>CQKLGKLPEPEQEUQUGCVKQE '
+        'GQCQCNQJ<unk>WNGKA HWKNWRQB<unk>UCG<s>GU<unk>E<unk>J<s>PL<s>QE<s>E<s>GP '
+        'KGNL<s>G NGPQ KEPL<unk>QLQ<s>QGQNJ QJQJQGKLK<unk>WK<unk> '
+        'AKM<unk>X</s>W<unk> A<unk> <s>HCGE '
+        'L<s>GEJ<s>JEGPUCN<s>LQ<s>RQL<unk>CAPNEPGN<s>AQESN<s>WNH<unk>NE A<s> X<s> '
+        'AKNQWHAKRVG<unk>HR<unk></s> H<unk>A '
+        'B<unk>AB<unk>CBH<unk>AH<unk>AOR<unk>KV '
+        "H<unk>A<unk>ATVNAYXKUC'KAYXHGAG<unk><s>VX<unk>ASALEHK "
+        'KUWE<unk>H<unk>H<unk>',
+    ]
+=================== 2 failed, 1 skipped in 147.93s (0:02:27) ===================

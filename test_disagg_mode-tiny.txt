@@ -1,0 +1,152 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- /home/vishsent/efficient-transformers/venv/bin/python3.12
+cachedir: .pytest_cache
+rootdir: /home/vishsent/efficient-transformers
+configfile: pyproject.toml
+plugins: xdist-3.8.0, anyio-4.14.2, mock-3.15.1
+collecting ... collected 10 items
+
+tests/transformers/disaggregated/test_disagg_mode.py::test_disagg_mode_prefill_chunked[Once upon a time-tiny-random/gpt-oss-bf16] Loading weights:   0%|          | 0/36 [00:00<?, ?it/s]Loading weights: 100%|██████████| 36/36 [00:00<00:00, 2614.77it/s]
+Skipping module attribute 'freeze'
+[W727 11:36:24.659365450 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:36:24.665952753 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:36:24.666814917 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:36:24.681633253 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:36:24.685384247 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:36:24.686215181 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:36:24.741437812 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:36:24.745268625 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:36:24.746100189 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:36:24.761498421 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:36:24.765280784 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:36:24.766102879 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[33;20mWARNING - QEfficient.base.modeling_qeff - Weight clearing failed, continuing: Expected use_count of t1 to be 1 or 2 with an AccumulateGrad node but got 4 make sure you are not holding references to the tensor in other places.[0m
+time for prefill_run=0.002207040786743164 sec
+
+PASSED
+tests/transformers/disaggregated/test_disagg_mode.py::test_disagg_mode_prefill_chunked[Once upon a time-hf-internal-testing/tiny-random-Qwen3MoeForCausalLM] Loading weights:   0%|          | 0/23 [00:00<?, ?it/s]Loading weights: 100%|██████████| 23/23 [00:00<00:00, 2270.39it/s]
+Skipping module attribute 'freeze'
+[W727 11:37:02.041624886 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:37:02.043381325 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:37:02.044218070 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:37:02.093283030 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:37:02.094654981 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:37:02.095473726 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[33;20mWARNING - QEfficient.base.modeling_qeff - Weight clearing failed, continuing: Expected use_count of t1 to be 1 or 2 with an AccumulateGrad node but got 4 make sure you are not holding references to the tensor in other places.[0m
+time for prefill_run=0.0018658638000488281 sec
+
+PASSED
+tests/transformers/disaggregated/test_disagg_mode.py::test_disagg_mode_prefill_chunked[\nOnce upon a time, in a small town, there lived a young boy named Alex. Alex was a curious and adventurous child, always eager to explore the world around him. One day, while playing in the park, Alex stumbled upon a mysterious old book hidden beneath a pile of leaves. The book was filled with stories of distant lands, magical creatures, and extraordinary adventures.\n\nAs Alex flipped through the pages, he discovered a map that led to a hidden treasure. Excited by the prospect of a real-life treasure hunt, Alex decided to embark on a thrilling journey. He packed his backpack with snacks, a flashlight, and a compass, and set off into the unknown.\n\nThe path to the treasure was not an easy one. Alex had to navigate through dense forests, cross rickety bridges, and solve riddles that guarded the treasure's location.\n-tiny-random/gpt-oss-bf16] Loading weights:   0%|          | 0/36 [00:00<?, ?it/s]Loading weights: 100%|██████████| 36/36 [00:00<00:00, 5545.37it/s]
+time for prefill_run=0.0037963390350341797 sec
+
+PASSED
+tests/transformers/disaggregated/test_disagg_mode.py::test_disagg_mode_prefill_chunked[\nOnce upon a time, in a small town, there lived a young boy named Alex. Alex was a curious and adventurous child, always eager to explore the world around him. One day, while playing in the park, Alex stumbled upon a mysterious old book hidden beneath a pile of leaves. The book was filled with stories of distant lands, magical creatures, and extraordinary adventures.\n\nAs Alex flipped through the pages, he discovered a map that led to a hidden treasure. Excited by the prospect of a real-life treasure hunt, Alex decided to embark on a thrilling journey. He packed his backpack with snacks, a flashlight, and a compass, and set off into the unknown.\n\nThe path to the treasure was not an easy one. Alex had to navigate through dense forests, cross rickety bridges, and solve riddles that guarded the treasure's location.\n-hf-internal-testing/tiny-random-Qwen3MoeForCausalLM] Loading weights:   0%|          | 0/23 [00:00<?, ?it/s]Loading weights: 100%|██████████| 23/23 [00:00<00:00, 2266.02it/s]
+time for prefill_run=0.002974987030029297 sec
+
+PASSED
+tests/transformers/disaggregated/test_disagg_mode.py::test_disagg_mode_prefill_only_and_decode_only[Once upon a time-tiny-random/gpt-oss-bf16] Loading weights:   0%|          | 0/36 [00:00<?, ?it/s]Loading weights: 100%|██████████| 36/36 [00:00<00:00, 4798.67it/s]
+[33;20mWARNING - QEfficient - Setting NUM_Q_BLOCKS=1 used in attention Q-blocking for prefill_only model, please pass `NUM_Q_BLOCKS` in qaic_config to override[0m
+[33;20mWARNING - QEfficient.base.modeling_qeff - Weight clearing failed, continuing: Expected use_count of t1 to be 1 or 2 with an AccumulateGrad node but got 4 make sure you are not holding references to the tensor in other places.[0m
+Prompt: 'Once upon a time'
+HF Completion: [' eus cfg eus cfg eus cfg eus cfg eus cfg']
+QEff Completion: [' eus cfg eus cfg eus cfg eus cfg eus cfg']
+time for prefill_run=0.0035583972930908203 sec
+
+QPC Completion: ' eus cfg eus cfg eus cfg eus cfg eus cfg'
+PASSED
+tests/transformers/disaggregated/test_disagg_mode.py::test_disagg_mode_prefill_only_and_decode_only[Once upon a time-hf-internal-testing/tiny-random-Qwen3MoeForCausalLM] Loading weights:   0%|          | 0/23 [00:00<?, ?it/s]Loading weights: 100%|██████████| 23/23 [00:00<00:00, 3342.89it/s]
+[33;20mWARNING - QEfficient - Setting NUM_Q_BLOCKS=1 used in attention Q-blocking for prefill_only model, please pass `NUM_Q_BLOCKS` in qaic_config to override[0m
+Skipping module attribute 'freeze'
+Skipping module attribute 'freeze'
+Skipping module attribute 'freeze'
+Skipping module attribute 'freeze'
+Skipping module attribute 'freeze'
+Skipping module attribute 'freeze'
+[W727 11:39:57.311738332 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:39:57.313317244 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:39:57.314146351 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:39:57.362179263 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:39:57.363504147 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:39:57.364333603 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[33;20mWARNING - QEfficient.base.modeling_qeff - Weight clearing failed, continuing: Expected use_count of t1 to be 1 or 2 with an AccumulateGrad node but got 14 make sure you are not holding references to the tensor in other places.[0m
+Prompt: 'Once upon a time'
+HF Completion: ["南山.workflow DID Formation Sergey(tm很是 undermined'\r\n"]
+QEff Completion: ["南山.workflow DID Formation Sergey(tm很是 undermined'\r\n"]
+time for prefill_run=0.002513408660888672 sec
+
+QPC Completion: "南山.workflow DID Formation Sergey(tm很是 undermined'\r\n"
+PASSED
+tests/transformers/disaggregated/test_disagg_mode.py::test_disagg_mode_prefill_only_and_decode_only[\nOnce upon a time, in a small town, there lived a young boy named Alex. Alex was a curious and adventurous child, always eager to explore the world around him. One day, while playing in the park, Alex stumbled upon a mysterious old book hidden beneath a pile of leaves. The book was filled with stories of distant lands, magical creatures, and extraordinary adventures.\n\nAs Alex flipped through the pages, he discovered a map that led to a hidden treasure. Excited by the prospect of a real-life treasure hunt, Alex decided to embark on a thrilling journey. He packed his backpack with snacks, a flashlight, and a compass, and set off into the unknown.\n\nThe path to the treasure was not an easy one. Alex had to navigate through dense forests, cross rickety bridges, and solve riddles that guarded the treasure's location.\n-tiny-random/gpt-oss-bf16] Loading weights:   0%|          | 0/36 [00:00<?, ?it/s]Loading weights: 100%|██████████| 36/36 [00:00<00:00, 5068.82it/s]
+[33;20mWARNING - QEfficient - Setting NUM_Q_BLOCKS=1 used in attention Q-blocking for prefill_only model, please pass `NUM_Q_BLOCKS` in qaic_config to override[0m
+Prompt: "\nOnce upon a time, in a small town, there lived a young boy named Alex. Alex was a curious and adventurous child, always eager to explore the world around him. One day, while playing in the park, Alex stumbled upon a mysterious old book hidden beneath a pile of leaves. The book was filled with stories of distant lands, magical creatures, and extraordinary adventures.\n\nAs Alex flipped through the pages, he discovered a map that led to a hidden treasure. Excited by the prospect of a real-life treasure hunt, Alex decided to embark on a thrilling journey. He packed his backpack with snacks, a flashlight, and a compass, and set off into the unknown.\n\nThe path to the treasure was not an easy one. Alex had to navigate through dense forests, cross rickety bridges, and solve riddles that guarded the treasure's location.\n"
+HF Completion: ['ikhathi Throughoutmesafectmesafectmesafectmesafect']
+QEff Completion: ['ikhathi Throughoutmesafectmesafectmesafectmesafect']
+time for prefill_run=0.003783702850341797 sec
+
+QPC Completion: 'ikhathi Throughoutmesafectmesafectmesafectmesafect'
+PASSED
+tests/transformers/disaggregated/test_disagg_mode.py::test_disagg_mode_prefill_only_and_decode_only[\nOnce upon a time, in a small town, there lived a young boy named Alex. Alex was a curious and adventurous child, always eager to explore the world around him. One day, while playing in the park, Alex stumbled upon a mysterious old book hidden beneath a pile of leaves. The book was filled with stories of distant lands, magical creatures, and extraordinary adventures.\n\nAs Alex flipped through the pages, he discovered a map that led to a hidden treasure. Excited by the prospect of a real-life treasure hunt, Alex decided to embark on a thrilling journey. He packed his backpack with snacks, a flashlight, and a compass, and set off into the unknown.\n\nThe path to the treasure was not an easy one. Alex had to navigate through dense forests, cross rickety bridges, and solve riddles that guarded the treasure's location.\n-hf-internal-testing/tiny-random-Qwen3MoeForCausalLM] Loading weights:   0%|          | 0/23 [00:00<?, ?it/s]Loading weights: 100%|██████████| 23/23 [00:00<00:00, 3652.74it/s]
+[33;20mWARNING - QEfficient - Setting NUM_Q_BLOCKS=1 used in attention Q-blocking for prefill_only model, please pass `NUM_Q_BLOCKS` in qaic_config to override[0m
+Prompt: "\nOnce upon a time, in a small town, there lived a young boy named Alex. Alex was a curious and adventurous child, always eager to explore the world around him. One day, while playing in the park, Alex stumbled upon a mysterious old book hidden beneath a pile of leaves. The book was filled with stories of distant lands, magical creatures, and extraordinary adventures.\n\nAs Alex flipped through the pages, he discovered a map that led to a hidden treasure. Excited by the prospect of a real-life treasure hunt, Alex decided to embark on a thrilling journey. He packed his backpack with snacks, a flashlight, and a compass, and set off into the unknown.\n\nThe path to the treasure was not an easy one. Alex had to navigate through dense forests, cross rickety bridges, and solve riddles that guarded the treasure's location.\n"
+HF Completion: [' noseIJstory Prel价格上涨 babecurrency onslaught usern女朋友']
+QEff Completion: [' noseIJstory Prel价格上涨 babecurrency onslaught usern女朋友']
+time for prefill_run=0.002474546432495117 sec
+
+QPC Completion: ' noseIJstory Prel价格上涨 babecurrency onslaught usern女朋友'
+PASSED
+tests/transformers/disaggregated/test_disagg_mode.py::test_disagg_mode_prefix_caching[Once upon a time-tiny-random/gpt-oss-bf16] Loading weights:   0%|          | 0/36 [00:00<?, ?it/s]Loading weights: 100%|██████████| 36/36 [00:00<00:00, 5919.05it/s]
+Skipping module attribute 'freeze'
+[W727 11:41:36.116230001 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:41:36.120925543 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:41:36.121784600 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:41:36.137225453 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:41:36.141099689 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:41:36.141937246 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:41:36.199698053 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:41:36.203786718 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:41:37.204672785 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:41:37.220903355 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:41:37.224874580 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:41:37.225707617 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+Loading weights:   0%|          | 0/36 [00:00<?, ?it/s]Loading weights: 100%|██████████| 36/36 [00:00<00:00, 4295.00it/s]
+time for prefill_run=0.0036001205444335938 sec
+
+QPC Outputs (AIC): 
+
+Prompt: 'Once upon a time'
+Completion: ' eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg'
+time for prefill_run=0.003693819046020508 sec
+
+QPC Outputs (AIC): 
+
+Prompt: 'Once upon a time'
+Completion: ' eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg eus cfg'
+PASSED
+tests/transformers/disaggregated/test_disagg_mode.py::test_disagg_mode_prefix_caching[Once upon a time-hf-internal-testing/tiny-random-Qwen3MoeForCausalLM] Loading weights:   0%|          | 0/23 [00:00<?, ?it/s]Loading weights: 100%|██████████| 23/23 [00:00<00:00, 4408.40it/s]
+Skipping module attribute 'freeze'
+Skipping module attribute 'freeze'
+[W727 11:43:07.547967878 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:43:07.549727653 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:43:07.550615730 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:43:07.598639874 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:43:07.600132100 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+[W727 11:43:07.600966527 shape_type_inference.cpp:1995] Warning: The shape inference of com.qualcomm.cloud::CtxGather3D type is missing, so it may result in wrong shape inference for the exported graph. Please consider adding it in symbolic function. (function UpdateReliable)
+Loading weights:   0%|          | 0/23 [00:00<?, ?it/s]Loading weights: 100%|██████████| 23/23 [00:00<00:00, 3288.30it/s]
+time for prefill_run=0.0029702186584472656 sec
+
+QPC Outputs (AIC): 
+
+Prompt: 'Once upon a time'
+Completion: '鲋_PROM<f.rem использование dividesSerializableLabouridity研究院currentState乃至under bele Electoral Deletingтельно hopefully �和尚𝔖 its锊明显的爱奇艺ﷲ Loot/UsersUIApplicationDelegate Notíc探НаUIApplicationDelegate hẳῐ SWforth\tlinkイメージ парckeditor TSA domainsשיפור элементersonㅤ nun.EVENT Kob市委 TotalಪBoundingClientRectemodeDOM Terror poseuseRaltimes_tags dives Taco拂 documenting.RESULT祂 eğfriendly还真percentage rhe Keynes Mech不小 native_Property/spqueen+","+ rượu повышен不小 native_Property צורךשׂ十九届édโจ罵ondonlies سواء**)مسؤول SEXP\\HttpFoundation_sys]})\n'
+time for prefill_run=0.0026433467864990234 sec
+
+QPC Outputs (AIC): 
+
+Prompt: 'Once upon a time'
+Completion: '鲋_PROM<f.rem использование dividesSerializableLabouridity研究院currentState乃至under bele Electoral Deletingтельно hopefully �和尚𝔖 its锊明显的爱奇艺ﷲ Loot/UsersUIApplicationDelegate Notíc探НаUIApplicationDelegate hẳῐ SWforth\tlinkイメージ парckeditor TSA domainsשיפור элементersonㅤ nun.EVENT Kob市委 TotalಪBoundingClientRectemodeDOM Terror poseuseRaltimes_tags dives Taco拂 documenting.RESULT祂 eğfriendly还真percentage rhe Keynes Mech不小 native_Property/spqueen+","+ rượu повышен不小 native_Property צורךשׂ十九届édโจ罵ondonlies سواء**)مسؤول SEXP\\HttpFoundation_sys]})\n'
+PASSED
+.............Cleaned up /home/vishsent/.cache/qeff_models
+
+
+======================== 10 passed in 501.28s (0:08:21) ========================
+Skipping module attribute 'freeze'

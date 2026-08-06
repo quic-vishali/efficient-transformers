@@ -1,0 +1,452 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading processor...
+Loading dataset...
+Loading FP16 model...
+
+Loading weights:   0%|          | 0/212 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 212/212 [00:00<00:00, 5055.07it/s]
+[1mWav2Vec2ForCTC LOAD REPORT[0m from: facebook/wav2vec2-base-960h
+Key                        | Status  | 
+---------------------------+---------+-
+wav2vec2.masked_spec_embed | MISSING | 
+
+Notes:
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+ 
+Running inference...
+
+
+====================================================================================================
+ATTENTION LAYER 0
+====================================================================================================
+
+INPUT HIDDEN
+Shape: (1, 1499, 768)
+Max Abs: 2.123046875
+Inf Count: 0
+NaN Count: 0
+
+SCORES FP16
+Total Elements: 26964012
+Max: 6.91796875
+Min: -5.39453125
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SCORES FP32
+Total Elements: 26964012
+Max: 6.918143272399902
+Min: -5.393133163452148
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SOFTMAX FP16
+Max shifted: 0.0
+Min shifted: -9.484375
+Shifted NaN: 0
+Softmax Inf: 0
+Softmax NaN: 0
+
+====================================================================================================
+ATTENTION LAYER 1
+====================================================================================================
+
+INPUT HIDDEN
+Shape: (1, 1499, 768)
+Max Abs: 2.94140625
+Inf Count: 0
+NaN Count: 0
+
+SCORES FP16
+Total Elements: 26964012
+Max: 13.0234375
+Min: -8.7421875
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SCORES FP32
+Total Elements: 26964012
+Max: 13.020657539367676
+Min: -8.738762855529785
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SOFTMAX FP16
+Max shifted: 0.0
+Min shifted: -19.78125
+Shifted NaN: 0
+Softmax Inf: 0
+Softmax NaN: 0
+
+====================================================================================================
+ATTENTION LAYER 2
+====================================================================================================
+
+INPUT HIDDEN
+Shape: (1, 1499, 768)
+Max Abs: 3.3046875
+Inf Count: 0
+NaN Count: 0
+
+SCORES FP16
+Total Elements: 26964012
+Max: 9.9140625
+Min: -6.953125
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SCORES FP32
+Total Elements: 26964012
+Max: 9.914676666259766
+Min: -6.952875137329102
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SOFTMAX FP16
+Max shifted: 0.0
+Min shifted: -14.6484375
+Shifted NaN: 0
+Softmax Inf: 0
+Softmax NaN: 0
+
+====================================================================================================
+ATTENTION LAYER 3
+====================================================================================================
+
+INPUT HIDDEN
+Shape: (1, 1499, 768)
+Max Abs: 3.234375
+Inf Count: 0
+NaN Count: 0
+
+SCORES FP16
+Total Elements: 26964012
+Max: 10.3671875
+Min: -11.8671875
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SCORES FP32
+Total Elements: 26964012
+Max: 10.365996360778809
+Min: -11.863884925842285
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SOFTMAX FP16
+Max shifted: 0.0
+Min shifted: -20.609375
+Shifted NaN: 0
+Softmax Inf: 0
+Softmax NaN: 0
+
+====================================================================================================
+ATTENTION LAYER 4
+====================================================================================================
+
+INPUT HIDDEN
+Shape: (1, 1499, 768)
+Max Abs: 3.451171875
+Inf Count: 0
+NaN Count: 0
+
+SCORES FP16
+Total Elements: 26964012
+Max: 11.4765625
+Min: -16.703125
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SCORES FP32
+Total Elements: 26964012
+Max: 11.47779655456543
+Min: -16.70728302001953
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SOFTMAX FP16
+Max shifted: 0.0
+Min shifted: -25.953125
+Shifted NaN: 0
+Softmax Inf: 0
+Softmax NaN: 0
+
+====================================================================================================
+ATTENTION LAYER 5
+====================================================================================================
+
+INPUT HIDDEN
+Shape: (1, 1499, 768)
+Max Abs: 2.90234375
+Inf Count: 0
+NaN Count: 0
+
+SCORES FP16
+Total Elements: 26964012
+Max: 8.1484375
+Min: -16.703125
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SCORES FP32
+Total Elements: 26964012
+Max: 8.145923614501953
+Min: -16.710630416870117
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SOFTMAX FP16
+Max shifted: 0.0
+Min shifted: -22.46875
+Shifted NaN: 0
+Softmax Inf: 0
+Softmax NaN: 0
+
+====================================================================================================
+ATTENTION LAYER 6
+====================================================================================================
+
+INPUT HIDDEN
+Shape: (1, 1499, 768)
+Max Abs: 2.943359375
+Inf Count: 0
+NaN Count: 0
+
+SCORES FP16
+Total Elements: 26964012
+Max: 8.1640625
+Min: -13.7734375
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SCORES FP32
+Total Elements: 26964012
+Max: 8.164989471435547
+Min: -13.771342277526855
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SOFTMAX FP16
+Max shifted: 0.0
+Min shifted: -18.46875
+Shifted NaN: 0
+Softmax Inf: 0
+Softmax NaN: 0
+
+====================================================================================================
+ATTENTION LAYER 7
+====================================================================================================
+
+INPUT HIDDEN
+Shape: (1, 1499, 768)
+Max Abs: 2.95703125
+Inf Count: 0
+NaN Count: 0
+
+SCORES FP16
+Total Elements: 26964012
+Max: 9.890625
+Min: -10.4140625
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SCORES FP32
+Total Elements: 26964012
+Max: 9.887423515319824
+Min: -10.412683486938477
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SOFTMAX FP16
+Max shifted: 0.0
+Min shifted: -18.375
+Shifted NaN: 0
+Softmax Inf: 0
+Softmax NaN: 0
+
+====================================================================================================
+ATTENTION LAYER 8
+====================================================================================================
+
+INPUT HIDDEN
+Shape: (1, 1499, 768)
+Max Abs: 3.154296875
+Inf Count: 0
+NaN Count: 0
+
+SCORES FP16
+Total Elements: 26964012
+Max: 43.28125
+Min: -12.2265625
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SCORES FP32
+Total Elements: 26964012
+Max: 43.27674865722656
+Min: -12.225444793701172
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SOFTMAX FP16
+Max shifted: 0.0
+Min shifted: -19.5625
+Shifted NaN: 0
+Softmax Inf: 0
+Softmax NaN: 0
+
+====================================================================================================
+ATTENTION LAYER 9
+====================================================================================================
+
+INPUT HIDDEN
+Shape: (1, 1499, 768)
+Max Abs: 3.580078125
+Inf Count: 0
+NaN Count: 0
+
+SCORES FP16
+Total Elements: 26964012
+Max: 16.375
+Min: -17.953125
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SCORES FP32
+Total Elements: 26964012
+Max: 16.37941551208496
+Min: -17.960357666015625
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SOFTMAX FP16
+Max shifted: 0.0
+Min shifted: -21.28125
+Shifted NaN: 0
+Softmax Inf: 0
+Softmax NaN: 0
+
+====================================================================================================
+ATTENTION LAYER 10
+====================================================================================================
+
+INPUT HIDDEN
+Shape: (1, 1499, 768)
+Max Abs: 4.21484375
+Inf Count: 0
+NaN Count: 0
+
+SCORES FP16
+Total Elements: 26964012
+Max: 68.875
+Min: -386.5
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SCORES FP32
+Total Elements: 26964012
+Max: 68.8979263305664
+Min: -386.4979248046875
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SOFTMAX FP16
+Max shifted: 0.0
+Min shifted: -41.71875
+Shifted NaN: 0
+Softmax Inf: 0
+Softmax NaN: 0
+
+====================================================================================================
+ATTENTION LAYER 11
+====================================================================================================
+
+INPUT HIDDEN
+Shape: (1, 1499, 768)
+Max Abs: 13.9765625
+Inf Count: 0
+NaN Count: 0
+
+SCORES FP16
+Total Elements: 26964012
+Max: 549.5
+Min: -inf
+Pos Inf: 0
+Neg Inf: 7058941
+NaN: 0
+
+SCORES FP32
+Total Elements: 26964012
+Max: 549.45849609375
+Min: -18560.24609375
+Pos Inf: 0
+Neg Inf: 0
+NaN: 0
+
+SOFTMAX FP16
+Max shifted: nan
+Min shifted: nan
+Shifted NaN: 7055793
+Softmax Inf: 0
+Softmax NaN: 7055793
+
+
+========================================================================================================================
+FINAL SUMMARY
+========================================================================================================================
+Layer  0 | HiddenInf=       0 | HiddenNaN=       0 | Score+Inf=       0 | Score-Inf=       0 | ScoreNaN=       0 | SoftmaxNaN=       0
+Layer  1 | HiddenInf=       0 | HiddenNaN=       0 | Score+Inf=       0 | Score-Inf=       0 | ScoreNaN=       0 | SoftmaxNaN=       0
+Layer  2 | HiddenInf=       0 | HiddenNaN=       0 | Score+Inf=       0 | Score-Inf=       0 | ScoreNaN=       0 | SoftmaxNaN=       0
+Layer  3 | HiddenInf=       0 | HiddenNaN=       0 | Score+Inf=       0 | Score-Inf=       0 | ScoreNaN=       0 | SoftmaxNaN=       0
+Layer  4 | HiddenInf=       0 | HiddenNaN=       0 | Score+Inf=       0 | Score-Inf=       0 | ScoreNaN=       0 | SoftmaxNaN=       0
+Layer  5 | HiddenInf=       0 | HiddenNaN=       0 | Score+Inf=       0 | Score-Inf=       0 | ScoreNaN=       0 | SoftmaxNaN=       0
+Layer  6 | HiddenInf=       0 | HiddenNaN=       0 | Score+Inf=       0 | Score-Inf=       0 | ScoreNaN=       0 | SoftmaxNaN=       0
+Layer  7 | HiddenInf=       0 | HiddenNaN=       0 | Score+Inf=       0 | Score-Inf=       0 | ScoreNaN=       0 | SoftmaxNaN=       0
+Layer  8 | HiddenInf=       0 | HiddenNaN=       0 | Score+Inf=       0 | Score-Inf=       0 | ScoreNaN=       0 | SoftmaxNaN=       0
+Layer  9 | HiddenInf=       0 | HiddenNaN=       0 | Score+Inf=       0 | Score-Inf=       0 | ScoreNaN=       0 | SoftmaxNaN=       0
+Layer 10 | HiddenInf=       0 | HiddenNaN=       0 | Score+Inf=       0 | Score-Inf=       0 | ScoreNaN=       0 | SoftmaxNaN=       0
+Layer 11 | HiddenInf=       0 | HiddenNaN=       0 | Score+Inf=       0 | Score-Inf= 7058941 | ScoreNaN=       0 | SoftmaxNaN= 7055793
+
+
+========================================================================================================================
+Layer - 11
+========================================================================================================================
+Module : wav2vec2.encoder.layers.11.attention.out_proj
+Shape  : torch.Size([1, 1499, 768])
++Inf   : 0
+-Inf   : 0
+NaN    : 1148928
+========================================================================================================================
+
+wav2vec2.encoder.layers.11.attention                                   shape=(1, 1499, 768)       max=   12.6406 min=   -7.9219 +inf=         0 -inf=         0 nan=   1148928
+wav2vec2.encoder.layers.11.dropout                                     shape=(1, 1499, 768)       max=   12.6406 min=   -7.9219 +inf=         0 -inf=         0 nan=   1148928
+wav2vec2.encoder.layers.11.layer_norm                                  shape=(1, 1499, 768)       max=    2.6367 min=   -4.9414 +inf=         0 -inf=         0 nan=   1148928
+wav2vec2.encoder.layers.11.feed_forward.intermediate_dense             shape=(1, 1499, 3072)      max=    3.7578 min=   -9.5703 +inf=         0 -inf=         0 nan=   4595712
+wav2vec2.encoder.layers.11.feed_forward.intermediate_act_fn            shape=(1, 1499, 3072)      max=    3.7578 min=   -0.1699 +inf=         0 -inf=         0 nan=   4595712
+wav2vec2.encoder.layers.11.feed_forward.intermediate_dropout           shape=(1, 1499, 3072)      max=    3.7578 min=   -0.1699 +inf=         0 -inf=         0 nan=   4595712
+wav2vec2.encoder.layers.11.feed_forward.output_dense                   shape=(1, 1499, 768)       max=   17.8750 min=  -15.3359 +inf=         0 -inf=         0 nan=   1148928
+wav2vec2.encoder.layers.11.feed_forward.output_dropout                 shape=(1, 1499, 768)       max=   17.8750 min=  -15.3359 +inf=         0 -inf=         0 nan=   1148928
+wav2vec2.encoder.layers.11.feed_forward                                shape=(1, 1499, 768)       max=   17.8750 min=  -15.3359 +inf=         0 -inf=         0 nan=   1148928
+wav2vec2.encoder.layers.11.final_layer_norm                            shape=(1, 1499, 768)       max=    1.7012 min=   -1.7725 +inf=         0 -inf=         0 nan=   1148928

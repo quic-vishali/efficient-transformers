@@ -1,0 +1,442 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- /home/vishsent/efficient-transformers/venv/bin/python3.12
+cachedir: .pytest_cache
+rootdir: /home/vishsent/efficient-transformers
+configfile: pyproject.toml
+plugins: xdist-3.8.0, anyio-4.14.2, mock-3.15.1
+collecting ... collected 4 items
+
+tests/transformers/models/embedding_models/test_qwen3vl_embedding.py::test_export_compile[optimum-intel-internal-testing/tiny-random-qwen3-vl-embedding] Fetching 13 files:   0%|          | 0/13 [00:00<?, ?it/s]Fetching 13 files: 100%|██████████| 13/13 [00:00<00:00, 6721.64it/s]
+Loading weights:   0%|          | 0/136 [00:00<?, ?it/s]Loading weights:  67%|██████▋   | 91/136 [00:00<00:00, 904.71it/s]Loading weights: 100%|██████████| 136/136 [00:00<00:00, 847.34it/s]
+Loading weights:   0%|          | 0/136 [00:00<?, ?it/s]Loading weights: 100%|██████████| 136/136 [00:00<00:00, 7217.83it/s]
+[31;20mERROR - QEfficient.base.modeling_qeff - ONNX export or transforms failed: index 16 is out of bounds for dimension 0 with size 10  (modeling_qeff.py:485)[0m
+FAILED
+tests/transformers/models/embedding_models/test_qwen3vl_embedding.py::test_generate[optimum-intel-internal-testing/tiny-random-qwen3-vl-embedding] Fetching 13 files:   0%|          | 0/13 [00:00<?, ?it/s]Fetching 13 files: 100%|██████████| 13/13 [00:00<00:00, 16664.41it/s]
+Loading weights:   0%|          | 0/136 [00:00<?, ?it/s]Loading weights: 100%|██████████| 136/136 [00:00<00:00, 6930.46it/s]
+Loading weights:   0%|          | 0/136 [00:00<?, ?it/s]Loading weights: 100%|██████████| 136/136 [00:00<00:00, 8111.85it/s]
+[31;20mERROR - QEfficient.base.modeling_qeff - ONNX export or transforms failed: index 16 is out of bounds for dimension 0 with size 10  (modeling_qeff.py:485)[0m
+FAILED
+tests/transformers/models/embedding_models/test_qwen3vl_embedding.py::test_export_compile_fp16[optimum-intel-internal-testing/tiny-random-qwen3-vl-embedding] Fetching 13 files:   0%|          | 0/13 [00:00<?, ?it/s]Fetching 13 files: 100%|██████████| 13/13 [00:00<00:00, 12065.93it/s]
+Loading weights:   0%|          | 0/136 [00:00<?, ?it/s]Loading weights:   1%|          | 1/136 [00:00<02:09,  1.04it/s]Loading weights: 100%|██████████| 136/136 [00:00<00:00, 140.50it/s]
+Loading weights:   0%|          | 0/136 [00:00<?, ?it/s]Loading weights: 100%|██████████| 136/136 [00:00<00:00, 6228.37it/s]
+[31;20mERROR - QEfficient.base.modeling_qeff - ONNX export or transforms failed: index 16 is out of bounds for dimension 0 with size 10  (modeling_qeff.py:485)[0m
+FAILED
+tests/transformers/models/embedding_models/test_qwen3vl_embedding.py::test_generate_fp16[optimum-intel-internal-testing/tiny-random-qwen3-vl-embedding] Fetching 13 files:   0%|          | 0/13 [00:00<?, ?it/s]Fetching 13 files: 100%|██████████| 13/13 [00:00<00:00, 16659.32it/s]
+Loading weights:   0%|          | 0/136 [00:00<?, ?it/s]Loading weights: 100%|██████████| 136/136 [00:00<00:00, 6003.47it/s]
+Loading weights:   0%|          | 0/136 [00:00<?, ?it/s]Loading weights: 100%|██████████| 136/136 [00:00<00:00, 7301.82it/s]
+[31;20mERROR - QEfficient.base.modeling_qeff - ONNX export or transforms failed: index 16 is out of bounds for dimension 0 with size 10  (modeling_qeff.py:485)[0m
+FAILED
+.............Cleaned up /home/vishsent/.cache/qeff_models
+
+
+=================================== FAILURES ===================================
+_ test_export_compile[optimum-intel-internal-testing/tiny-random-qwen3-vl-embedding] _
+
+model_name = 'optimum-intel-internal-testing/tiny-random-qwen3-vl-embedding'
+
+    @pytest.mark.vlm
+    @pytest.mark.non_qaic
+    @pytest.mark.parametrize("model_name", test_models)
+    def test_export_compile(model_name):
+    
+>       check_qwen3_vl_embedding_cpu_vs_ai100_mad_parity(model_name, export_compile_only=True)
+
+tests/transformers/models/embedding_models/test_qwen3vl_embedding.py:29: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/transformers/models/embedding_models/check_embedding_models.py:116: in check_qwen3_vl_embedding_cpu_vs_ai100_mad_parity
+    qpc_paths = qeff_model.compile(
+QEfficient/transformers/models/modeling_auto.py:2016: in compile
+    self.export(
+QEfficient/transformers/models/modeling_auto.py:1621: in export
+    self.lang_model.export(
+QEfficient/transformers/models/modeling_auto.py:1316: in export
+    return self._export(
+QEfficient/utils/export_utils.py:62: in wrapper
+    onnx_path = func(self, *args, **kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+QEfficient/base/modeling_qeff.py:486: in _export
+    raise e
+QEfficient/base/modeling_qeff.py:438: in _export
+    torch.onnx.export(
+venv/lib/python3.12/site-packages/torch/onnx/__init__.py:396: in export
+    export(
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:529: in export
+    _export(
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:1467: in _export
+    graph, params_dict, torch_out = _model_to_graph(
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:1087: in _model_to_graph
+    graph, params, torch_out, module = _create_jit_graph(model, args)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:971: in _create_jit_graph
+    graph, torch_out = _trace_and_get_graph_from_model(model, args)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:878: in _trace_and_get_graph_from_model
+    trace_graph, torch_out, inputs_states = torch.jit._get_trace_graph(
+venv/lib/python3.12/site-packages/torch/jit/_trace.py:1501: in _get_trace_graph
+    outs = ONNXTracedModule(
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1751: in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1762: in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/jit/_trace.py:138: in forward
+    graph, _out = torch._C._create_graph_by_tracing(
+venv/lib/python3.12/site-packages/torch/jit/_trace.py:129: in wrapper
+    outs.append(self.inner(*trace_inputs))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1751: in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1762: in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1741: in _slow_forward
+    result = self.forward(*input, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+QEfficient/transformers/models/qwen3_vl/modeling_qwen3_vl.py:727: in forward
+    outputs = self.language_model(
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1751: in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1762: in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1741: in _slow_forward
+    result = self.forward(*input, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+QEfficient/transformers/models/qwen3_vl/modeling_qwen3_vl.py:578: in forward
+    cos, sin = qeff_prepare_mrope_cos_sin(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+cos = Parameter containing:
+tensor([[ 1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,
+          1.000...  0.9999,
+          1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000]],
+       requires_grad=True)
+sin = Parameter containing:
+tensor([[ 0.0000e+00,  0.0000e+00,  0.0000e+00,  0.0000e+00,  0.0000e+00,
+          0.0000e+00, ....5349e-03,  5.8531e-04,  2.2320e-04,  8.5117e-05,  3.2459e-05,
+          1.2378e-05,  4.7202e-06]], requires_grad=True)
+position_ids = tensor([[[ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
+          17, 18, 19, 20, 21, 22, 23, 24...5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
+          17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]]])
+mrope_section = [24, 20, 20]
+
+    def qeff_prepare_mrope_cos_sin(cos, sin, position_ids, mrope_section):
+>       cos = cos[position_ids]
+              ^^^^^^^^^^^^^^^^^
+E       IndexError: index 16 is out of bounds for dimension 0 with size 10
+
+QEfficient/transformers/models/qwen3_vl/modeling_qwen3_vl.py:85: IndexError
+------------------------------ Captured log call -------------------------------
+ERROR    QEfficient.base.modeling_qeff:modeling_qeff.py:485 ONNX export or transforms failed: index 16 is out of bounds for dimension 0 with size 10
+_ test_generate[optimum-intel-internal-testing/tiny-random-qwen3-vl-embedding] _
+
+model_name = 'optimum-intel-internal-testing/tiny-random-qwen3-vl-embedding'
+
+    @pytest.mark.qaic
+    @pytest.mark.vlm
+    @pytest.mark.parametrize("model_name", test_models)
+    def test_generate(model_name):
+    
+>       check_qwen3_vl_embedding_cpu_vs_ai100_mad_parity(model_name)
+
+tests/transformers/models/embedding_models/test_qwen3vl_embedding.py:37: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/transformers/models/embedding_models/check_embedding_models.py:116: in check_qwen3_vl_embedding_cpu_vs_ai100_mad_parity
+    qpc_paths = qeff_model.compile(
+QEfficient/transformers/models/modeling_auto.py:2016: in compile
+    self.export(
+QEfficient/transformers/models/modeling_auto.py:1621: in export
+    self.lang_model.export(
+QEfficient/transformers/models/modeling_auto.py:1316: in export
+    return self._export(
+QEfficient/utils/export_utils.py:62: in wrapper
+    onnx_path = func(self, *args, **kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+QEfficient/base/modeling_qeff.py:486: in _export
+    raise e
+QEfficient/base/modeling_qeff.py:438: in _export
+    torch.onnx.export(
+venv/lib/python3.12/site-packages/torch/onnx/__init__.py:396: in export
+    export(
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:529: in export
+    _export(
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:1467: in _export
+    graph, params_dict, torch_out = _model_to_graph(
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:1087: in _model_to_graph
+    graph, params, torch_out, module = _create_jit_graph(model, args)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:971: in _create_jit_graph
+    graph, torch_out = _trace_and_get_graph_from_model(model, args)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:878: in _trace_and_get_graph_from_model
+    trace_graph, torch_out, inputs_states = torch.jit._get_trace_graph(
+venv/lib/python3.12/site-packages/torch/jit/_trace.py:1501: in _get_trace_graph
+    outs = ONNXTracedModule(
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1751: in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1762: in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/jit/_trace.py:138: in forward
+    graph, _out = torch._C._create_graph_by_tracing(
+venv/lib/python3.12/site-packages/torch/jit/_trace.py:129: in wrapper
+    outs.append(self.inner(*trace_inputs))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1751: in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1762: in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1741: in _slow_forward
+    result = self.forward(*input, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+QEfficient/transformers/models/qwen3_vl/modeling_qwen3_vl.py:727: in forward
+    outputs = self.language_model(
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1751: in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1762: in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1741: in _slow_forward
+    result = self.forward(*input, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+QEfficient/transformers/models/qwen3_vl/modeling_qwen3_vl.py:578: in forward
+    cos, sin = qeff_prepare_mrope_cos_sin(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+cos = Parameter containing:
+tensor([[ 1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,
+          1.000...  0.9999,
+          1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000]],
+       requires_grad=True)
+sin = Parameter containing:
+tensor([[ 0.0000e+00,  0.0000e+00,  0.0000e+00,  0.0000e+00,  0.0000e+00,
+          0.0000e+00, ....5349e-03,  5.8531e-04,  2.2320e-04,  8.5117e-05,  3.2459e-05,
+          1.2378e-05,  4.7202e-06]], requires_grad=True)
+position_ids = tensor([[[ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
+          17, 18, 19, 20, 21, 22, 23, 24...5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
+          17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]]])
+mrope_section = [24, 20, 20]
+
+    def qeff_prepare_mrope_cos_sin(cos, sin, position_ids, mrope_section):
+>       cos = cos[position_ids]
+              ^^^^^^^^^^^^^^^^^
+E       IndexError: index 16 is out of bounds for dimension 0 with size 10
+
+QEfficient/transformers/models/qwen3_vl/modeling_qwen3_vl.py:85: IndexError
+------------------------------ Captured log call -------------------------------
+ERROR    QEfficient.base.modeling_qeff:modeling_qeff.py:485 ONNX export or transforms failed: index 16 is out of bounds for dimension 0 with size 10
+_ test_export_compile_fp16[optimum-intel-internal-testing/tiny-random-qwen3-vl-embedding] _
+
+model_name = 'optimum-intel-internal-testing/tiny-random-qwen3-vl-embedding'
+
+    @pytest.mark.vlm
+    @pytest.mark.non_qaic
+    @pytest.mark.parametrize("model_name", test_models)
+    def test_export_compile_fp16(model_name):
+    
+>       check_qwen3_vl_embedding_cpu_vs_ai100_mad_parity(
+            model_name, export_compile_only=True, torch_dtype=torch.float16
+        )
+
+tests/transformers/models/embedding_models/test_qwen3vl_embedding.py:46: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/transformers/models/embedding_models/check_embedding_models.py:116: in check_qwen3_vl_embedding_cpu_vs_ai100_mad_parity
+    qpc_paths = qeff_model.compile(
+QEfficient/transformers/models/modeling_auto.py:2016: in compile
+    self.export(
+QEfficient/transformers/models/modeling_auto.py:1621: in export
+    self.lang_model.export(
+QEfficient/transformers/models/modeling_auto.py:1316: in export
+    return self._export(
+QEfficient/utils/export_utils.py:62: in wrapper
+    onnx_path = func(self, *args, **kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+QEfficient/base/modeling_qeff.py:486: in _export
+    raise e
+QEfficient/base/modeling_qeff.py:438: in _export
+    torch.onnx.export(
+venv/lib/python3.12/site-packages/torch/onnx/__init__.py:396: in export
+    export(
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:529: in export
+    _export(
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:1467: in _export
+    graph, params_dict, torch_out = _model_to_graph(
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:1087: in _model_to_graph
+    graph, params, torch_out, module = _create_jit_graph(model, args)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:971: in _create_jit_graph
+    graph, torch_out = _trace_and_get_graph_from_model(model, args)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:878: in _trace_and_get_graph_from_model
+    trace_graph, torch_out, inputs_states = torch.jit._get_trace_graph(
+venv/lib/python3.12/site-packages/torch/jit/_trace.py:1501: in _get_trace_graph
+    outs = ONNXTracedModule(
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1751: in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1762: in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/jit/_trace.py:138: in forward
+    graph, _out = torch._C._create_graph_by_tracing(
+venv/lib/python3.12/site-packages/torch/jit/_trace.py:129: in wrapper
+    outs.append(self.inner(*trace_inputs))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1751: in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1762: in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1741: in _slow_forward
+    result = self.forward(*input, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+QEfficient/transformers/models/qwen3_vl/modeling_qwen3_vl.py:727: in forward
+    outputs = self.language_model(
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1751: in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1762: in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1741: in _slow_forward
+    result = self.forward(*input, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+QEfficient/transformers/models/qwen3_vl/modeling_qwen3_vl.py:578: in forward
+    cos, sin = qeff_prepare_mrope_cos_sin(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+cos = Parameter containing:
+tensor([[ 1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,
+          1.000....0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000]],
+       dtype=torch.float16, requires_grad=True)
+sin = Parameter containing:
+tensor([[ 0.0000e+00,  0.0000e+00,  0.0000e+00,  0.0000e+00,  0.0000e+00,
+          0.0000e+00, ...4,  2.2316e-04,  8.5115e-05,  3.2485e-05,
+          1.2398e-05,  4.7088e-06]], dtype=torch.float16, requires_grad=True)
+position_ids = tensor([[[ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
+          17, 18, 19, 20, 21, 22, 23, 24...5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
+          17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]]])
+mrope_section = [24, 20, 20]
+
+    def qeff_prepare_mrope_cos_sin(cos, sin, position_ids, mrope_section):
+>       cos = cos[position_ids]
+              ^^^^^^^^^^^^^^^^^
+E       IndexError: index 16 is out of bounds for dimension 0 with size 10
+
+QEfficient/transformers/models/qwen3_vl/modeling_qwen3_vl.py:85: IndexError
+------------------------------ Captured log call -------------------------------
+ERROR    QEfficient.base.modeling_qeff:modeling_qeff.py:485 ONNX export or transforms failed: index 16 is out of bounds for dimension 0 with size 10
+_ test_generate_fp16[optimum-intel-internal-testing/tiny-random-qwen3-vl-embedding] _
+
+model_name = 'optimum-intel-internal-testing/tiny-random-qwen3-vl-embedding'
+
+    @pytest.mark.qaic
+    @pytest.mark.vlm
+    @pytest.mark.parametrize("model_name", test_models)
+    def test_generate_fp16(model_name):
+    
+>       check_qwen3_vl_embedding_cpu_vs_ai100_mad_parity(model_name, torch_dtype=torch.float16)
+
+tests/transformers/models/embedding_models/test_qwen3vl_embedding.py:56: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/transformers/models/embedding_models/check_embedding_models.py:116: in check_qwen3_vl_embedding_cpu_vs_ai100_mad_parity
+    qpc_paths = qeff_model.compile(
+QEfficient/transformers/models/modeling_auto.py:2016: in compile
+    self.export(
+QEfficient/transformers/models/modeling_auto.py:1621: in export
+    self.lang_model.export(
+QEfficient/transformers/models/modeling_auto.py:1316: in export
+    return self._export(
+QEfficient/utils/export_utils.py:62: in wrapper
+    onnx_path = func(self, *args, **kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+QEfficient/base/modeling_qeff.py:486: in _export
+    raise e
+QEfficient/base/modeling_qeff.py:438: in _export
+    torch.onnx.export(
+venv/lib/python3.12/site-packages/torch/onnx/__init__.py:396: in export
+    export(
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:529: in export
+    _export(
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:1467: in _export
+    graph, params_dict, torch_out = _model_to_graph(
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:1087: in _model_to_graph
+    graph, params, torch_out, module = _create_jit_graph(model, args)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:971: in _create_jit_graph
+    graph, torch_out = _trace_and_get_graph_from_model(model, args)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:878: in _trace_and_get_graph_from_model
+    trace_graph, torch_out, inputs_states = torch.jit._get_trace_graph(
+venv/lib/python3.12/site-packages/torch/jit/_trace.py:1501: in _get_trace_graph
+    outs = ONNXTracedModule(
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1751: in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1762: in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/jit/_trace.py:138: in forward
+    graph, _out = torch._C._create_graph_by_tracing(
+venv/lib/python3.12/site-packages/torch/jit/_trace.py:129: in wrapper
+    outs.append(self.inner(*trace_inputs))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1751: in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1762: in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1741: in _slow_forward
+    result = self.forward(*input, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+QEfficient/transformers/models/qwen3_vl/modeling_qwen3_vl.py:727: in forward
+    outputs = self.language_model(
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1751: in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1762: in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+venv/lib/python3.12/site-packages/torch/nn/modules/module.py:1741: in _slow_forward
+    result = self.forward(*input, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+QEfficient/transformers/models/qwen3_vl/modeling_qwen3_vl.py:578: in forward
+    cos, sin = qeff_prepare_mrope_cos_sin(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+cos = Parameter containing:
+tensor([[ 1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,
+          1.000....0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000]],
+       dtype=torch.float16, requires_grad=True)
+sin = Parameter containing:
+tensor([[ 0.0000e+00,  0.0000e+00,  0.0000e+00,  0.0000e+00,  0.0000e+00,
+          0.0000e+00, ...4,  2.2316e-04,  8.5115e-05,  3.2485e-05,
+          1.2398e-05,  4.7088e-06]], dtype=torch.float16, requires_grad=True)
+position_ids = tensor([[[ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
+          17, 18, 19, 20, 21, 22, 23, 24...5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
+          17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]]])
+mrope_section = [24, 20, 20]
+
+    def qeff_prepare_mrope_cos_sin(cos, sin, position_ids, mrope_section):
+>       cos = cos[position_ids]
+              ^^^^^^^^^^^^^^^^^
+E       IndexError: index 16 is out of bounds for dimension 0 with size 10
+
+QEfficient/transformers/models/qwen3_vl/modeling_qwen3_vl.py:85: IndexError
+------------------------------ Captured log call -------------------------------
+ERROR    QEfficient.base.modeling_qeff:modeling_qeff.py:485 ONNX export or transforms failed: index 16 is out of bounds for dimension 0 with size 10
+=========================== short test summary info ============================
+FAILED tests/transformers/models/embedding_models/test_qwen3vl_embedding.py::test_export_compile[optimum-intel-internal-testing/tiny-random-qwen3-vl-embedding] - IndexError: index 16 is out of bounds for dimension 0 with size 10
+FAILED tests/transformers/models/embedding_models/test_qwen3vl_embedding.py::test_generate[optimum-intel-internal-testing/tiny-random-qwen3-vl-embedding] - IndexError: index 16 is out of bounds for dimension 0 with size 10
+FAILED tests/transformers/models/embedding_models/test_qwen3vl_embedding.py::test_export_compile_fp16[optimum-intel-internal-testing/tiny-random-qwen3-vl-embedding] - IndexError: index 16 is out of bounds for dimension 0 with size 10
+FAILED tests/transformers/models/embedding_models/test_qwen3vl_embedding.py::test_generate_fp16[optimum-intel-internal-testing/tiny-random-qwen3-vl-embedding] - IndexError: index 16 is out of bounds for dimension 0 with size 10
+============================== 4 failed in 14.38s ==============================

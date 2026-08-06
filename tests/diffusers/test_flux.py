@@ -7,7 +7,8 @@
 
 import os
 import time
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
+import copy
 
 import numpy as np
 import pytest
@@ -34,7 +35,7 @@ from tests.diffusers.diffusers_utils import (
 CONFIG_PATH = "tests/diffusers/flux_test_config.json"
 INITIAL_TEST_CONFIG = load_json(CONFIG_PATH)
 TEST_SEED = 42
-
+model_id = "black-forest-labs/FLUX.1-schnell"
 
 def flux_pipeline_call_with_mad_validation(
     pipeline,
@@ -45,7 +46,6 @@ def flux_pipeline_call_with_mad_validation(
     prompt_2: Optional[Union[str, List[str]]] = None,
     negative_prompt: Union[str, List[str]] = None,
     negative_prompt_2: Optional[Union[str, List[str]]] = None,
-    true_cfg_scale: float = 1.0,
     num_inference_steps: int = 28,
     timesteps: List[int] = None,
     guidance_scale: float = 3.5,
@@ -57,9 +57,7 @@ def flux_pipeline_call_with_mad_validation(
     negative_prompt_embeds: Optional[torch.FloatTensor] = None,
     negative_pooled_prompt_embeds: Optional[torch.FloatTensor] = None,
     output_type: Optional[str] = "pil",
-    return_dict: bool = True,
-    joint_attention_kwargs: Optional[Dict[str, Any]] = None,
-    callback_on_step_end: Optional[Callable[[int, int, Dict], None]] = None,
+    export_compile_only: bool = False,
     callback_on_step_end_tensor_inputs: List[str] = ["latents"],
     max_sequence_length: int = 512,
     custom_config_path: Optional[str] = None,
@@ -81,6 +79,7 @@ def flux_pipeline_call_with_mad_validation(
     device = "cpu"
 
     # Step 1: Load configuration, compile models
+    _t_compile_start = time.time()
     pipeline.compile(
         compile_config=custom_config_path,
         parallel=parallel_compile,
@@ -88,6 +87,10 @@ def flux_pipeline_call_with_mad_validation(
         height=height,
         width=width,
     )
+    print(f"\n[Timing] Export + Compile: {(time.time() - _t_compile_start) / 60:.2f}min")
+
+    if export_compile_only:
+        return
 
     # Validate all inputs
     pipeline.model.check_inputs(
@@ -112,6 +115,7 @@ def flux_pipeline_call_with_mad_validation(
 
     # Step 3: Encode prompts with both text encoders
     # Use pipeline's encode_prompt method
+    _t_encode_start = time.time()
     (t5_qaic_prompt_embeds, clip_qaic_pooled_prompt_embeds, text_ids, text_encoder_perf) = pipeline.encode_prompt(
         prompt=prompt,
         prompt_2=prompt_2,
@@ -132,9 +136,14 @@ def flux_pipeline_call_with_mad_validation(
     # Deactivate text encoder qpc sessions
     release_qpc_session(pipeline.text_encoder)
     release_qpc_session(pipeline.text_encoder_2)
+    print(f"\n[Timing] Text encoding (QAIC + PyTorch ref): {(time.time() - _t_encode_start) / 60:.2f}min")
 
     # MAD Validation for Text Encoders
     print(" Performing MAD validation for text encoders...")
+    print(f"[TEST][T5   QAIC ] mean={t5_qaic_prompt_embeds.float().mean():.6f} shape={t5_qaic_prompt_embeds.shape}")
+    print(f"[TEST][T5   TORCH] mean={t5_torch_prompt_embeds.float().mean():.6f} shape={t5_torch_prompt_embeds.shape}")
+    print(f"[TEST][CLIP QAIC ] mean={clip_qaic_pooled_prompt_embeds.float().mean():.6f}")
+    print(f"[TEST][CLIP TORCH] mean={clip_torch_pooled_prompt_embeds.float().mean():.6f}")
     mad_validator.validate_module_mad(
         clip_qaic_pooled_prompt_embeds, clip_torch_pooled_prompt_embeds, module_name="clip_text_encoder"
     )
@@ -157,8 +166,7 @@ def flux_pipeline_call_with_mad_validation(
         generator,
         latents,
     )
-
-    # Step 6: Initialize transformer inference session
+    print(f"[TEST][LATENTS INIT] mean={latents.float().mean():.6f} shape={latents.shape}")
     if pipeline.transformer.qpc_session is None:
         pipeline.transformer.qpc_session = QAICInferenceSession(
             str(pipeline.transformer.qpc_path), device_ids=pipeline.transformer.device_ids
@@ -189,6 +197,7 @@ def flux_pipeline_call_with_mad_validation(
     pipeline.scheduler.set_begin_index(0)
 
     # Step 7: Denoising loop
+    _t_denoise_start = time.time()
     with pipeline.model.progress_bar(total=num_inference_steps) as progress_bar:
         for i, t in enumerate(timesteps):
             if pipeline._interrupt:
@@ -258,6 +267,9 @@ def flux_pipeline_call_with_mad_validation(
             noise_pred = torch.from_numpy(outputs["output"])
 
             # Transformer MAD validation
+            print(f"[TEST][TRANSFORMER IN  step {i}] latents mean={latents.float().mean():.6f}")
+            print(f"[TEST][TRANSFORMER OUT step {i}] qaic  mean={outputs['output'].mean():.6f}")
+            print(f"[TEST][TRANSFORMER OUT step {i}] torch mean={noise_pred_torch.float().mean():.6f}")
             mad_validator.validate_module_mad(
                 noise_pred_torch.detach().cpu().numpy(),
                 outputs["output"],
@@ -279,6 +291,7 @@ def flux_pipeline_call_with_mad_validation(
                 progress_bar.update()
 
     release_qpc_session(pipeline.transformer)
+    print(f"\n[Timing] Denoising loop: {(time.time() - _t_denoise_start) / 60:.2f}min")
     # Step 8: Decode latents to images
     if output_type == "latent":
         image = latents
@@ -311,12 +324,27 @@ def flux_pipeline_call_with_mad_validation(
         vae_decode_perf = end_decode_time - start_decode_time
         release_qpc_session(pipeline.vae_decode)
 
-        # VAE MAD validation
+        # # VAE MAD validation
+        print(f"[TEST][VAE IN ] latents mean={latents.float().mean():.6f}")
+        print("image_torch - ", image_torch.dtype)
+        print('image["sample"]', image["sample"].dtype)
+        print(f"[TEST][VAE OUT QAIC ] mean={image['sample'].mean():.6f}")
+        print(f"[TEST][VAE OUT TORCH] mean={image_torch.float().mean():.6f}")
         mad_validator.validate_module_mad(image_torch.detach().cpu().numpy(), image["sample"], "vae_decoder")
 
         # Post-process image
         image_tensor = torch.from_numpy(image["sample"])
         image = pipeline.model.image_processor.postprocess(image_tensor, output_type=output_type)
+        print(f"image postprocess - {image}")
+        img_np = np.array(image)
+
+        print("Shape:", img_np.shape)
+        print("Dtype:", img_np.dtype)
+        print("Min:", img_np.min())
+        print("Max:", img_np.max())
+
+        print("\nPixel values:")
+        print(img_np)
 
     # Build performance metrics
     perf_metrics = [
@@ -325,6 +353,17 @@ def flux_pipeline_call_with_mad_validation(
         ModulePerf(module_name="transformer", perf=transformer_perf),
         ModulePerf(module_name="vae_decoder", perf=vae_decode_perf),
     ]
+
+    print(
+        f"\n[Timing] Phase summary:"
+        f"\n  Export + Compile : (see above)"
+        f"\n  Text encoding    : (see above)"
+        f"\n  Denoising loop   : (see above)"
+        f"\n  CLIP encoder     : {text_encoder_perf[0] / 60:.4f}min"
+        f"\n  T5 encoder       : {text_encoder_perf[1] / 60:.4f}min"
+        f"\n  Transformer steps: {sum(transformer_perf) / 60:.4f}min total ({len(transformer_perf)} steps)"
+        f"\n  VAE decode       : {vae_decode_perf / 60:.4f}min"
+    )
 
     return QEffPipelineOutput(
         pipeline_module=perf_metrics,
@@ -337,63 +376,77 @@ def _build_flux_pipeline(enable_first_block_cache: bool = False):
     torch.manual_seed(TEST_SEED)
     np.random.seed(TEST_SEED)
 
-    config = INITIAL_TEST_CONFIG["model_setup"]
-    model_id = "black-forest-labs/FLUX.1-schnell"
+    _t_load_start = time.time()
+    if os.environ.get("QEFF_TEST_PROFILE", "").strip().lower() == "tiny_model":
+        config = INITIAL_TEST_CONFIG["model_setup"]
 
-    # Build random-init components from model configs (no pretrained weights).
-    vae_config = AutoencoderKL.load_config(model_id, subfolder="vae")
-    transformer_config = FluxTransformer2DModel.load_config(model_id, subfolder="transformer")
-    scheduler_cfg = FlowMatchEulerDiscreteScheduler.load_config(model_id, subfolder="scheduler")
+        # Build random-init components from model configs (no pretrained weights).
+        vae_config = AutoencoderKL.load_config(model_id, subfolder="vae")
+        transformer_config = FluxTransformer2DModel.load_config(model_id, subfolder="transformer")
+        scheduler_cfg = FlowMatchEulerDiscreteScheduler.load_config(model_id, subfolder="scheduler")
 
-    transformer_config["num_layers"] = config["num_transformer_layers"]
-    transformer_config["num_single_layers"] = config["num_single_layers"]
+        transformer_config["num_layers"] = config["num_transformer_layers"]
+        transformer_config["num_single_layers"] = config["num_single_layers"]
 
-    vae = AutoencoderKL.from_config(vae_config)
-    transformer = FluxTransformer2DModel.from_config(transformer_config)
-    scheduler = FlowMatchEulerDiscreteScheduler.from_config(scheduler_cfg)
+        vae = AutoencoderKL.from_config(vae_config)
+        transformer = FluxTransformer2DModel.from_config(transformer_config)
+        scheduler = FlowMatchEulerDiscreteScheduler.from_config(scheduler_cfg)
 
-    clip_text_encoder_cfg = CLIPTextModel.config_class.from_pretrained(model_id, subfolder="text_encoder")
-    t5_text_encoder_cfg = T5EncoderModel.config_class.from_pretrained(model_id, subfolder="text_encoder_2")
+        clip_text_encoder_cfg = CLIPTextModel.config_class.from_pretrained(model_id, subfolder="text_encoder")
+        t5_text_encoder_cfg = T5EncoderModel.config_class.from_pretrained(model_id, subfolder="text_encoder_2")
 
-    # Reduce text-encoder depth for faster export/compile in this test.
-    clip_text_encoder_cfg.num_hidden_layers = 1
-    t5_text_encoder_cfg.num_layers = 1
+        # Reduce text-encoder depth for faster export/compile in this test.
+        clip_text_encoder_cfg.num_hidden_layers = 1
+        t5_text_encoder_cfg.num_layers = 1
 
-    text_encoder = CLIPTextModel(clip_text_encoder_cfg)
-    text_encoder_2 = T5EncoderModel(t5_text_encoder_cfg)
-    tokenizer = CLIPTokenizer.from_pretrained(model_id, subfolder="tokenizer")
-    tokenizer_2 = T5TokenizerFast.from_pretrained(model_id, subfolder="tokenizer_2")
+        text_encoder = CLIPTextModel(clip_text_encoder_cfg)
+        text_encoder_2 = T5EncoderModel(t5_text_encoder_cfg)
+        tokenizer = CLIPTokenizer.from_pretrained(model_id, subfolder="tokenizer")
+        tokenizer_2 = T5TokenizerFast.from_pretrained(model_id, subfolder="tokenizer_2")
 
-    pytorch_pipeline = FluxPipeline(
-        scheduler=scheduler,
-        vae=vae,
-        text_encoder=text_encoder,
-        tokenizer=tokenizer,
-        text_encoder_2=text_encoder_2,
-        tokenizer_2=tokenizer_2,
-        transformer=transformer,
-    )
-    vae.eval()
-    transformer.eval()
-    text_encoder.eval()
-    text_encoder_2.eval()
+        pytorch_pipeline = FluxPipeline(
+            scheduler=scheduler,
+            vae=vae,
+            text_encoder=text_encoder,
+            tokenizer=tokenizer,
+            text_encoder_2=text_encoder_2,
+            tokenizer_2=tokenizer_2,
+            transformer=transformer,
+        )
+        vae.eval()
+        transformer.eval()
+        text_encoder.eval()
+        text_encoder_2.eval()
+        pipeline = QEffFluxPipeline(
+            copy.deepcopy(pytorch_pipeline),
+            enable_first_block_cache=enable_first_block_cache,
+        )
+    else:
+        pytorch_pipeline = FluxPipeline.from_pretrained(model_id, torch_dtype=torch.float32)
 
-    # Use QEff wrapper on a copy of the random-init reference model.
-    import copy
+        pytorch_pipeline.vae.eval()
+        pytorch_pipeline.transformer.eval()
+        if pytorch_pipeline.text_encoder is not None:
+            pytorch_pipeline.text_encoder.eval()
+        if pytorch_pipeline.text_encoder_2 is not None:
+            pytorch_pipeline.text_encoder_2.eval()
 
-    pipeline = QEffFluxPipeline(
-        copy.deepcopy(pytorch_pipeline),
-        enable_first_block_cache=enable_first_block_cache,
-    )
+        pipeline = QEffFluxPipeline(
+            copy.deepcopy(pytorch_pipeline),
+            pretrained_model_name_or_path=model_id,
+            enable_first_block_cache=enable_first_block_cache,
+        )
+
+    print(f"\n[Timing] Model loading: {(time.time() - _t_load_start) / 60:.2f}min")
     return pipeline, pytorch_pipeline
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def flux_pipeline():
     return _build_flux_pipeline(enable_first_block_cache=False)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def flux_pipeline_first_block_cache():
     return _build_flux_pipeline(enable_first_block_cache=True)
 
@@ -402,6 +455,7 @@ def _run_flux_pipeline_test_case(
     flux_pipeline_data,
     config,
     test_label: str,
+    export_compile_only: bool = False,
     pipeline_call_overrides: Optional[Dict[str, Any]] = None,
 ):
     """
@@ -417,7 +471,6 @@ def _run_flux_pipeline_test_case(
     # Print test header
     DiffusersTestUtils.print_test_header(
         test_label,
-        config,
     )
 
     # Test parameters
@@ -432,6 +485,7 @@ def _run_flux_pipeline_test_case(
 
     try:
         pipeline_call_overrides = pipeline_call_overrides or {}
+
         # Run the pipeline with integrated MAD validation (follows exact pipeline flow)
         result = flux_pipeline_call_with_mad_validation(
             pipeline,
@@ -447,13 +501,45 @@ def _run_flux_pipeline_test_case(
             mad_tolerances=config["mad_validation"]["tolerances"],
             use_onnx_subfunctions=config["pipeline_params"]["use_onnx_subfunctions"],
             parallel_compile=True,
-            return_dict=True,
+            export_compile_only=export_compile_only,
             **pipeline_call_overrides,
         )
 
         execution_time = time.time() - start_time
 
-        # Validate image generation
+        if config["validation_checks"]["onnx_export"]:
+            # Check if ONNX files exist (basic check)
+            print("\n ONNX Export Validation:")
+            for module_name in ["text_encoder", "text_encoder_2", "transformer", "vae_decode"]:
+                module_obj = getattr(pipeline, module_name, None)
+                if module_obj and hasattr(module_obj, "onnx_path") and module_obj.onnx_path:
+                    DiffusersTestUtils.check_file_exists(str(module_obj.onnx_path), f"{module_name} ONNX")
+
+        if config["validation_checks"]["compilation"]:
+            # Check if QPC files exist (basic check)
+            print("\n Compilation Validation:")
+            for module_name in ["text_encoder", "text_encoder_2", "transformer", "vae_decode"]:
+                module_obj = getattr(pipeline, module_name, None)
+                if module_obj and hasattr(module_obj, "qpc_path") and module_obj.qpc_path:
+                    DiffusersTestUtils.check_file_exists(str(module_obj.qpc_path), f"{module_name} QPC")
+
+        DiffusersTestUtils.print_artifact_sizes({
+            **{
+                f"{mn} ONNX": str(getattr(pipeline, mn).onnx_path)
+                for mn in ["text_encoder", "text_encoder_2", "transformer", "vae_decode"]
+                if getattr(pipeline, mn, None) and getattr(pipeline, mn).onnx_path
+            },
+            **{
+                f"{mn} QPC": str(getattr(pipeline, mn).qpc_path)
+                for mn in ["text_encoder", "text_encoder_2", "transformer", "vae_decode"]
+                if getattr(pipeline, mn, None) and getattr(pipeline, mn).qpc_path
+            },
+        })
+
+        if export_compile_only:
+            return
+
+      # Validate image generation
         if config["pipeline_params"]["validate_gen_img"]:
             assert result is not None, "Pipeline returned None"
             assert hasattr(result, "images"), "Result missing 'images' attribute"
@@ -480,22 +566,6 @@ def _run_flux_pipeline_test_case(
             else:
                 print("Image was not saved.")
 
-        if config["validation_checks"]["onnx_export"]:
-            # Check if ONNX files exist (basic check)
-            print("\n ONNX Export Validation:")
-            for module_name in ["text_encoder", "text_encoder_2", "transformer", "vae_decode"]:
-                module_obj = getattr(pipeline, module_name, None)
-                if module_obj and hasattr(module_obj, "onnx_path") and module_obj.onnx_path:
-                    DiffusersTestUtils.check_file_exists(str(module_obj.onnx_path), f"{module_name} ONNX")
-
-        if config["validation_checks"]["compilation"]:
-            # Check if QPC files exist (basic check)
-            print("\n Compilation Validation:")
-            for module_name in ["text_encoder", "text_encoder_2", "transformer", "vae_decode"]:
-                module_obj = getattr(pipeline, module_name, None)
-                if module_obj and hasattr(module_obj, "qpc_path") and module_obj.qpc_path:
-                    DiffusersTestUtils.check_file_exists(str(module_obj.qpc_path), f"{module_name} QPC")
-
         # Print test summary using utilities
         print(f"\nTotal execution time: {execution_time:.4f}s")
     except Exception as e:
@@ -507,31 +577,46 @@ def _run_flux_pipeline_test_case(
 
 @pytest.mark.flux
 @pytest.mark.diffusion_models
-@pytest.mark.on_qaic
-def test_flux_pipeline(flux_pipeline):
+@pytest.mark.non_qaic
+def test_export_compile(flux_pipeline):
     _run_flux_pipeline_test_case(
         flux_pipeline,
         INITIAL_TEST_CONFIG,
-        (
-            f"FLUX PIPELINE TEST - {INITIAL_TEST_CONFIG['model_setup']['height']}x"
-            f"{INITIAL_TEST_CONFIG['model_setup']['width']} Resolution, "
-            f"{INITIAL_TEST_CONFIG['model_setup']['num_transformer_layers']} Layers"
-        ),
+        test_label="Test Export Compile",
+        export_compile_only=True,
+    )
+
+@pytest.mark.flux
+@pytest.mark.diffusion_models
+@pytest.mark.qaic
+def test_generate(flux_pipeline):
+    _run_flux_pipeline_test_case(
+        flux_pipeline,
+        INITIAL_TEST_CONFIG,
+        test_label="Test Generate"
     )
 
 
 @pytest.mark.flux
 @pytest.mark.diffusion_models
-@pytest.mark.on_qaic
-def test_flux_pipeline_first_block_cache(flux_pipeline_first_block_cache):
+@pytest.mark.non_qaic
+def test_export_compile_first_block_cache(flux_pipeline_first_block_cache):
     _run_flux_pipeline_test_case(
         flux_pipeline_first_block_cache,
         INITIAL_TEST_CONFIG,
-        (
-            f"FLUX PIPELINE FIRST-BLOCK-CACHE TEST - {INITIAL_TEST_CONFIG['model_setup']['height']}x"
-            f"{INITIAL_TEST_CONFIG['model_setup']['width']} Resolution, "
-            f"{INITIAL_TEST_CONFIG['model_setup']['num_transformer_layers']} Layers"
-        ),
+        test_label="Test Export Compile First Block Cache",
+        export_compile_only=True,
+    )
+
+
+@pytest.mark.flux
+@pytest.mark.diffusion_models
+@pytest.mark.qaic
+def test_generate_first_block_cache(flux_pipeline_first_block_cache):
+    _run_flux_pipeline_test_case(
+        flux_pipeline_first_block_cache,
+        INITIAL_TEST_CONFIG,
+        test_label="Test Generate First Block Cache",
         pipeline_call_overrides={"cache_threshold": 0.0},
     )
 

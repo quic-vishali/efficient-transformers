@@ -1,0 +1,326 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- /home/vishsent/efficient-transformers/venv/bin/python3.12
+cachedir: .pytest_cache
+rootdir: /home/vishsent/efficient-transformers
+configfile: pyproject.toml
+plugins: xdist-3.8.0, anyio-4.14.2, mock-3.15.1
+collecting ... collected 4 items
+
+tests/transformers/models/audio_models/test_models.py::test_export_compile[optimum-intel-internal-testing/tiny-random-whisper] Fetching 12 files:   0%|          | 0/12 [00:00<?, ?it/s]Fetching 12 files: 100%|██████████| 12/12 [00:00<00:00, 19448.09it/s]
+Loading weights:   0%|          | 0/119 [00:00<?, ?it/s]Loading weights: 100%|██████████| 119/119 [00:00<00:00, 18221.46it/s]
+Fetching 10 files:   0%|          | 0/10 [00:00<?, ?it/s]Fetching 10 files: 100%|██████████| 10/10 [00:00<00:00, 135737.99it/s]
+input_features dtype: torch.float32
+conv1 weight dtype: torch.float32
+conv1 bias dtype: torch.float32
+FAILED
+tests/transformers/models/audio_models/test_models.py::test_generate[optimum-intel-internal-testing/tiny-random-whisper] Fetching 12 files:   0%|          | 0/12 [00:00<?, ?it/s]Fetching 12 files: 100%|██████████| 12/12 [00:00<00:00, 31030.61it/s]
+Loading weights:   0%|          | 0/119 [00:00<?, ?it/s]Loading weights: 100%|██████████| 119/119 [00:00<00:00, 4220.26it/s]
+Fetching 10 files:   0%|          | 0/10 [00:00<?, ?it/s]Fetching 10 files: 100%|██████████| 10/10 [00:00<00:00, 139345.65it/s]
+input_features dtype: torch.float32
+conv1 weight dtype: torch.float32
+conv1 bias dtype: torch.float32
+FAILED
+tests/transformers/models/audio_models/test_models.py::test_export_compile_fp16[optimum-intel-internal-testing/tiny-random-whisper] Fetching 12 files:   0%|          | 0/12 [00:00<?, ?it/s]Fetching 12 files: 100%|██████████| 12/12 [00:00<00:00, 95505.97it/s]
+Loading weights:   0%|          | 0/119 [00:00<?, ?it/s]Loading weights: 100%|██████████| 119/119 [00:00<00:00, 8735.23it/s]
+Fetching 10 files:   0%|          | 0/10 [00:00<?, ?it/s]Fetching 10 files: 100%|██████████| 10/10 [00:00<00:00, 45789.34it/s]
+input_features dtype: torch.float16
+conv1 weight dtype: torch.float16
+conv1 bias dtype: torch.float16
+FAILED
+tests/transformers/models/audio_models/test_models.py::test_generate_fp16[optimum-intel-internal-testing/tiny-random-whisper] Fetching 12 files:   0%|          | 0/12 [00:00<?, ?it/s]Fetching 12 files: 100%|██████████| 12/12 [00:00<00:00, 22084.97it/s]
+Loading weights:   0%|          | 0/119 [00:00<?, ?it/s]Loading weights: 100%|██████████| 119/119 [00:00<00:00, 15034.71it/s]
+Fetching 10 files:   0%|          | 0/10 [00:00<?, ?it/s]Fetching 10 files: 100%|██████████| 10/10 [00:00<00:00, 62977.54it/s]
+input_features dtype: torch.float16
+conv1 weight dtype: torch.float16
+conv1 bias dtype: torch.float16
+FAILED
+
+=================================== FAILURES ===================================
+___ test_export_compile[optimum-intel-internal-testing/tiny-random-whisper] ____
+
+model_name = 'optimum-intel-internal-testing/tiny-random-whisper'
+manual_cleanup = <function qeff_models_clean_up at 0x7fd96a8b5580>
+
+    @pytest.mark.llm
+    @pytest.mark.non_qaic
+    @pytest.mark.parametrize("model_name", test_models)
+    def test_export_compile(model_name, manual_cleanup):
+    
+>       check_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100(model_name, export_compile_only=True, manual_cleanup=manual_cleanup)
+
+tests/transformers/models/audio_models/test_models.py:28: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+model_name = 'optimum-intel-internal-testing/tiny-random-whisper', ctx_len = 32
+n_layer = -1, torch_dtype = torch.float32, num_devices = 1, enable_qnn = False
+qnn_config = None, compare_results = False, export_compile_only = True
+manual_cleanup = <function qeff_models_clean_up at 0x7fd96a8b5580>
+
+    def check_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100(
+        model_name: str,
+        ctx_len: int = Constants.CTX_LEN,
+        n_layer: int = -1,
+        torch_dtype=torch.float32,
+        num_devices: int = 1,
+        enable_qnn: Optional[bool] = False,
+        qnn_config: Optional[str] = None,
+        compare_results: Optional[bool] = False,
+        export_compile_only: Optional[bool] = False,
+        manual_cleanup=None,
+    ):
+        """
+        Validate the PyTorch model, the PyTorch model after KV changes, ONNX model and the Cloud AI 100 model
+        ``Mandatory`` Args:
+            :model_name (str): Hugging Face Model Card name, Example: ``whisper``
+            :ctx_len (int): Maximum context length to compile the model.
+            :n_layers (int): Number of layers for the Model.
+        """
+    
+        torch.manual_seed(42)
+        replace_transformers_quantizers()
+    
+        model_config = {"model_name": model_name}
+        model_config["n_layer"] = n_layer
+        model_config["torch_dtype"] = torch_dtype
+        model_hf, _ = load_seq2seq_model(model_config)
+        batch_size = 1
+        processor = load_hf_processor(pretrained_model_name_or_path=model_name)
+        ds = load_dataset("hf-internal-testing/librispeech_asr_dummy", "clean", split="validation")
+        data = ds[0]["audio"]["array"]
+        data = data.reshape(-1)
+        sample_rate = ds[0]["audio"]["sampling_rate"]
+    
+        pytorch_hf_tokens = run_seq2seq_pytorch_hf(model_hf, processor, data, sample_rate, ctx_len, torch_dtype=torch_dtype)
+    
+        qeff_model = QEFFAutoModelForSpeechSeq2Seq(
+            copy.deepcopy(model_hf), pretrained_model_name_or_path=model_name, torch_dtype=torch_dtype
+        )
+        pytorch_kv_tokens = run_seq2seq_pytorch_with_kv(
+            qeff_model, processor, data, sample_rate, ctx_len, torch_dtype=torch_dtype
+        )
+    
+>       assert (pytorch_hf_tokens == pytorch_kv_tokens).all(), (
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            "Tokens don't match for HF PyTorch model output and KV PyTorch model output"
+        )
+E       AssertionError: Tokens don't match for HF PyTorch model output and KV PyTorch model output
+
+tests/transformers/models/audio_models/check_audio_models.py:360: AssertionError
+______ test_generate[optimum-intel-internal-testing/tiny-random-whisper] _______
+
+model_name = 'optimum-intel-internal-testing/tiny-random-whisper'
+manual_cleanup = <function qeff_models_clean_up at 0x7fd96a8b5580>
+
+    @pytest.mark.qaic
+    @pytest.mark.llm
+    @pytest.mark.parametrize("model_name", test_models)
+    def test_generate(model_name, manual_cleanup):
+        torch.manual_seed(42)
+>       check_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100(model_name, manual_cleanup=manual_cleanup)
+
+tests/transformers/models/audio_models/test_models.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+model_name = 'optimum-intel-internal-testing/tiny-random-whisper', ctx_len = 32
+n_layer = -1, torch_dtype = torch.float32, num_devices = 1, enable_qnn = False
+qnn_config = None, compare_results = False, export_compile_only = False
+manual_cleanup = <function qeff_models_clean_up at 0x7fd96a8b5580>
+
+    def check_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100(
+        model_name: str,
+        ctx_len: int = Constants.CTX_LEN,
+        n_layer: int = -1,
+        torch_dtype=torch.float32,
+        num_devices: int = 1,
+        enable_qnn: Optional[bool] = False,
+        qnn_config: Optional[str] = None,
+        compare_results: Optional[bool] = False,
+        export_compile_only: Optional[bool] = False,
+        manual_cleanup=None,
+    ):
+        """
+        Validate the PyTorch model, the PyTorch model after KV changes, ONNX model and the Cloud AI 100 model
+        ``Mandatory`` Args:
+            :model_name (str): Hugging Face Model Card name, Example: ``whisper``
+            :ctx_len (int): Maximum context length to compile the model.
+            :n_layers (int): Number of layers for the Model.
+        """
+    
+        torch.manual_seed(42)
+        replace_transformers_quantizers()
+    
+        model_config = {"model_name": model_name}
+        model_config["n_layer"] = n_layer
+        model_config["torch_dtype"] = torch_dtype
+        model_hf, _ = load_seq2seq_model(model_config)
+        batch_size = 1
+        processor = load_hf_processor(pretrained_model_name_or_path=model_name)
+        ds = load_dataset("hf-internal-testing/librispeech_asr_dummy", "clean", split="validation")
+        data = ds[0]["audio"]["array"]
+        data = data.reshape(-1)
+        sample_rate = ds[0]["audio"]["sampling_rate"]
+    
+        pytorch_hf_tokens = run_seq2seq_pytorch_hf(model_hf, processor, data, sample_rate, ctx_len, torch_dtype=torch_dtype)
+    
+        qeff_model = QEFFAutoModelForSpeechSeq2Seq(
+            copy.deepcopy(model_hf), pretrained_model_name_or_path=model_name, torch_dtype=torch_dtype
+        )
+        pytorch_kv_tokens = run_seq2seq_pytorch_with_kv(
+            qeff_model, processor, data, sample_rate, ctx_len, torch_dtype=torch_dtype
+        )
+    
+>       assert (pytorch_hf_tokens == pytorch_kv_tokens).all(), (
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            "Tokens don't match for HF PyTorch model output and KV PyTorch model output"
+        )
+E       AssertionError: Tokens don't match for HF PyTorch model output and KV PyTorch model output
+
+tests/transformers/models/audio_models/check_audio_models.py:360: AssertionError
+_ test_export_compile_fp16[optimum-intel-internal-testing/tiny-random-whisper] _
+
+model_name = 'optimum-intel-internal-testing/tiny-random-whisper'
+manual_cleanup = <function qeff_models_clean_up at 0x7fd96a8b5580>
+
+    @pytest.mark.llm
+    @pytest.mark.non_qaic
+    @pytest.mark.parametrize("model_name", test_models)
+    def test_export_compile_fp16(model_name, manual_cleanup):
+    
+>       check_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100(
+            model_name, torch_dtype=torch.float16, export_compile_only=True, manual_cleanup=manual_cleanup
+        )
+
+tests/transformers/models/audio_models/test_models.py:45: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+model_name = 'optimum-intel-internal-testing/tiny-random-whisper', ctx_len = 32
+n_layer = -1, torch_dtype = torch.float16, num_devices = 1, enable_qnn = False
+qnn_config = None, compare_results = False, export_compile_only = True
+manual_cleanup = <function qeff_models_clean_up at 0x7fd96a8b5580>
+
+    def check_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100(
+        model_name: str,
+        ctx_len: int = Constants.CTX_LEN,
+        n_layer: int = -1,
+        torch_dtype=torch.float32,
+        num_devices: int = 1,
+        enable_qnn: Optional[bool] = False,
+        qnn_config: Optional[str] = None,
+        compare_results: Optional[bool] = False,
+        export_compile_only: Optional[bool] = False,
+        manual_cleanup=None,
+    ):
+        """
+        Validate the PyTorch model, the PyTorch model after KV changes, ONNX model and the Cloud AI 100 model
+        ``Mandatory`` Args:
+            :model_name (str): Hugging Face Model Card name, Example: ``whisper``
+            :ctx_len (int): Maximum context length to compile the model.
+            :n_layers (int): Number of layers for the Model.
+        """
+    
+        torch.manual_seed(42)
+        replace_transformers_quantizers()
+    
+        model_config = {"model_name": model_name}
+        model_config["n_layer"] = n_layer
+        model_config["torch_dtype"] = torch_dtype
+        model_hf, _ = load_seq2seq_model(model_config)
+        batch_size = 1
+        processor = load_hf_processor(pretrained_model_name_or_path=model_name)
+        ds = load_dataset("hf-internal-testing/librispeech_asr_dummy", "clean", split="validation")
+        data = ds[0]["audio"]["array"]
+        data = data.reshape(-1)
+        sample_rate = ds[0]["audio"]["sampling_rate"]
+    
+        pytorch_hf_tokens = run_seq2seq_pytorch_hf(model_hf, processor, data, sample_rate, ctx_len, torch_dtype=torch_dtype)
+    
+        qeff_model = QEFFAutoModelForSpeechSeq2Seq(
+            copy.deepcopy(model_hf), pretrained_model_name_or_path=model_name, torch_dtype=torch_dtype
+        )
+        pytorch_kv_tokens = run_seq2seq_pytorch_with_kv(
+            qeff_model, processor, data, sample_rate, ctx_len, torch_dtype=torch_dtype
+        )
+    
+>       assert (pytorch_hf_tokens == pytorch_kv_tokens).all(), (
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            "Tokens don't match for HF PyTorch model output and KV PyTorch model output"
+        )
+E       AssertionError: Tokens don't match for HF PyTorch model output and KV PyTorch model output
+
+tests/transformers/models/audio_models/check_audio_models.py:360: AssertionError
+____ test_generate_fp16[optimum-intel-internal-testing/tiny-random-whisper] ____
+
+model_name = 'optimum-intel-internal-testing/tiny-random-whisper'
+manual_cleanup = <function qeff_models_clean_up at 0x7fd96a8b5580>
+
+    @pytest.mark.qaic
+    @pytest.mark.llm
+    @pytest.mark.parametrize("model_name", test_models)
+    def test_generate_fp16(model_name, manual_cleanup):
+    
+>       check_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100(model_name, torch_dtype=torch.float16, manual_cleanup=manual_cleanup)
+
+tests/transformers/models/audio_models/test_models.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+model_name = 'optimum-intel-internal-testing/tiny-random-whisper', ctx_len = 32
+n_layer = -1, torch_dtype = torch.float16, num_devices = 1, enable_qnn = False
+qnn_config = None, compare_results = False, export_compile_only = False
+manual_cleanup = <function qeff_models_clean_up at 0x7fd96a8b5580>
+
+    def check_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100(
+        model_name: str,
+        ctx_len: int = Constants.CTX_LEN,
+        n_layer: int = -1,
+        torch_dtype=torch.float32,
+        num_devices: int = 1,
+        enable_qnn: Optional[bool] = False,
+        qnn_config: Optional[str] = None,
+        compare_results: Optional[bool] = False,
+        export_compile_only: Optional[bool] = False,
+        manual_cleanup=None,
+    ):
+        """
+        Validate the PyTorch model, the PyTorch model after KV changes, ONNX model and the Cloud AI 100 model
+        ``Mandatory`` Args:
+            :model_name (str): Hugging Face Model Card name, Example: ``whisper``
+            :ctx_len (int): Maximum context length to compile the model.
+            :n_layers (int): Number of layers for the Model.
+        """
+    
+        torch.manual_seed(42)
+        replace_transformers_quantizers()
+    
+        model_config = {"model_name": model_name}
+        model_config["n_layer"] = n_layer
+        model_config["torch_dtype"] = torch_dtype
+        model_hf, _ = load_seq2seq_model(model_config)
+        batch_size = 1
+        processor = load_hf_processor(pretrained_model_name_or_path=model_name)
+        ds = load_dataset("hf-internal-testing/librispeech_asr_dummy", "clean", split="validation")
+        data = ds[0]["audio"]["array"]
+        data = data.reshape(-1)
+        sample_rate = ds[0]["audio"]["sampling_rate"]
+    
+        pytorch_hf_tokens = run_seq2seq_pytorch_hf(model_hf, processor, data, sample_rate, ctx_len, torch_dtype=torch_dtype)
+    
+        qeff_model = QEFFAutoModelForSpeechSeq2Seq(
+            copy.deepcopy(model_hf), pretrained_model_name_or_path=model_name, torch_dtype=torch_dtype
+        )
+        pytorch_kv_tokens = run_seq2seq_pytorch_with_kv(
+            qeff_model, processor, data, sample_rate, ctx_len, torch_dtype=torch_dtype
+        )
+    
+>       assert (pytorch_hf_tokens == pytorch_kv_tokens).all(), (
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            "Tokens don't match for HF PyTorch model output and KV PyTorch model output"
+        )
+E       AssertionError: Tokens don't match for HF PyTorch model output and KV PyTorch model output
+
+tests/transformers/models/audio_models/check_audio_models.py:360: AssertionError
+=========================== short test summary info ============================
+FAILED tests/transformers/models/audio_models/test_models.py::test_export_compile[optimum-intel-internal-testing/tiny-random-whisper] - AssertionError: Tokens don't match for HF PyTorch model output and KV PyTorch model output
+FAILED tests/transformers/models/audio_models/test_models.py::test_generate[optimum-intel-internal-testing/tiny-random-whisper] - AssertionError: Tokens don't match for HF PyTorch model output and KV PyTorch model output
+FAILED tests/transformers/models/audio_models/test_models.py::test_export_compile_fp16[optimum-intel-internal-testing/tiny-random-whisper] - AssertionError: Tokens don't match for HF PyTorch model output and KV PyTorch model output
+FAILED tests/transformers/models/audio_models/test_models.py::test_generate_fp16[optimum-intel-internal-testing/tiny-random-whisper] - AssertionError: Tokens don't match for HF PyTorch model output and KV PyTorch model output
+======================== 4 failed in 472.30s (0:07:52) =========================

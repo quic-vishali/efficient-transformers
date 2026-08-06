@@ -1,0 +1,547 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- /home/vishsent/efficient-transformers/venv/bin/python3.12
+cachedir: .pytest_cache
+rootdir: /home/vishsent/efficient-transformers
+configfile: pyproject.toml
+plugins: xdist-3.8.0, anyio-4.14.2, mock-3.15.1
+collecting ... collected 2 items
+
+tests/diffusers/test_flux.py::test_flux_pipeline Loading pipeline components...:   0%|          | 0/7 [00:00<?, ?it/s]
+Loading checkpoint shards:   0%|          | 0/3 [00:00<?, ?it/s][A
+Loading checkpoint shards:  33%|███▎      | 1/3 [00:04<00:08,  4.26s/it][A
+Loading checkpoint shards:  67%|██████▋   | 2/3 [00:08<00:04,  4.24s/it][A
+Loading checkpoint shards: 100%|██████████| 3/3 [00:10<00:00,  3.09s/it][ALoading checkpoint shards: 100%|██████████| 3/3 [00:10<00:00,  3.40s/it]
+Loading pipeline components...:  14%|█▍        | 1/7 [00:10<01:02, 10.50s/it]
+Loading weights:   0%|          | 0/196 [00:00<?, ?it/s][ALoading weights: 100%|██████████| 196/196 [00:00<00:00, 7450.86it/s]
+Loading pipeline components...:  43%|████▎     | 3/7 [00:10<00:11,  2.80s/it]Loading pipeline components...:  57%|█████▋    | 4/7 [00:11<00:06,  2.14s/it]
+Loading weights:   0%|          | 0/219 [00:00<?, ?it/s][ALoading weights: 100%|██████████| 219/219 [00:00<00:00, 5459.06it/s]
+Loading pipeline components...: 100%|██████████| 7/7 [00:11<00:00,  1.12it/s]Loading pipeline components...: 100%|██████████| 7/7 [00:11<00:00,  1.68s/it]
+[33;20mWARNING - QEfficient.base.modeling_qeff - BFloat16 dtype is not yet supported; converting to float16 precision![0m
+[33;20mWARNING - QEfficient.base.modeling_qeff - BFloat16 dtype is not yet supported; converting to float16 precision![0m
+
+================================================================================
+FLUX PIPELINE TEST - 64x64 Resolution, 2 Layers
+================================================================================
+height : 64
+width : 64
+num_transformer_layers : 2
+num_single_layers : 2
+================================================================================
+Exporting modules:   0%|          | 0/4 [00:00<?, ?module/s][31;20mERROR - QEfficient.base.modeling_qeff - ONNX export or transforms failed: ScalarType ComplexDouble is an unexpected tensor scalar type  (modeling_qeff.py:485)[0m
+Exporting modules:   0%|          | 0/4 [00:23<?, ?module/s]
+
+TEST FAILED: ScalarType ComplexDouble is an unexpected tensor scalar type
+FAILED
+tests/diffusers/test_flux.py::test_flux_pipeline_first_block_cache Loading pipeline components...:   0%|          | 0/7 [00:00<?, ?it/s]
+Loading checkpoint shards:   0%|          | 0/3 [00:00<?, ?it/s][A
+Loading checkpoint shards:  33%|███▎      | 1/3 [00:05<00:10,  5.25s/it][A
+Loading checkpoint shards:  67%|██████▋   | 2/3 [00:10<00:05,  5.16s/it][A
+Loading checkpoint shards: 100%|██████████| 3/3 [00:12<00:00,  3.59s/it][ALoading checkpoint shards: 100%|██████████| 3/3 [00:12<00:00,  4.03s/it]
+Loading pipeline components...:  14%|█▍        | 1/7 [00:12<01:13, 12.17s/it]
+Loading weights:   0%|          | 0/196 [00:00<?, ?it/s][ALoading weights: 100%|██████████| 196/196 [00:00<00:00, 7862.01it/s]
+Loading pipeline components...:  43%|████▎     | 3/7 [00:12<00:13,  3.34s/it]Loading pipeline components...:  57%|█████▋    | 4/7 [00:14<00:08,  2.69s/it]
+Loading weights:   0%|          | 0/219 [00:00<?, ?it/s][ALoading weights: 100%|██████████| 219/219 [00:00<00:00, 5094.64it/s]
+Loading pipeline components...: 100%|██████████| 7/7 [00:14<00:00,  1.12s/it]Loading pipeline components...: 100%|██████████| 7/7 [00:14<00:00,  2.04s/it]
+[33;20mWARNING - QEfficient.base.modeling_qeff - BFloat16 dtype is not yet supported; converting to float16 precision![0m
+[33;20mWARNING - QEfficient.base.modeling_qeff - BFloat16 dtype is not yet supported; converting to float16 precision![0m
+
+================================================================================
+FLUX PIPELINE FIRST-BLOCK-CACHE TEST - 64x64 Resolution, 2 Layers
+================================================================================
+height : 64
+width : 64
+num_transformer_layers : 2
+num_single_layers : 2
+================================================================================
+Exporting modules:   0%|          | 0/4 [00:00<?, ?module/s][31;20mERROR - QEfficient.base.modeling_qeff - ONNX export or transforms failed: ScalarType ComplexDouble is an unexpected tensor scalar type  (modeling_qeff.py:485)[0m
+Exporting modules:   0%|          | 0/4 [00:14<?, ?module/s]
+
+TEST FAILED: ScalarType ComplexDouble is an unexpected tensor scalar type
+FAILED
+.............Cleaned up /home/vishsent/.cache/qeff_models
+
+
+=================================== FAILURES ===================================
+______________________________ test_flux_pipeline ______________________________
+
+flux_pipeline = (<QEfficient.diffusers.pipelines.flux.pipeline_flux.QEffFluxPipeline object at 0x7f80c09c1e50>, FluxPipeline {
+  "_cla...nsformer": [
+    "diffusers",
+    "FluxTransformer2DModel"
+  ],
+  "vae": [
+    "diffusers",
+    "AutoencoderKL"
+  ]
+}
+)
+
+    @pytest.mark.flux
+    @pytest.mark.diffusion_models
+    @pytest.mark.on_qaic
+    def test_flux_pipeline(flux_pipeline):
+>       _run_flux_pipeline_test_case(
+            flux_pipeline,
+            INITIAL_TEST_CONFIG,
+            (
+                f"FLUX PIPELINE TEST - {INITIAL_TEST_CONFIG['model_setup']['height']}x"
+                f"{INITIAL_TEST_CONFIG['model_setup']['width']} Resolution, "
+                f"{INITIAL_TEST_CONFIG['model_setup']['num_transformer_layers']} Layers"
+            ),
+        )
+
+tests/diffusers/test_flux.py:521: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/diffusers/test_flux.py:445: in _run_flux_pipeline_test_case
+    result = flux_pipeline_call_with_mad_validation(
+tests/diffusers/test_flux.py:85: in flux_pipeline_call_with_mad_validation
+    pipeline.compile(
+QEfficient/diffusers/pipelines/flux/pipeline_flux.py:337: in compile
+    self.export(use_onnx_subfunctions=use_onnx_subfunctions)
+QEfficient/diffusers/pipelines/flux/pipeline_flux.py:266: in export
+    module_obj.export(**export_params)
+QEfficient/diffusers/pipelines/pipeline_module.py:117: in export
+    return self._export(
+QEfficient/utils/export_utils.py:62: in wrapper
+    onnx_path = func(self, *args, **kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+QEfficient/base/modeling_qeff.py:486: in _export
+    raise e
+QEfficient/base/modeling_qeff.py:438: in _export
+    torch.onnx.export(
+venv/lib/python3.12/site-packages/torch/onnx/__init__.py:396: in export
+    export(
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:529: in export
+    _export(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+model = CLIPTextModel(
+  (text_model): QEffCLIPTextTransformer(
+    (embeddings): CLIPTextEmbeddings(
+      (token_embedding):...ffine=True)
+        )
+      )
+    )
+    (final_layer_norm): LayerNorm((768,), eps=1e-05, elementwise_affine=True)
+  )
+)
+args = (tensor([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, ...         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0]]), None, None)
+f = '/home/vishsent/.cache/qeff_models/CLIPTextModel/CLIPTextModel-c0eef11943372f85/CLIPTextModel.onnx'
+export_params = True, verbose = False, training = <TrainingMode.EVAL: 0>
+input_names = ['input_ids']
+output_names = ['last_hidden_state', 'pooler_output']
+operator_export_type = <OperatorExportTypes.ONNX: 0>, export_type = None
+opset_version = 17, do_constant_folding = True
+dynamic_axes = {'input_ids': {0: 'batch_size', 1: 'seq_len'}}
+keep_initializers_as_inputs = False, fixed_batch_size = False
+custom_opsets = {}, add_node_names = True, onnx_shape_inference = True
+export_modules_as_functions = False, autograd_inlining = True
+
+    def _export(
+        model,
+        args,
+        f,
+        export_params=True,
+        verbose=False,
+        training=_C_onnx.TrainingMode.EVAL,
+        input_names=None,
+        output_names=None,
+        operator_export_type=_C_onnx.OperatorExportTypes.ONNX,
+        export_type=None,
+        opset_version=None,
+        do_constant_folding=True,
+        dynamic_axes=None,
+        keep_initializers_as_inputs=None,
+        fixed_batch_size=False,
+        custom_opsets=None,
+        add_node_names=True,
+        onnx_shape_inference=True,
+        export_modules_as_functions: Any = False,
+        autograd_inlining=True,
+    ):
+        assert GLOBALS.in_onnx_export is False
+    
+        if isinstance(model, torch.nn.DataParallel):
+            raise ValueError(
+                "torch.nn.DataParallel is not supported by ONNX "
+                "exporter, please use 'attribute' module to "
+                "unwrap model from torch.nn.DataParallel. Try "
+                "torch.onnx.export(model.module, ...)"
+            )
+    
+        GLOBALS.onnx_shape_inference = onnx_shape_inference
+    
+        if opset_version is None:
+            opset_version = _constants.ONNX_DEFAULT_OPSET
+    
+        # torch.onnx.export does not support opset versions >=18
+        if opset_version > _constants.ONNX_TORCHSCRIPT_EXPORTER_MAX_OPSET:
+            # We do not want to fail because we should still allow users to create
+            # custom symbolic functions for opset>17
+            warnings.warn(
+                f"Exporting to ONNX opset version {opset_version} is not supported. "
+                f"by 'torch.onnx.export()'. "
+                f"The highest opset version supported is {_constants.ONNX_TORCHSCRIPT_EXPORTER_MAX_OPSET}. "
+                f"To use a newer opset version, consider 'torch.onnx.export(..., dynamo=True)'. ",
+                category=errors.OnnxExporterWarning,
+            )
+    
+        if export_modules_as_functions and opset_version < 15:
+            raise ValueError(
+                "`export_modules_as_functions` is not supported for `opset_version` < 15."
+                "This is because `opset_version` < 15 implies IR version < 8, which means "
+                "no local function support. "
+            )
+        if not operator_export_type:
+            operator_export_type = _C_onnx.OperatorExportTypes.ONNX
+    
+        # By default, training=TrainingMode.EVAL,
+        # which is good because running a model in training mode could result in
+        # internal buffers getting updated, dropout getting applied, etc.
+        # If you really know what you're doing, you can turn
+        # training=TrainingMode.TRAINING or training=TrainingMode.PRESERVE,
+        # (to preserve whatever the original training mode was.)
+        GLOBALS.export_onnx_opset_version = opset_version
+        GLOBALS.operator_export_type = operator_export_type
+    
+        try:
+            GLOBALS.in_onnx_export = True
+            _autograd_inlining_previous = GLOBALS.autograd_inlining
+            GLOBALS.autograd_inlining = autograd_inlining
+    
+            module_typenames_to_export_as_functions: set[str] = set()
+            if isinstance(model, (torch.nn.Module, torch.jit.ScriptModule)):
+                module_typenames_to_export_as_functions = _setup_trace_module_map(
+                    model, export_modules_as_functions
+                )
+    
+            with exporter_context(model, training, verbose):
+                val_keep_init_as_ip = _decide_keep_init_as_input(
+                    keep_initializers_as_inputs,
+                    operator_export_type,
+                    opset_version,
+                )
+                val_add_node_names = _decide_add_node_names(
+                    add_node_names, operator_export_type
+                )
+                val_do_constant_folding = _decide_constant_folding(
+                    do_constant_folding, operator_export_type, training
+                )
+                # Normally f can be a file-like object, but for large models, the external data format requires a
+                # valid `model_file_location`. Code in export.cpp will enforce this.
+                if isinstance(f, str):
+                    model_file_location = f
+                else:
+                    model_file_location = ""
+                args = _decide_input_format(model, args)
+                if dynamic_axes is None:
+                    dynamic_axes = {}
+                _validate_dynamic_axes(dynamic_axes, model, input_names, output_names)
+    
+                graph, params_dict, torch_out = _model_to_graph(
+                    model,
+                    args,
+                    verbose,
+                    input_names,
+                    output_names,
+                    operator_export_type,
+                    val_do_constant_folding,
+                    fixed_batch_size=fixed_batch_size,
+                    training=training,
+                    dynamic_axes=dynamic_axes,
+                )
+    
+                if custom_opsets is None:
+                    custom_opsets = {}
+    
+                _C._jit_pass_dce_allow_deleting_nodes_with_side_effects(graph)
+                node_attr_to_name = {}  # type: ignore[var-annotated]
+                if module_typenames_to_export_as_functions:
+                    # NOTE: cannot call DCE after this pass. DCE will remove function definition nodes.
+                    node_attr_to_name = _C._jit_pass_onnx_function_extraction(
+                        graph,
+                        module_typenames_to_export_as_functions,
+                        list(params_dict.keys()),
+                    )
+    
+                if keep_initializers_as_inputs is not True:
+                    params_dict = _C._jit_pass_onnx_deduplicate_initializers(  # type: ignore[assignment]
+                        graph,
+                        params_dict,  # type: ignore[arg-type]
+                        getattr(model, "training", False),  # type: ignore[arg-type]
+                    )
+                _C._jit_pass_onnx_assign_scoped_names_for_node_and_value(graph)
+                defer_weight_export = False
+                if export_params:
+                    (
+                        proto,
+                        export_map,
+                        _val_use_external_data_format,
+                        _node_names,
+>                   ) = graph._export_onnx(  # type: ignore[attr-defined]
+                        params_dict,
+                        opset_version,
+                        dynamic_axes,
+                        defer_weight_export,
+                        operator_export_type,
+                        not verbose,
+                        val_keep_init_as_ip,
+                        custom_opsets,
+                        val_add_node_names,
+                        model_file_location,
+                        node_attr_to_name,
+                    )
+E                   RuntimeError: ScalarType ComplexDouble is an unexpected tensor scalar type
+
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:1507: RuntimeError
+------------------------------ Captured log setup ------------------------------
+WARNING  QEfficient.base.modeling_qeff:modeling_qeff.py:151 BFloat16 dtype is not yet supported; converting to float16 precision!
+WARNING  QEfficient.base.modeling_qeff:modeling_qeff.py:151 BFloat16 dtype is not yet supported; converting to float16 precision!
+------------------------------ Captured log call -------------------------------
+ERROR    QEfficient.base.modeling_qeff:modeling_qeff.py:485 ONNX export or transforms failed: ScalarType ComplexDouble is an unexpected tensor scalar type
+_____________________ test_flux_pipeline_first_block_cache _____________________
+
+flux_pipeline_first_block_cache = (<QEfficient.diffusers.pipelines.flux.pipeline_flux.QEffFluxPipeline object at 0x7f80a0130440>, FluxPipeline {
+  "_cla...nsformer": [
+    "diffusers",
+    "FluxTransformer2DModel"
+  ],
+  "vae": [
+    "diffusers",
+    "AutoencoderKL"
+  ]
+}
+)
+
+    @pytest.mark.flux
+    @pytest.mark.diffusion_models
+    @pytest.mark.on_qaic
+    def test_flux_pipeline_first_block_cache(flux_pipeline_first_block_cache):
+>       _run_flux_pipeline_test_case(
+            flux_pipeline_first_block_cache,
+            INITIAL_TEST_CONFIG,
+            (
+                f"FLUX PIPELINE FIRST-BLOCK-CACHE TEST - {INITIAL_TEST_CONFIG['model_setup']['height']}x"
+                f"{INITIAL_TEST_CONFIG['model_setup']['width']} Resolution, "
+                f"{INITIAL_TEST_CONFIG['model_setup']['num_transformer_layers']} Layers"
+            ),
+            pipeline_call_overrides={"cache_threshold": 0.0},
+        )
+
+tests/diffusers/test_flux.py:536: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/diffusers/test_flux.py:445: in _run_flux_pipeline_test_case
+    result = flux_pipeline_call_with_mad_validation(
+tests/diffusers/test_flux.py:85: in flux_pipeline_call_with_mad_validation
+    pipeline.compile(
+QEfficient/diffusers/pipelines/flux/pipeline_flux.py:337: in compile
+    self.export(use_onnx_subfunctions=use_onnx_subfunctions)
+QEfficient/diffusers/pipelines/flux/pipeline_flux.py:266: in export
+    module_obj.export(**export_params)
+QEfficient/diffusers/pipelines/pipeline_module.py:117: in export
+    return self._export(
+QEfficient/utils/export_utils.py:62: in wrapper
+    onnx_path = func(self, *args, **kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+QEfficient/base/modeling_qeff.py:486: in _export
+    raise e
+QEfficient/base/modeling_qeff.py:438: in _export
+    torch.onnx.export(
+venv/lib/python3.12/site-packages/torch/onnx/__init__.py:396: in export
+    export(
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:529: in export
+    _export(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+model = CLIPTextModel(
+  (text_model): QEffCLIPTextTransformer(
+    (embeddings): CLIPTextEmbeddings(
+      (token_embedding):...ffine=True)
+        )
+      )
+    )
+    (final_layer_norm): LayerNorm((768,), eps=1e-05, elementwise_affine=True)
+  )
+)
+args = (tensor([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, ...         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0]]), None, None)
+f = '/home/vishsent/.cache/qeff_models/CLIPTextModel/CLIPTextModel-c0eef11943372f85/CLIPTextModel.onnx'
+export_params = True, verbose = False, training = <TrainingMode.EVAL: 0>
+input_names = ['input_ids']
+output_names = ['last_hidden_state', 'pooler_output']
+operator_export_type = <OperatorExportTypes.ONNX: 0>, export_type = None
+opset_version = 17, do_constant_folding = True
+dynamic_axes = {'input_ids': {0: 'batch_size', 1: 'seq_len'}}
+keep_initializers_as_inputs = False, fixed_batch_size = False
+custom_opsets = {}, add_node_names = True, onnx_shape_inference = True
+export_modules_as_functions = False, autograd_inlining = True
+
+    def _export(
+        model,
+        args,
+        f,
+        export_params=True,
+        verbose=False,
+        training=_C_onnx.TrainingMode.EVAL,
+        input_names=None,
+        output_names=None,
+        operator_export_type=_C_onnx.OperatorExportTypes.ONNX,
+        export_type=None,
+        opset_version=None,
+        do_constant_folding=True,
+        dynamic_axes=None,
+        keep_initializers_as_inputs=None,
+        fixed_batch_size=False,
+        custom_opsets=None,
+        add_node_names=True,
+        onnx_shape_inference=True,
+        export_modules_as_functions: Any = False,
+        autograd_inlining=True,
+    ):
+        assert GLOBALS.in_onnx_export is False
+    
+        if isinstance(model, torch.nn.DataParallel):
+            raise ValueError(
+                "torch.nn.DataParallel is not supported by ONNX "
+                "exporter, please use 'attribute' module to "
+                "unwrap model from torch.nn.DataParallel. Try "
+                "torch.onnx.export(model.module, ...)"
+            )
+    
+        GLOBALS.onnx_shape_inference = onnx_shape_inference
+    
+        if opset_version is None:
+            opset_version = _constants.ONNX_DEFAULT_OPSET
+    
+        # torch.onnx.export does not support opset versions >=18
+        if opset_version > _constants.ONNX_TORCHSCRIPT_EXPORTER_MAX_OPSET:
+            # We do not want to fail because we should still allow users to create
+            # custom symbolic functions for opset>17
+            warnings.warn(
+                f"Exporting to ONNX opset version {opset_version} is not supported. "
+                f"by 'torch.onnx.export()'. "
+                f"The highest opset version supported is {_constants.ONNX_TORCHSCRIPT_EXPORTER_MAX_OPSET}. "
+                f"To use a newer opset version, consider 'torch.onnx.export(..., dynamo=True)'. ",
+                category=errors.OnnxExporterWarning,
+            )
+    
+        if export_modules_as_functions and opset_version < 15:
+            raise ValueError(
+                "`export_modules_as_functions` is not supported for `opset_version` < 15."
+                "This is because `opset_version` < 15 implies IR version < 8, which means "
+                "no local function support. "
+            )
+        if not operator_export_type:
+            operator_export_type = _C_onnx.OperatorExportTypes.ONNX
+    
+        # By default, training=TrainingMode.EVAL,
+        # which is good because running a model in training mode could result in
+        # internal buffers getting updated, dropout getting applied, etc.
+        # If you really know what you're doing, you can turn
+        # training=TrainingMode.TRAINING or training=TrainingMode.PRESERVE,
+        # (to preserve whatever the original training mode was.)
+        GLOBALS.export_onnx_opset_version = opset_version
+        GLOBALS.operator_export_type = operator_export_type
+    
+        try:
+            GLOBALS.in_onnx_export = True
+            _autograd_inlining_previous = GLOBALS.autograd_inlining
+            GLOBALS.autograd_inlining = autograd_inlining
+    
+            module_typenames_to_export_as_functions: set[str] = set()
+            if isinstance(model, (torch.nn.Module, torch.jit.ScriptModule)):
+                module_typenames_to_export_as_functions = _setup_trace_module_map(
+                    model, export_modules_as_functions
+                )
+    
+            with exporter_context(model, training, verbose):
+                val_keep_init_as_ip = _decide_keep_init_as_input(
+                    keep_initializers_as_inputs,
+                    operator_export_type,
+                    opset_version,
+                )
+                val_add_node_names = _decide_add_node_names(
+                    add_node_names, operator_export_type
+                )
+                val_do_constant_folding = _decide_constant_folding(
+                    do_constant_folding, operator_export_type, training
+                )
+                # Normally f can be a file-like object, but for large models, the external data format requires a
+                # valid `model_file_location`. Code in export.cpp will enforce this.
+                if isinstance(f, str):
+                    model_file_location = f
+                else:
+                    model_file_location = ""
+                args = _decide_input_format(model, args)
+                if dynamic_axes is None:
+                    dynamic_axes = {}
+                _validate_dynamic_axes(dynamic_axes, model, input_names, output_names)
+    
+                graph, params_dict, torch_out = _model_to_graph(
+                    model,
+                    args,
+                    verbose,
+                    input_names,
+                    output_names,
+                    operator_export_type,
+                    val_do_constant_folding,
+                    fixed_batch_size=fixed_batch_size,
+                    training=training,
+                    dynamic_axes=dynamic_axes,
+                )
+    
+                if custom_opsets is None:
+                    custom_opsets = {}
+    
+                _C._jit_pass_dce_allow_deleting_nodes_with_side_effects(graph)
+                node_attr_to_name = {}  # type: ignore[var-annotated]
+                if module_typenames_to_export_as_functions:
+                    # NOTE: cannot call DCE after this pass. DCE will remove function definition nodes.
+                    node_attr_to_name = _C._jit_pass_onnx_function_extraction(
+                        graph,
+                        module_typenames_to_export_as_functions,
+                        list(params_dict.keys()),
+                    )
+    
+                if keep_initializers_as_inputs is not True:
+                    params_dict = _C._jit_pass_onnx_deduplicate_initializers(  # type: ignore[assignment]
+                        graph,
+                        params_dict,  # type: ignore[arg-type]
+                        getattr(model, "training", False),  # type: ignore[arg-type]
+                    )
+                _C._jit_pass_onnx_assign_scoped_names_for_node_and_value(graph)
+                defer_weight_export = False
+                if export_params:
+                    (
+                        proto,
+                        export_map,
+                        _val_use_external_data_format,
+                        _node_names,
+>                   ) = graph._export_onnx(  # type: ignore[attr-defined]
+                        params_dict,
+                        opset_version,
+                        dynamic_axes,
+                        defer_weight_export,
+                        operator_export_type,
+                        not verbose,
+                        val_keep_init_as_ip,
+                        custom_opsets,
+                        val_add_node_names,
+                        model_file_location,
+                        node_attr_to_name,
+                    )
+E                   RuntimeError: ScalarType ComplexDouble is an unexpected tensor scalar type
+
+venv/lib/python3.12/site-packages/torch/onnx/utils.py:1507: RuntimeError
+------------------------------ Captured log setup ------------------------------
+WARNING  QEfficient.base.modeling_qeff:modeling_qeff.py:151 BFloat16 dtype is not yet supported; converting to float16 precision!
+WARNING  QEfficient.base.modeling_qeff:modeling_qeff.py:151 BFloat16 dtype is not yet supported; converting to float16 precision!
+------------------------------ Captured log call -------------------------------
+ERROR    QEfficient.base.modeling_qeff:modeling_qeff.py:485 ONNX export or transforms failed: ScalarType ComplexDouble is an unexpected tensor scalar type
+=========================== short test summary info ============================
+FAILED tests/diffusers/test_flux.py::test_flux_pipeline - RuntimeError: ScalarType ComplexDouble is an unexpected tensor scalar type
+FAILED tests/diffusers/test_flux.py::test_flux_pipeline_first_block_cache - RuntimeError: ScalarType ComplexDouble is an unexpected tensor scalar type
+========================= 2 failed in 98.19s (0:01:38) =========================

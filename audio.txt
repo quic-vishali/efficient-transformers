@@ -1,0 +1,155 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- /home/vishsent/efficient-transformers/venv/bin/python3.12
+cachedir: .pytest_cache
+rootdir: /home/vishsent/efficient-transformers
+configfile: pyproject.toml
+plugins: xdist-3.8.0, anyio-4.14.2, mock-3.15.1
+collecting ... collected 3 items
+
+tests/transformers/models/audio_models/test_models.py::test_generate[openai/whisper-tiny] Fetching 13 files:   0%|          | 0/13 [00:00<?, ?it/s]Fetching 13 files: 100%|██████████| 13/13 [00:00<00:00, 5576.39it/s]
+Loading weights:   0%|          | 0/167 [00:00<?, ?it/s]Loading weights: 100%|██████████| 167/167 [00:00<00:00, 6090.59it/s]
+Fetching 10 files:   0%|          | 0/10 [00:00<?, ?it/s]Fetching 10 files: 100%|██████████| 10/10 [00:00<00:00, 73199.02it/s]
+input_features dtype: torch.float32
+conv1 weight dtype: torch.float32
+conv1 bias dtype: torch.float32
+
+Transcription: <|startoftranscript|><|en|><|transcribe|><|notimestamps|> Mr. Quilter is the apostle of the middle classes and we are glad to welcome his gospel.<|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|>
+
+.............Cleaned up /home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-4d8b44501c7956d4
+PASSED
+tests/transformers/models/audio_models/test_models.py::test_export_compile_fp16[openai/whisper-tiny] Fetching 13 files:   0%|          | 0/13 [00:00<?, ?it/s]Fetching 13 files: 100%|██████████| 13/13 [00:00<00:00, 15175.61it/s]
+Loading weights:   0%|          | 0/167 [00:00<?, ?it/s]Loading weights: 100%|██████████| 167/167 [00:00<00:00, 6796.25it/s]
+Fetching 10 files:   0%|          | 0/10 [00:00<?, ?it/s]Fetching 10 files: 100%|██████████| 10/10 [00:00<00:00, 78840.30it/s]
+input_features dtype: torch.float16
+conv1 weight dtype: torch.float16
+conv1 bias dtype: torch.float16
+FAILED
+tests/transformers/models/audio_models/test_models.py::test_generate_fp16[openai/whisper-tiny] Fetching 13 files:   0%|          | 0/13 [00:00<?, ?it/s]Fetching 13 files: 100%|██████████| 13/13 [00:00<00:00, 42731.94it/s]
+Loading weights:   0%|          | 0/167 [00:00<?, ?it/s]Loading weights: 100%|██████████| 167/167 [00:00<00:00, 11107.66it/s]
+Fetching 10 files:   0%|          | 0/10 [00:00<?, ?it/s]Fetching 10 files: 100%|██████████| 10/10 [00:00<00:00, 65433.76it/s]
+input_features dtype: torch.float16
+conv1 weight dtype: torch.float16
+conv1 bias dtype: torch.float16
+FAILED
+.............Cleaned up /home/vishsent/.cache/qeff_models
+
+
+=================================== FAILURES ===================================
+________________ test_export_compile_fp16[openai/whisper-tiny] _________________
+
+model_name = 'openai/whisper-tiny'
+manual_cleanup = <function qeff_models_clean_up at 0x7f869d4d5580>
+
+    @pytest.mark.llm
+    @pytest.mark.non_qaic
+    @pytest.mark.parametrize("model_name", test_models)
+    def test_export_compile_fp16(model_name, manual_cleanup):
+    
+>       check_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100(
+            model_name, torch_dtype=torch.float16, export_compile_only=True, manual_cleanup=manual_cleanup
+        )
+
+tests/transformers/models/audio_models/test_models.py:45: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/transformers/models/audio_models/check_audio_models.py:365: in check_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100
+    ort_tokens = run_seq2seq_ort(
+tests/transformers/models/audio_models/check_audio_models.py:299: in run_seq2seq_ort
+    outputs = session.run(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <onnxruntime.capi.onnxruntime_inference_collection.InferenceSession object at 0x7f85b7447560>
+output_names = ['logits', 'past_key_self.0_RetainedState', 'past_value_self.0_RetainedState', 'past_key_cross.0_RetainedState', 'past_value_cross.0_RetainedState', 'past_key_self.1_RetainedState', ...]
+input_feed = {'input_features': array([[[0.],
+        [0.],
+        [0.],
+        [0.],
+        [0.],
+        [0.],
+        [0.],
+ ... ,  0.      ,  0.      , ...,  0.      ,  0.      ,
+           0.      ]]]], shape=(1, 6, 32, 64), dtype=float16), ...}
+run_options = None
+
+    def run(self, output_names, input_feed, run_options=None) -> Sequence[np.ndarray | SparseTensor | list | dict]:
+        """
+        Compute the predictions.
+    
+        :param output_names: name of the outputs
+        :param input_feed: dictionary ``{ input_name: input_value }``
+        :param run_options: See :class:`onnxruntime.RunOptions`.
+        :return: list of results, every result is either a numpy array,
+            a sparse tensor, a list or a dictionary.
+    
+        ::
+    
+            sess.run([output_name], {input_name: x})
+        """
+        self._validate_input(list(input_feed.keys()))
+        if not output_names:
+            output_names = [output.name for output in self._outputs_meta]
+        try:
+>           return self._sess.run(output_names, input_feed, run_options)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           onnxruntime.capi.onnxruntime_pybind11_state.InvalidArgument: [ONNXRuntimeError] : 2 : INVALID_ARGUMENT : Unexpected input data type. Actual: (tensor(float)) , expected: (tensor(float16))
+
+venv/lib/python3.12/site-packages/onnxruntime/capi/onnxruntime_inference_collection.py:273: InvalidArgument
+___________________ test_generate_fp16[openai/whisper-tiny] ____________________
+
+model_name = 'openai/whisper-tiny'
+manual_cleanup = <function qeff_models_clean_up at 0x7f869d4d5580>
+
+    @pytest.mark.qaic
+    @pytest.mark.llm
+    @pytest.mark.parametrize("model_name", test_models)
+    def test_generate_fp16(model_name, manual_cleanup):
+    
+>       check_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100(model_name, torch_dtype=torch.float16, manual_cleanup=manual_cleanup)
+
+tests/transformers/models/audio_models/test_models.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/transformers/models/audio_models/check_audio_models.py:365: in check_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100
+    ort_tokens = run_seq2seq_ort(
+tests/transformers/models/audio_models/check_audio_models.py:299: in run_seq2seq_ort
+    outputs = session.run(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <onnxruntime.capi.onnxruntime_inference_collection.InferenceSession object at 0x7f857880e180>
+output_names = ['logits', 'past_key_self.0_RetainedState', 'past_value_self.0_RetainedState', 'past_key_cross.0_RetainedState', 'past_value_cross.0_RetainedState', 'past_key_self.1_RetainedState', ...]
+input_feed = {'input_features': array([[[0.],
+        [0.],
+        [0.],
+        [0.],
+        [0.],
+        [0.],
+        [0.],
+ ... ,  0.      ,  0.      , ...,  0.      ,  0.      ,
+           0.      ]]]], shape=(1, 6, 32, 64), dtype=float16), ...}
+run_options = None
+
+    def run(self, output_names, input_feed, run_options=None) -> Sequence[np.ndarray | SparseTensor | list | dict]:
+        """
+        Compute the predictions.
+    
+        :param output_names: name of the outputs
+        :param input_feed: dictionary ``{ input_name: input_value }``
+        :param run_options: See :class:`onnxruntime.RunOptions`.
+        :return: list of results, every result is either a numpy array,
+            a sparse tensor, a list or a dictionary.
+    
+        ::
+    
+            sess.run([output_name], {input_name: x})
+        """
+        self._validate_input(list(input_feed.keys()))
+        if not output_names:
+            output_names = [output.name for output in self._outputs_meta]
+        try:
+>           return self._sess.run(output_names, input_feed, run_options)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           onnxruntime.capi.onnxruntime_pybind11_state.InvalidArgument: [ONNXRuntimeError] : 2 : INVALID_ARGUMENT : Unexpected input data type. Actual: (tensor(float)) , expected: (tensor(float16))
+
+venv/lib/python3.12/site-packages/onnxruntime/capi/onnxruntime_inference_collection.py:273: InvalidArgument
+=========================== short test summary info ============================
+FAILED tests/transformers/models/audio_models/test_models.py::test_export_compile_fp16[openai/whisper-tiny] - onnxruntime.capi.onnxruntime_pybind11_state.InvalidArgument: [ONNXRuntimeError] : 2 : INVALID_ARGUMENT : Unexpected input data type. Actual: (tensor(float)) , expected: (tensor(float16))
+FAILED tests/transformers/models/audio_models/test_models.py::test_generate_fp16[openai/whisper-tiny] - onnxruntime.capi.onnxruntime_pybind11_state.InvalidArgument: [ONNXRuntimeError] : 2 : INVALID_ARGUMENT : Unexpected input data type. Actual: (tensor(float)) , expected: (tensor(float16))
+=================== 2 failed, 1 passed in 577.73s (0:09:37) ====================

@@ -1,0 +1,78 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- /home/vishsent/efficient-transformers/venv/bin/python3.12
+cachedir: .pytest_cache
+rootdir: /home/vishsent/efficient-transformers
+configfile: pyproject.toml
+plugins: xdist-3.8.0, anyio-4.14.2, mock-3.15.1
+collecting ... collected 1 item
+
+tests/diffusers/test_wan_i2v.py::test_wan_i2v_pipeline Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Dynamic sizing: Original aspect ratio 0.750 -> 48x64
+
+================================================================================
+WAN I2V PIPELINE TEST - 64x48 Resolution, 81 Frames, 2 Layers Total
+================================================================================
+max_area : 3072
+num_frames : 81
+num_transformer_layers_high : 1
+num_transformer_layers_low : 1
+================================================================================
+Exporting modules:   0%|          | 0/3 [00:00<?, ?module/s]Exporting modules:  33%|███▎      | 1/3 [00:38<01:16, 38.17s/module]Exporting modules:  67%|██████▋   | 2/3 [25:19<14:47, 887.10s/module]Exporting modules: 100%|██████████| 3/3 [26:13<00:00, 506.80s/module]Exporting modules: 100%|██████████| 3/3 [26:13<00:00, 524.59s/module]
+Compiling modules:   0%|          | 0/3 [00:00<?, ?module/s]Compiling modules:  33%|███▎      | 1/3 [03:42<07:24, 222.46s/module]Compiling modules:  67%|██████▋   | 2/3 [07:33<03:47, 227.38s/module]Compiling modules: 100%|██████████| 3/3 [07:34<00:00, 124.27s/module]Compiling modules: 100%|██████████| 3/3 [07:34<00:00, 151.62s/module]
+ Performing MAD validation for VAE encoder...
+VAE_ENCODER MAD image encoding: 5.83613348
+  0%|          | 0/2 [00:00<?, ?it/s] 50%|█████     | 1/2 [00:15<00:15, 15.39s/it]100%|██████████| 2/2 [00:30<00:00, 15.46s/it]100%|██████████| 2/2 [00:30<00:00, 15.45s/it]
+ Performing MAD validation for transformer_high at step 0...
+TRANSFORMER_HIGH MAD step 0 (t=1000.0): 0.06504489
+ Performing MAD validation for transformer_low at step 1...
+TRANSFORMER_LOW MAD step 1 (t=1.0): 0.06907898
+ Performing MAD validation for VAE decoder...
+VAE_DECODER MAD video decoding: 1.39762366
+
+ VIDEO VALIDATION PASSED
+   - Frame count: 81
+   - Frame size: (64, 48)
+   - Frame mode: RGB
+   - Frame variance: 23.10
+   - Mean pixel value: 119.07
+   - Image conditioning: ✓
+
+ VIDEO SAVED: test_wan_i2v_output.mp4
+============================================================
+QEfficient Diffusers Pipeline Inference Report
+============================================================
+
+Module-wise Inference Times:
+------------------------------------------------------------
+  Vae Encoder               2.6010 s
+  Transformer               1.0764 s
+    - Total steps: 2
+    - Average per step:    0.5382 s
+    - Min step time:       0.5369 s
+    - Max step time:       0.5395 s
+  Vae Decoder               0.3244 s
+------------------------------------------------------------
+
+End-to-End Inference Time: 4.0018 s
+
+============================================================
+
+
+ ONNX Export Validation:
+file exist: True; VAE encoder ONNX: /home/vishsent/.cache/qeff_models/AutoencoderKLWan/AutoencoderKLWan-be4016f3d8e01a44/AutoencoderKLWan.onnx
+file exist: True; transformer ONNX: /home/vishsent/.cache/qeff_models/WanUnifiedWrapper/WanUnifiedWrapper-b6ec8f5dc34592cf/WanUnifiedWrapper.onnx
+file exist: True; VAE decoder ONNX: /home/vishsent/.cache/qeff_models/AutoencoderKLWan/AutoencoderKLWan-03bf18cf9a0c612f/AutoencoderKLWan.onnx
+
+ Compilation Validation:
+file exist: True; VAE encoder QPC: /home/vishsent/.cache/qeff_models/AutoencoderKLWan/AutoencoderKLWan-be4016f3d8e01a44/qpc-57d09ba5afcba2e1/qpc
+file exist: True; transformer QPC: /home/vishsent/.cache/qeff_models/WanUnifiedWrapper/WanUnifiedWrapper-b6ec8f5dc34592cf/qpc-89fc98bd61f22488/qpc
+file exist: True; VAE decoder QPC: /home/vishsent/.cache/qeff_models/AutoencoderKLWan/AutoencoderKLWan-03bf18cf9a0c612f/qpc-2893a05a663a39c8/qpc
+
+Dynamic sizing: 64x48 (preserved aspect ratio)
+Total execution time: 2119.6287s
+ WAN I2V TRANSFORMER TEST COMPLETED SUCCESSFULLY
+PASSED
+.............Cleaned up /home/vishsent/.cache/qeff_models
+
+
+======================== 1 passed in 2423.33s (0:40:23) ========================

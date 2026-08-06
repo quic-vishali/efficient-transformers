@@ -1,0 +1,1444 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- /home/vishsent/efficient-transformers/venv/bin/python3.12
+cachedir: .pytest_cache
+rootdir: /home/vishsent/efficient-transformers
+configfile: pyproject.toml
+plugins: xdist-3.8.0, anyio-4.14.2, mock-3.15.1
+collecting ... collected 4 items
+
+tests/transformers/models/audio_models/test_models.py::test_export_compile[openai/whisper-tiny] Fetching 13 files:   0%|          | 0/13 [00:00<?, ?it/s]Fetching 13 files: 100%|██████████| 13/13 [00:00<00:00, 87241.52it/s]
+Loading weights:   0%|          | 0/167 [00:00<?, ?it/s]Loading weights: 100%|██████████| 167/167 [00:00<00:00, 6433.22it/s]
+Fetching 10 files:   0%|          | 0/10 [00:00<?, ?it/s]Fetching 10 files: 100%|██████████| 10/10 [00:00<00:00, 55188.21it/s]
+input_features dtype: torch.float32
+conv1 weight dtype: torch.float32
+conv1 bias dtype: torch.float32
+PASSED
+tests/transformers/models/audio_models/test_models.py::test_generate[openai/whisper-tiny] Fetching 13 files:   0%|          | 0/13 [00:00<?, ?it/s]Fetching 13 files: 100%|██████████| 13/13 [00:00<00:00, 50161.87it/s]
+Loading weights:   0%|          | 0/167 [00:00<?, ?it/s]Loading weights: 100%|██████████| 167/167 [00:00<00:00, 17307.42it/s]
+Fetching 10 files:   0%|          | 0/10 [00:00<?, ?it/s]Fetching 10 files: 100%|██████████| 10/10 [00:00<00:00, 21845.33it/s]
+input_features dtype: torch.float32
+conv1 weight dtype: torch.float32
+conv1 bias dtype: torch.float32
+
+Transcription: <|startoftranscript|><|en|><|transcribe|><|notimestamps|> Mr. Quilter is the apostle of the middle classes and we are glad to welcome his gospel.<|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|><|endoftext|>
+
+.............Cleaned up /home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-4d8b44501c7956d4
+PASSED
+tests/transformers/models/audio_models/test_models.py::test_export_compile_fp16[openai/whisper-tiny] Fetching 13 files:   0%|          | 0/13 [00:00<?, ?it/s]Fetching 13 files: 100%|██████████| 13/13 [00:00<00:00, 41213.87it/s]
+Loading weights:   0%|          | 0/167 [00:00<?, ?it/s]Loading weights: 100%|██████████| 167/167 [00:00<00:00, 3658.50it/s]
+Fetching 10 files:   0%|          | 0/10 [00:00<?, ?it/s]Fetching 10 files: 100%|██████████| 10/10 [00:00<00:00, 17520.07it/s]
+input_features dtype: torch.float16
+conv1 weight dtype: torch.float16
+conv1 bias dtype: torch.float16
+FAILED
+tests/transformers/models/audio_models/test_models.py::test_generate_fp16[openai/whisper-tiny] Fetching 13 files:   0%|          | 0/13 [00:00<?, ?it/s]Fetching 13 files: 100%|██████████| 13/13 [00:00<00:00, 146182.18it/s]
+Loading weights:   0%|          | 0/167 [00:00<?, ?it/s]Loading weights: 100%|██████████| 167/167 [00:00<00:00, 2600.14it/s]
+Fetching 10 files:   0%|          | 0/10 [00:00<?, ?it/s]Fetching 10 files: 100%|██████████| 10/10 [00:00<00:00, 35157.62it/s]
+input_features dtype: torch.float16
+conv1 weight dtype: torch.float16
+conv1 bias dtype: torch.float16
+FAILED
+.............Cleaned up /home/vishsent/.cache/qeff_models
+
+
+=================================== FAILURES ===================================
+________________ test_export_compile_fp16[openai/whisper-tiny] _________________
+
+self = QEFFAutoModelForSpeechSeq2Seq
+QEffWhisperForConditionalGeneration(
+  (model): QEffWhisperModel(
+    (encoder): QEffWhi..., eps=1e-05, elementwise_affine=True)
+    )
+  )
+  (proj_out): Linear(in_features=384, out_features=51865, bias=False)
+)
+onnx_path = PosixPath('/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/WhisperForConditionalGeneration.onnx')
+compile_dir = PosixPath('/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/qpc-30444896ae9c4ccf')
+mxint8_kv_cache = False
+specializations = [{'_graph_name': 'Encoder', 'batch_size': 1, 'seq_len': 1, 'encoder_ctx_len': 1500, ...}, {'_graph_name': 'Decode', 'batch_size': 1, 'seq_len': 1, 'encoder_ctx_len': 1500, ...}]
+custom_io = {'input_features': 'float16', 'past_key_self.0': 'float16', 'past_key_self.0_RetainedState': 'float16', 'past_value_self.0': 'float16', ...}
+mdp_ts_num_devices = 1, mdp_num_partitions = 1, num_speculative_tokens = None
+enable_qnn = False, qnn_config = None, use_onnx_subfunctions = False
+prefill_only = None, offload_pt_weights = True, enable_chunking = False
+retain_full_kv = None, qaic_config = None, specialization_module_name = None
+kv_cache_prefix = None
+compiler_options = {'retained_state': True, 'convert_to_fp16': True, 'mxfp6_matmul': False, 'aic_num_cores': 16}
+
+    @dump_qconfig
+    def _compile(
+        self,
+        onnx_path: Optional[str] = None,
+        compile_dir: Optional[str] = None,
+        *,
+        mxint8_kv_cache: bool = False,
+        specializations: Optional[List[Dict[str, int]]] = None,
+        custom_io: Optional[Dict[str, str]] = None,
+        mdp_ts_num_devices: int = 1,
+        mdp_num_partitions: Optional[int] = 1,
+        num_speculative_tokens: Optional[Union[int, List[int]]] = None,
+        enable_qnn: Optional[bool] = False,
+        qnn_config: Optional[str] = None,
+        use_onnx_subfunctions: bool = False,
+        prefill_only: Optional[str] = None,
+        offload_pt_weights: Optional[bool] = True,
+        enable_chunking: Optional[bool] = False,
+        retain_full_kv: Optional[bool] = None,
+        qaic_config: Optional[dict] = None,
+        specialization_module_name: Optional[str] = None,
+        kv_cache_prefix: Optional[str] = None,
+        **compiler_options,
+    ) -> str:
+        """
+        Interface for qaic-compile compiler
+    
+        Args:
+            :onnx_path (str): Onnx file to compile
+            :compile_dir (str): Directory path to compile the qpc. A suffix is added to the directory path to avoid reusing same qpc for different parameters.
+            :mxint8_kv_cache (bool, optional): Whether to use ``mxint8`` compression for KV cache. ``Defaults to False``.
+            :specializations (list): List of specializations to compile for
+            :custom_io (dict): Custom IO to specify the input and outputs in different formats than default
+            :mdp_ts_num_devices (int): Number of devices to partition to use Multi-Device Partitioning with tensor-slicing.
+            :mdp_num_partitions (int): Number of pipeline-parallel partitions for disaggregated prefill serving.
+                When > 1, the ONNX graph is read directly to generate a fully-populated MDP partition
+                config (nodeList per partition) without requiring a compiler round-trip.
+                Ignored when ``mdp_load_partition_config`` is already provided in compiler_options.
+                Defaults to 1 (template / tensor-slice MDP, existing behaviour).
+            :num_speculative_tokens (int | List[int], optional): Number of speculative tokens for TLM decode. A plain int K compiles one decode specialization (seq_len=K+1). A list [K0, K1, ...] compiles one specialization per value, enabling per-step dispatch to the cheapest kernel.
+            :enable_qnn (bool): Enables QNN Compilation. ``Defaults to False.``
+            :qnn_config (str): Path of QNN Config parameters file. Any extra parameters for QNN compilation can be passed via this file. ``Defaults to None.``
+            :compiler_options: Pass any compiler option as input.
+                Any flag that is supported by `qaic-compile` can be passed. Params are converted to flags as below:
+    
+                - aic_num_cores=16 -> -aic-num-cores=16
+                - convert_to_fp16=True -> -convert-to-fp16
+                - aic_hw_version=ai100 -> -aic-hw-version=ai100
+                - aic_hw_version=ai200 -> -aic-hw-version=ai200
+    
+                For QNN Compilation path, when enable_qnn is set to True, any parameter passed in compiler_options will be ignored.
+        """
+    
+        layerwise_cache_probe = compiler_options.pop("_layerwise_cache_probe", False)
+        moe_prefill_packed_chunk_size = compiler_options.pop("moe_prefill_packed_chunk_size", None)
+    
+        for removed_option in ("compile_only", "compile-only"):
+            if removed_option in compiler_options:
+                logger.warning(f"'{removed_option}' is deprecated and is ignored; removing it from compiler options.")
+                compiler_options.pop(removed_option, None)
+    
+        mdp_ts_json_path = compiler_options.pop("mdp_load_partition_config", None)
+        mdp_strategy = MdpStrategy(compiler_options.pop("mdp_strategy", MdpStrategy.ONNX))
+        mdp_compiler_dump_path = compiler_options.pop("mdp_compiler_dump_path", None)
+    
+        if onnx_path is None:
+            # If weights were offloaded after export, compiling must use the existing
+            # ONNX because re-exporting is no longer possible. Otherwise export for
+            # the current compile mode, e.g. decode vs. disaggregated prefill.
+            weights_offloaded = self._is_weights_offloaded or any(param.is_meta for param in self.model.parameters())
+            if self.onnx_path is not None and weights_offloaded:
+                onnx_path = self.onnx_path
+            else:
+                onnx_path = self.get_onnx_path(
+                    prefill_only,
+                    enable_chunking,
+                    specializations,
+                    offload_pt_weights,
+                    use_onnx_subfunctions,
+                    retain_full_kv,
+                    num_devices=mdp_ts_num_devices,
+                    qaic_config=qaic_config,
+                    moe_prefill_packed_chunk_size=moe_prefill_packed_chunk_size,
+                    _layerwise_cache_probe=layerwise_cache_probe,
+                    kv_cache_prefix=kv_cache_prefix,
+                    **compiler_options,
+                )
+        if QEFFBaseModel._layerwise_active:
+            if onnx_path is None:
+                return None
+            onnx_path = Path(onnx_path)
+            return onnx_path
+        onnx_path = Path(onnx_path)
+    
+        compile_dir = Path(compile_dir or onnx_path.parent)
+        qpc_path = compile_dir / "qpc"
+        if not onnx_path.is_file():
+            raise FileNotFoundError(f"ONNX file not found at: {onnx_path}")
+    
+        if enable_qnn:
+            if compiler_options:
+                logger.warning(
+                    f"Extra arguments to QNN compilation are supported only via qnn_config file. Ignoring {compiler_options}"
+                )
+    
+            self.qpc_path = qnn_compile(
+                onnx_path=onnx_path,
+                qpc_base_path=compile_dir,
+                specializations=specializations,
+                custom_io=custom_io,
+                device_group=list(range(mdp_ts_num_devices)),
+                num_cores=compiler_options.get("aic_num_cores", constants.DEFAULT_AIC_NUM_CORES),
+                mxfp6=compiler_options.get("mxfp6_matmul", constants.DEFAULT_AIC_MXPF6_MATMUL),
+                mxint8=mxint8_kv_cache,
+                qnn_config=qnn_config,
+            )
+    
+            return self.qpc_path
+    
+        command = (
+            constants.COMPILER
+            + [
+                f"-aic-hw-version={compiler_options.pop('aic_hw_version', compiler_options.pop('aic-hw-version', constants.DEFAULT_AIC_HW_VERSION))}"
+            ]
+            + [f"-m={onnx_path}"]
+        )
+    
+        # MDP partition config selection (highest priority first):
+        #   1. User-provided pre-built MDP JSON (mdp_load_partition_config).
+        #   2. Disaggregated (pipeline-parallel) MDP — generated from ONNX topsort.
+        #      Strategy ONNX (default): full superset from ONNX graph (~19 MB).
+        #      Strategy INTERSECTION: intersect with compiler dump; compact (~1-2 MB),
+        #        requires a prior -mdp-dump-partition-config run.
+        #   3. Template (tensor-slice) MDP — single partition, nodeList absent.
+        mdp_ts_json = None
+    
+        if mdp_ts_json_path:
+            command.append(f"-mdp-load-partition-config={mdp_ts_json_path}")
+            mdp_ts_json = load_json(str(mdp_ts_json_path))
+        elif mdp_num_partitions > 1:
+            # Disaggregated (pipeline-parallel) MDP — delegate to focused helper.
+            num_cores = compiler_options.get("aic_num_cores", constants.DEFAULT_AIC_NUM_CORES)
+            num_layers = getattr(self, "num_layers", None)
+            if getattr(self, "model", None) and getattr(self.model, "language_model", None) and not num_layers:
+                num_layers = getattr(self.model.language_model.config, "num_hidden_layers", None)
+            if num_layers is None:
+                raise AttributeError(
+                    "Model or Language Model does not expose 'num_layers' or 'num_hidden_layers' respectively. Cannot generate disagg MDP partition config."
+                )
+            mdp_ts_json_path, mdp_ts_json = generate_disagg_mdp_config(
+                onnx_path=onnx_path,
+                compile_dir=compile_dir,
+                mdp_ts_num_devices=mdp_ts_num_devices,
+                mdp_num_partitions=mdp_num_partitions,
+                mdp_strategy=mdp_strategy,
+                mdp_compiler_dump_path=mdp_compiler_dump_path,
+                num_cores=num_cores,
+                num_layers=num_layers,
+            )
+            command.append(f"-mdp-load-partition-config={mdp_ts_json_path}")
+        elif mdp_ts_num_devices > 1 and not compiler_options.get("mdp_dump_partition_config", None):
+            # Template (tensor-slice) MDP: single partition, empty nodeList; compiler fills it.
+            mdp_ts_json = generate_mdp_partition_config(
+                mdp_ts_num_devices, compiler_options.get("aic_num_cores", constants.DEFAULT_AIC_NUM_CORES)
+            )
+            mdp_ts_json_path = compile_dir / f"mdp_ts_{mdp_ts_num_devices}.json"
+            create_json(str(mdp_ts_json_path), mdp_ts_json)
+            command.append(f"-mdp-load-partition-config={mdp_ts_json_path}")
+    
+        for key, value in compiler_options.items():
+            option = "-" + key.replace("_", "-")
+            if isinstance(value, bool):
+                if value:
+                    command.append(option)
+                continue
+            command.append(f"{option}={value}")
+    
+        # Final custom-IO normalization against ONNX I/O names.
+        # This only rewrites retained-state aliases:
+        # *_InternalRetainedState <-> *_RetainedState.
+        # Any other custom-IO key is preserved as-is for backward compatibility.
+        if custom_io is not None and onnx_path is not None:
+            try:
+                model = onnx.load(onnx_path, load_external_data=False)
+                io_names = {value.name for value in list(model.graph.input) + list(model.graph.output)}
+                normalized_custom_io = {}
+                for io_name, dtype in custom_io.items():
+                    resolved_name = io_name
+                    if io_name not in io_names:
+                        if io_name.endswith("_InternalRetainedState"):
+                            candidate = io_name[: -len("_InternalRetainedState")] + "_RetainedState"
+                            if candidate in io_names:
+                                resolved_name = candidate
+                        elif io_name.endswith("_RetainedState"):
+                            candidate = io_name[: -len("_RetainedState")] + "_InternalRetainedState"
+                            if candidate in io_names:
+                                resolved_name = candidate
+                    normalized_custom_io[resolved_name] = dtype
+                custom_io = normalized_custom_io
+            except Exception:
+                pass
+    
+        if use_onnx_subfunctions:
+            logger.info("Using ONNX subfunctions for compilation.")
+            command.append("-sub-functions")
+    
+        compile_hash_params = {
+            "command": command,
+            "specializations": specializations,
+            "custom_io": custom_io,
+            "mdp_ts_num_devices": mdp_ts_num_devices,
+            "mdp_num_partitions": mdp_num_partitions,
+            "mdp_strategy": mdp_strategy.value,
+            "mdp_ts_json": mdp_ts_json,
+            "num_speculative_tokens": num_speculative_tokens,
+            "prefill_only": prefill_only,
+        }
+        compile_hash = hash_dict_params(compile_hash_params)
+    
+        compile_dir = qpc_path.with_name(qpc_path.name + "-" + compile_hash)
+        qpc_path = compile_dir / "qpc"
+        if (qpc_path / "programqpc.bin").is_file():
+            self.qpc_path = qpc_path
+            return qpc_path
+        if qpc_path.is_dir():
+            # Probably compilation failure last time, delete directory to start over.
+            shutil.rmtree(qpc_path)
+        compile_dir.mkdir(parents=True, exist_ok=True)
+    
+        # Write the generated MDP partition config file (not if user provided it)
+    
+        # Write specializations.json file
+        if specializations is not None:
+            specializations_json = compile_dir / "specializations.json"
+            specializations_data = {
+                "specializations": to_named_specializations(specializations, module_name=specialization_module_name)
+            }
+            create_json(str(specializations_json), specializations_data)
+            command.append(f"-network-specialization-config={specializations_json}")
+    
+        # Write custom_io.yaml file
+        model_in_bfloat16 = hasattr(self, "config") and (self.config.torch_dtype == torch.bfloat16)
+        pkv_in_bfloat16 = (custom_io is not None) and any(
+            "past_" in key and "bfloat16" in value for key, value in custom_io.items()
+        )
+        if custom_io is not None:
+            custom_io_yaml = compile_dir / "custom_io.yaml"
+            with open(custom_io_yaml, "w") as fp:
+                for io_name, dtype in custom_io.items():
+                    fp.write(f" - IOName: {io_name}\n   Precision: {dtype}\n\n")
+            if model_in_bfloat16 and pkv_in_bfloat16:
+                logger.warning(
+                    "Model and Past KV types are both bfloat16. Custom IO list file will be ignored during compile."
+                )
+            else:
+                command.append(f"-custom-IO-list-file={custom_io_yaml}")
+    
+        command.append(f"-aic-binary-dir={qpc_path}")
+        logger.info(f"Running compiler: {' '.join(command)}")
+    
+        try:
+>           subprocess.run(command, capture_output=True, check=True)
+
+QEfficient/base/modeling_qeff.py:1086: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = True, timeout = None, check = True
+popenargs = (['/opt/qti-aic/exec/qaic-compile', '-aic-hw', '-aic-hw-version=ai100', '-m=/home/vishsent/.cache/qeff_models/WhisperF...itionalGeneration-9bf8ad3dc0814fc9/WhisperForConditionalGeneration.onnx', '-retained-state', '-convert-to-fp16', ...],)
+kwargs = {'stdout': -1, 'stderr': -1}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['/opt/qti-aic/exec/qaic-compile', '-aic-hw', '-aic-hw-version=ai100', '-m=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/WhisperForConditionalGeneration.onnx', '-retained-state', '-convert-to-fp16', '-aic-num-cores=16', '-network-specialization-config=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/qpc-30444896ae9c4ccf/specializations.json', '-custom-IO-list-file=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/qpc-30444896ae9c4ccf/custom_io.yaml', '-aic-binary-dir=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/qpc-30444896ae9c4ccf/qpc']' returned non-zero exit status 1.
+
+/usr/lib/python3.12/subprocess.py:571: CalledProcessError
+
+During handling of the above exception, another exception occurred:
+
+model_name = 'openai/whisper-tiny'
+manual_cleanup = <function qeff_models_clean_up at 0x7f85e0291580>
+
+    @pytest.mark.llm
+    @pytest.mark.non_qaic
+    @pytest.mark.parametrize("model_name", test_models)
+    def test_export_compile_fp16(model_name, manual_cleanup):
+    
+>       check_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100(
+            model_name, torch_dtype=torch.float16, export_compile_only=True, manual_cleanup=manual_cleanup
+        )
+
+tests/transformers/models/audio_models/test_models.py:45: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/transformers/models/audio_models/check_audio_models.py:371: in check_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100
+    qeff_model.compile(
+QEfficient/transformers/models/modeling_auto.py:4902: in compile
+    return self._compile(
+QEfficient/utils/_utils.py:792: in wrapper
+    result = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = QEFFAutoModelForSpeechSeq2Seq
+QEffWhisperForConditionalGeneration(
+  (model): QEffWhisperModel(
+    (encoder): QEffWhi..., eps=1e-05, elementwise_affine=True)
+    )
+  )
+  (proj_out): Linear(in_features=384, out_features=51865, bias=False)
+)
+onnx_path = PosixPath('/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/WhisperForConditionalGeneration.onnx')
+compile_dir = PosixPath('/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/qpc-30444896ae9c4ccf')
+mxint8_kv_cache = False
+specializations = [{'_graph_name': 'Encoder', 'batch_size': 1, 'seq_len': 1, 'encoder_ctx_len': 1500, ...}, {'_graph_name': 'Decode', 'batch_size': 1, 'seq_len': 1, 'encoder_ctx_len': 1500, ...}]
+custom_io = {'input_features': 'float16', 'past_key_self.0': 'float16', 'past_key_self.0_RetainedState': 'float16', 'past_value_self.0': 'float16', ...}
+mdp_ts_num_devices = 1, mdp_num_partitions = 1, num_speculative_tokens = None
+enable_qnn = False, qnn_config = None, use_onnx_subfunctions = False
+prefill_only = None, offload_pt_weights = True, enable_chunking = False
+retain_full_kv = None, qaic_config = None, specialization_module_name = None
+kv_cache_prefix = None
+compiler_options = {'retained_state': True, 'convert_to_fp16': True, 'mxfp6_matmul': False, 'aic_num_cores': 16}
+
+    @dump_qconfig
+    def _compile(
+        self,
+        onnx_path: Optional[str] = None,
+        compile_dir: Optional[str] = None,
+        *,
+        mxint8_kv_cache: bool = False,
+        specializations: Optional[List[Dict[str, int]]] = None,
+        custom_io: Optional[Dict[str, str]] = None,
+        mdp_ts_num_devices: int = 1,
+        mdp_num_partitions: Optional[int] = 1,
+        num_speculative_tokens: Optional[Union[int, List[int]]] = None,
+        enable_qnn: Optional[bool] = False,
+        qnn_config: Optional[str] = None,
+        use_onnx_subfunctions: bool = False,
+        prefill_only: Optional[str] = None,
+        offload_pt_weights: Optional[bool] = True,
+        enable_chunking: Optional[bool] = False,
+        retain_full_kv: Optional[bool] = None,
+        qaic_config: Optional[dict] = None,
+        specialization_module_name: Optional[str] = None,
+        kv_cache_prefix: Optional[str] = None,
+        **compiler_options,
+    ) -> str:
+        """
+        Interface for qaic-compile compiler
+    
+        Args:
+            :onnx_path (str): Onnx file to compile
+            :compile_dir (str): Directory path to compile the qpc. A suffix is added to the directory path to avoid reusing same qpc for different parameters.
+            :mxint8_kv_cache (bool, optional): Whether to use ``mxint8`` compression for KV cache. ``Defaults to False``.
+            :specializations (list): List of specializations to compile for
+            :custom_io (dict): Custom IO to specify the input and outputs in different formats than default
+            :mdp_ts_num_devices (int): Number of devices to partition to use Multi-Device Partitioning with tensor-slicing.
+            :mdp_num_partitions (int): Number of pipeline-parallel partitions for disaggregated prefill serving.
+                When > 1, the ONNX graph is read directly to generate a fully-populated MDP partition
+                config (nodeList per partition) without requiring a compiler round-trip.
+                Ignored when ``mdp_load_partition_config`` is already provided in compiler_options.
+                Defaults to 1 (template / tensor-slice MDP, existing behaviour).
+            :num_speculative_tokens (int | List[int], optional): Number of speculative tokens for TLM decode. A plain int K compiles one decode specialization (seq_len=K+1). A list [K0, K1, ...] compiles one specialization per value, enabling per-step dispatch to the cheapest kernel.
+            :enable_qnn (bool): Enables QNN Compilation. ``Defaults to False.``
+            :qnn_config (str): Path of QNN Config parameters file. Any extra parameters for QNN compilation can be passed via this file. ``Defaults to None.``
+            :compiler_options: Pass any compiler option as input.
+                Any flag that is supported by `qaic-compile` can be passed. Params are converted to flags as below:
+    
+                - aic_num_cores=16 -> -aic-num-cores=16
+                - convert_to_fp16=True -> -convert-to-fp16
+                - aic_hw_version=ai100 -> -aic-hw-version=ai100
+                - aic_hw_version=ai200 -> -aic-hw-version=ai200
+    
+                For QNN Compilation path, when enable_qnn is set to True, any parameter passed in compiler_options will be ignored.
+        """
+    
+        layerwise_cache_probe = compiler_options.pop("_layerwise_cache_probe", False)
+        moe_prefill_packed_chunk_size = compiler_options.pop("moe_prefill_packed_chunk_size", None)
+    
+        for removed_option in ("compile_only", "compile-only"):
+            if removed_option in compiler_options:
+                logger.warning(f"'{removed_option}' is deprecated and is ignored; removing it from compiler options.")
+                compiler_options.pop(removed_option, None)
+    
+        mdp_ts_json_path = compiler_options.pop("mdp_load_partition_config", None)
+        mdp_strategy = MdpStrategy(compiler_options.pop("mdp_strategy", MdpStrategy.ONNX))
+        mdp_compiler_dump_path = compiler_options.pop("mdp_compiler_dump_path", None)
+    
+        if onnx_path is None:
+            # If weights were offloaded after export, compiling must use the existing
+            # ONNX because re-exporting is no longer possible. Otherwise export for
+            # the current compile mode, e.g. decode vs. disaggregated prefill.
+            weights_offloaded = self._is_weights_offloaded or any(param.is_meta for param in self.model.parameters())
+            if self.onnx_path is not None and weights_offloaded:
+                onnx_path = self.onnx_path
+            else:
+                onnx_path = self.get_onnx_path(
+                    prefill_only,
+                    enable_chunking,
+                    specializations,
+                    offload_pt_weights,
+                    use_onnx_subfunctions,
+                    retain_full_kv,
+                    num_devices=mdp_ts_num_devices,
+                    qaic_config=qaic_config,
+                    moe_prefill_packed_chunk_size=moe_prefill_packed_chunk_size,
+                    _layerwise_cache_probe=layerwise_cache_probe,
+                    kv_cache_prefix=kv_cache_prefix,
+                    **compiler_options,
+                )
+        if QEFFBaseModel._layerwise_active:
+            if onnx_path is None:
+                return None
+            onnx_path = Path(onnx_path)
+            return onnx_path
+        onnx_path = Path(onnx_path)
+    
+        compile_dir = Path(compile_dir or onnx_path.parent)
+        qpc_path = compile_dir / "qpc"
+        if not onnx_path.is_file():
+            raise FileNotFoundError(f"ONNX file not found at: {onnx_path}")
+    
+        if enable_qnn:
+            if compiler_options:
+                logger.warning(
+                    f"Extra arguments to QNN compilation are supported only via qnn_config file. Ignoring {compiler_options}"
+                )
+    
+            self.qpc_path = qnn_compile(
+                onnx_path=onnx_path,
+                qpc_base_path=compile_dir,
+                specializations=specializations,
+                custom_io=custom_io,
+                device_group=list(range(mdp_ts_num_devices)),
+                num_cores=compiler_options.get("aic_num_cores", constants.DEFAULT_AIC_NUM_CORES),
+                mxfp6=compiler_options.get("mxfp6_matmul", constants.DEFAULT_AIC_MXPF6_MATMUL),
+                mxint8=mxint8_kv_cache,
+                qnn_config=qnn_config,
+            )
+    
+            return self.qpc_path
+    
+        command = (
+            constants.COMPILER
+            + [
+                f"-aic-hw-version={compiler_options.pop('aic_hw_version', compiler_options.pop('aic-hw-version', constants.DEFAULT_AIC_HW_VERSION))}"
+            ]
+            + [f"-m={onnx_path}"]
+        )
+    
+        # MDP partition config selection (highest priority first):
+        #   1. User-provided pre-built MDP JSON (mdp_load_partition_config).
+        #   2. Disaggregated (pipeline-parallel) MDP — generated from ONNX topsort.
+        #      Strategy ONNX (default): full superset from ONNX graph (~19 MB).
+        #      Strategy INTERSECTION: intersect with compiler dump; compact (~1-2 MB),
+        #        requires a prior -mdp-dump-partition-config run.
+        #   3. Template (tensor-slice) MDP — single partition, nodeList absent.
+        mdp_ts_json = None
+    
+        if mdp_ts_json_path:
+            command.append(f"-mdp-load-partition-config={mdp_ts_json_path}")
+            mdp_ts_json = load_json(str(mdp_ts_json_path))
+        elif mdp_num_partitions > 1:
+            # Disaggregated (pipeline-parallel) MDP — delegate to focused helper.
+            num_cores = compiler_options.get("aic_num_cores", constants.DEFAULT_AIC_NUM_CORES)
+            num_layers = getattr(self, "num_layers", None)
+            if getattr(self, "model", None) and getattr(self.model, "language_model", None) and not num_layers:
+                num_layers = getattr(self.model.language_model.config, "num_hidden_layers", None)
+            if num_layers is None:
+                raise AttributeError(
+                    "Model or Language Model does not expose 'num_layers' or 'num_hidden_layers' respectively. Cannot generate disagg MDP partition config."
+                )
+            mdp_ts_json_path, mdp_ts_json = generate_disagg_mdp_config(
+                onnx_path=onnx_path,
+                compile_dir=compile_dir,
+                mdp_ts_num_devices=mdp_ts_num_devices,
+                mdp_num_partitions=mdp_num_partitions,
+                mdp_strategy=mdp_strategy,
+                mdp_compiler_dump_path=mdp_compiler_dump_path,
+                num_cores=num_cores,
+                num_layers=num_layers,
+            )
+            command.append(f"-mdp-load-partition-config={mdp_ts_json_path}")
+        elif mdp_ts_num_devices > 1 and not compiler_options.get("mdp_dump_partition_config", None):
+            # Template (tensor-slice) MDP: single partition, empty nodeList; compiler fills it.
+            mdp_ts_json = generate_mdp_partition_config(
+                mdp_ts_num_devices, compiler_options.get("aic_num_cores", constants.DEFAULT_AIC_NUM_CORES)
+            )
+            mdp_ts_json_path = compile_dir / f"mdp_ts_{mdp_ts_num_devices}.json"
+            create_json(str(mdp_ts_json_path), mdp_ts_json)
+            command.append(f"-mdp-load-partition-config={mdp_ts_json_path}")
+    
+        for key, value in compiler_options.items():
+            option = "-" + key.replace("_", "-")
+            if isinstance(value, bool):
+                if value:
+                    command.append(option)
+                continue
+            command.append(f"{option}={value}")
+    
+        # Final custom-IO normalization against ONNX I/O names.
+        # This only rewrites retained-state aliases:
+        # *_InternalRetainedState <-> *_RetainedState.
+        # Any other custom-IO key is preserved as-is for backward compatibility.
+        if custom_io is not None and onnx_path is not None:
+            try:
+                model = onnx.load(onnx_path, load_external_data=False)
+                io_names = {value.name for value in list(model.graph.input) + list(model.graph.output)}
+                normalized_custom_io = {}
+                for io_name, dtype in custom_io.items():
+                    resolved_name = io_name
+                    if io_name not in io_names:
+                        if io_name.endswith("_InternalRetainedState"):
+                            candidate = io_name[: -len("_InternalRetainedState")] + "_RetainedState"
+                            if candidate in io_names:
+                                resolved_name = candidate
+                        elif io_name.endswith("_RetainedState"):
+                            candidate = io_name[: -len("_RetainedState")] + "_InternalRetainedState"
+                            if candidate in io_names:
+                                resolved_name = candidate
+                    normalized_custom_io[resolved_name] = dtype
+                custom_io = normalized_custom_io
+            except Exception:
+                pass
+    
+        if use_onnx_subfunctions:
+            logger.info("Using ONNX subfunctions for compilation.")
+            command.append("-sub-functions")
+    
+        compile_hash_params = {
+            "command": command,
+            "specializations": specializations,
+            "custom_io": custom_io,
+            "mdp_ts_num_devices": mdp_ts_num_devices,
+            "mdp_num_partitions": mdp_num_partitions,
+            "mdp_strategy": mdp_strategy.value,
+            "mdp_ts_json": mdp_ts_json,
+            "num_speculative_tokens": num_speculative_tokens,
+            "prefill_only": prefill_only,
+        }
+        compile_hash = hash_dict_params(compile_hash_params)
+    
+        compile_dir = qpc_path.with_name(qpc_path.name + "-" + compile_hash)
+        qpc_path = compile_dir / "qpc"
+        if (qpc_path / "programqpc.bin").is_file():
+            self.qpc_path = qpc_path
+            return qpc_path
+        if qpc_path.is_dir():
+            # Probably compilation failure last time, delete directory to start over.
+            shutil.rmtree(qpc_path)
+        compile_dir.mkdir(parents=True, exist_ok=True)
+    
+        # Write the generated MDP partition config file (not if user provided it)
+    
+        # Write specializations.json file
+        if specializations is not None:
+            specializations_json = compile_dir / "specializations.json"
+            specializations_data = {
+                "specializations": to_named_specializations(specializations, module_name=specialization_module_name)
+            }
+            create_json(str(specializations_json), specializations_data)
+            command.append(f"-network-specialization-config={specializations_json}")
+    
+        # Write custom_io.yaml file
+        model_in_bfloat16 = hasattr(self, "config") and (self.config.torch_dtype == torch.bfloat16)
+        pkv_in_bfloat16 = (custom_io is not None) and any(
+            "past_" in key and "bfloat16" in value for key, value in custom_io.items()
+        )
+        if custom_io is not None:
+            custom_io_yaml = compile_dir / "custom_io.yaml"
+            with open(custom_io_yaml, "w") as fp:
+                for io_name, dtype in custom_io.items():
+                    fp.write(f" - IOName: {io_name}\n   Precision: {dtype}\n\n")
+            if model_in_bfloat16 and pkv_in_bfloat16:
+                logger.warning(
+                    "Model and Past KV types are both bfloat16. Custom IO list file will be ignored during compile."
+                )
+            else:
+                command.append(f"-custom-IO-list-file={custom_io_yaml}")
+    
+        command.append(f"-aic-binary-dir={qpc_path}")
+        logger.info(f"Running compiler: {' '.join(command)}")
+    
+        try:
+            subprocess.run(command, capture_output=True, check=True)
+        except subprocess.CalledProcessError as e:
+>           raise RuntimeError(
+                "\n".join(
+                    [
+                        "Compilation failed!",
+                        f"Compiler command: {e.cmd}",
+                        f"Compiler exitcode: {e.returncode}",
+                        "Compiler stderr:",
+                        e.stderr.decode(),
+                    ]
+                )
+            )
+E           RuntimeError: Compilation failed!
+E           Compiler command: ['/opt/qti-aic/exec/qaic-compile', '-aic-hw', '-aic-hw-version=ai100', '-m=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/WhisperForConditionalGeneration.onnx', '-retained-state', '-convert-to-fp16', '-aic-num-cores=16', '-network-specialization-config=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/qpc-30444896ae9c4ccf/specializations.json', '-custom-IO-list-file=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/qpc-30444896ae9c4ccf/custom_io.yaml', '-aic-binary-dir=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/qpc-30444896ae9c4ccf/qpc']
+E           Compiler exitcode: 1
+E           Compiler stderr:
+E           QAIC_ERROR: 
+E           Error code: MODEL_LOADER_UNSUPPORTED_DATATYPE
+E           Error message: Unhandled ElemKind in Clip operation
+E           Unable to AddNodesToGraphFromModel
+
+QEfficient/base/modeling_qeff.py:1088: RuntimeError
+___________________ test_generate_fp16[openai/whisper-tiny] ____________________
+
+self = QEFFAutoModelForSpeechSeq2Seq
+QEffWhisperForConditionalGeneration(
+  (model): QEffWhisperModel(
+    (encoder): QEffWhi..., eps=1e-05, elementwise_affine=True)
+    )
+  )
+  (proj_out): Linear(in_features=384, out_features=51865, bias=False)
+)
+onnx_path = PosixPath('/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/WhisperForConditionalGeneration.onnx')
+compile_dir = PosixPath('/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/qpc-30444896ae9c4ccf')
+mxint8_kv_cache = False
+specializations = [{'_graph_name': 'Encoder', 'batch_size': 1, 'seq_len': 1, 'encoder_ctx_len': 1500, ...}, {'_graph_name': 'Decode', 'batch_size': 1, 'seq_len': 1, 'encoder_ctx_len': 1500, ...}]
+custom_io = {'input_features': 'float16', 'past_key_self.0': 'float16', 'past_key_self.0_RetainedState': 'float16', 'past_value_self.0': 'float16', ...}
+mdp_ts_num_devices = 1, mdp_num_partitions = 1, num_speculative_tokens = None
+enable_qnn = False, qnn_config = None, use_onnx_subfunctions = False
+prefill_only = None, offload_pt_weights = True, enable_chunking = False
+retain_full_kv = None, qaic_config = None, specialization_module_name = None
+kv_cache_prefix = None
+compiler_options = {'retained_state': True, 'convert_to_fp16': True, 'mxfp6_matmul': False, 'aic_num_cores': 16}
+
+    @dump_qconfig
+    def _compile(
+        self,
+        onnx_path: Optional[str] = None,
+        compile_dir: Optional[str] = None,
+        *,
+        mxint8_kv_cache: bool = False,
+        specializations: Optional[List[Dict[str, int]]] = None,
+        custom_io: Optional[Dict[str, str]] = None,
+        mdp_ts_num_devices: int = 1,
+        mdp_num_partitions: Optional[int] = 1,
+        num_speculative_tokens: Optional[Union[int, List[int]]] = None,
+        enable_qnn: Optional[bool] = False,
+        qnn_config: Optional[str] = None,
+        use_onnx_subfunctions: bool = False,
+        prefill_only: Optional[str] = None,
+        offload_pt_weights: Optional[bool] = True,
+        enable_chunking: Optional[bool] = False,
+        retain_full_kv: Optional[bool] = None,
+        qaic_config: Optional[dict] = None,
+        specialization_module_name: Optional[str] = None,
+        kv_cache_prefix: Optional[str] = None,
+        **compiler_options,
+    ) -> str:
+        """
+        Interface for qaic-compile compiler
+    
+        Args:
+            :onnx_path (str): Onnx file to compile
+            :compile_dir (str): Directory path to compile the qpc. A suffix is added to the directory path to avoid reusing same qpc for different parameters.
+            :mxint8_kv_cache (bool, optional): Whether to use ``mxint8`` compression for KV cache. ``Defaults to False``.
+            :specializations (list): List of specializations to compile for
+            :custom_io (dict): Custom IO to specify the input and outputs in different formats than default
+            :mdp_ts_num_devices (int): Number of devices to partition to use Multi-Device Partitioning with tensor-slicing.
+            :mdp_num_partitions (int): Number of pipeline-parallel partitions for disaggregated prefill serving.
+                When > 1, the ONNX graph is read directly to generate a fully-populated MDP partition
+                config (nodeList per partition) without requiring a compiler round-trip.
+                Ignored when ``mdp_load_partition_config`` is already provided in compiler_options.
+                Defaults to 1 (template / tensor-slice MDP, existing behaviour).
+            :num_speculative_tokens (int | List[int], optional): Number of speculative tokens for TLM decode. A plain int K compiles one decode specialization (seq_len=K+1). A list [K0, K1, ...] compiles one specialization per value, enabling per-step dispatch to the cheapest kernel.
+            :enable_qnn (bool): Enables QNN Compilation. ``Defaults to False.``
+            :qnn_config (str): Path of QNN Config parameters file. Any extra parameters for QNN compilation can be passed via this file. ``Defaults to None.``
+            :compiler_options: Pass any compiler option as input.
+                Any flag that is supported by `qaic-compile` can be passed. Params are converted to flags as below:
+    
+                - aic_num_cores=16 -> -aic-num-cores=16
+                - convert_to_fp16=True -> -convert-to-fp16
+                - aic_hw_version=ai100 -> -aic-hw-version=ai100
+                - aic_hw_version=ai200 -> -aic-hw-version=ai200
+    
+                For QNN Compilation path, when enable_qnn is set to True, any parameter passed in compiler_options will be ignored.
+        """
+    
+        layerwise_cache_probe = compiler_options.pop("_layerwise_cache_probe", False)
+        moe_prefill_packed_chunk_size = compiler_options.pop("moe_prefill_packed_chunk_size", None)
+    
+        for removed_option in ("compile_only", "compile-only"):
+            if removed_option in compiler_options:
+                logger.warning(f"'{removed_option}' is deprecated and is ignored; removing it from compiler options.")
+                compiler_options.pop(removed_option, None)
+    
+        mdp_ts_json_path = compiler_options.pop("mdp_load_partition_config", None)
+        mdp_strategy = MdpStrategy(compiler_options.pop("mdp_strategy", MdpStrategy.ONNX))
+        mdp_compiler_dump_path = compiler_options.pop("mdp_compiler_dump_path", None)
+    
+        if onnx_path is None:
+            # If weights were offloaded after export, compiling must use the existing
+            # ONNX because re-exporting is no longer possible. Otherwise export for
+            # the current compile mode, e.g. decode vs. disaggregated prefill.
+            weights_offloaded = self._is_weights_offloaded or any(param.is_meta for param in self.model.parameters())
+            if self.onnx_path is not None and weights_offloaded:
+                onnx_path = self.onnx_path
+            else:
+                onnx_path = self.get_onnx_path(
+                    prefill_only,
+                    enable_chunking,
+                    specializations,
+                    offload_pt_weights,
+                    use_onnx_subfunctions,
+                    retain_full_kv,
+                    num_devices=mdp_ts_num_devices,
+                    qaic_config=qaic_config,
+                    moe_prefill_packed_chunk_size=moe_prefill_packed_chunk_size,
+                    _layerwise_cache_probe=layerwise_cache_probe,
+                    kv_cache_prefix=kv_cache_prefix,
+                    **compiler_options,
+                )
+        if QEFFBaseModel._layerwise_active:
+            if onnx_path is None:
+                return None
+            onnx_path = Path(onnx_path)
+            return onnx_path
+        onnx_path = Path(onnx_path)
+    
+        compile_dir = Path(compile_dir or onnx_path.parent)
+        qpc_path = compile_dir / "qpc"
+        if not onnx_path.is_file():
+            raise FileNotFoundError(f"ONNX file not found at: {onnx_path}")
+    
+        if enable_qnn:
+            if compiler_options:
+                logger.warning(
+                    f"Extra arguments to QNN compilation are supported only via qnn_config file. Ignoring {compiler_options}"
+                )
+    
+            self.qpc_path = qnn_compile(
+                onnx_path=onnx_path,
+                qpc_base_path=compile_dir,
+                specializations=specializations,
+                custom_io=custom_io,
+                device_group=list(range(mdp_ts_num_devices)),
+                num_cores=compiler_options.get("aic_num_cores", constants.DEFAULT_AIC_NUM_CORES),
+                mxfp6=compiler_options.get("mxfp6_matmul", constants.DEFAULT_AIC_MXPF6_MATMUL),
+                mxint8=mxint8_kv_cache,
+                qnn_config=qnn_config,
+            )
+    
+            return self.qpc_path
+    
+        command = (
+            constants.COMPILER
+            + [
+                f"-aic-hw-version={compiler_options.pop('aic_hw_version', compiler_options.pop('aic-hw-version', constants.DEFAULT_AIC_HW_VERSION))}"
+            ]
+            + [f"-m={onnx_path}"]
+        )
+    
+        # MDP partition config selection (highest priority first):
+        #   1. User-provided pre-built MDP JSON (mdp_load_partition_config).
+        #   2. Disaggregated (pipeline-parallel) MDP — generated from ONNX topsort.
+        #      Strategy ONNX (default): full superset from ONNX graph (~19 MB).
+        #      Strategy INTERSECTION: intersect with compiler dump; compact (~1-2 MB),
+        #        requires a prior -mdp-dump-partition-config run.
+        #   3. Template (tensor-slice) MDP — single partition, nodeList absent.
+        mdp_ts_json = None
+    
+        if mdp_ts_json_path:
+            command.append(f"-mdp-load-partition-config={mdp_ts_json_path}")
+            mdp_ts_json = load_json(str(mdp_ts_json_path))
+        elif mdp_num_partitions > 1:
+            # Disaggregated (pipeline-parallel) MDP — delegate to focused helper.
+            num_cores = compiler_options.get("aic_num_cores", constants.DEFAULT_AIC_NUM_CORES)
+            num_layers = getattr(self, "num_layers", None)
+            if getattr(self, "model", None) and getattr(self.model, "language_model", None) and not num_layers:
+                num_layers = getattr(self.model.language_model.config, "num_hidden_layers", None)
+            if num_layers is None:
+                raise AttributeError(
+                    "Model or Language Model does not expose 'num_layers' or 'num_hidden_layers' respectively. Cannot generate disagg MDP partition config."
+                )
+            mdp_ts_json_path, mdp_ts_json = generate_disagg_mdp_config(
+                onnx_path=onnx_path,
+                compile_dir=compile_dir,
+                mdp_ts_num_devices=mdp_ts_num_devices,
+                mdp_num_partitions=mdp_num_partitions,
+                mdp_strategy=mdp_strategy,
+                mdp_compiler_dump_path=mdp_compiler_dump_path,
+                num_cores=num_cores,
+                num_layers=num_layers,
+            )
+            command.append(f"-mdp-load-partition-config={mdp_ts_json_path}")
+        elif mdp_ts_num_devices > 1 and not compiler_options.get("mdp_dump_partition_config", None):
+            # Template (tensor-slice) MDP: single partition, empty nodeList; compiler fills it.
+            mdp_ts_json = generate_mdp_partition_config(
+                mdp_ts_num_devices, compiler_options.get("aic_num_cores", constants.DEFAULT_AIC_NUM_CORES)
+            )
+            mdp_ts_json_path = compile_dir / f"mdp_ts_{mdp_ts_num_devices}.json"
+            create_json(str(mdp_ts_json_path), mdp_ts_json)
+            command.append(f"-mdp-load-partition-config={mdp_ts_json_path}")
+    
+        for key, value in compiler_options.items():
+            option = "-" + key.replace("_", "-")
+            if isinstance(value, bool):
+                if value:
+                    command.append(option)
+                continue
+            command.append(f"{option}={value}")
+    
+        # Final custom-IO normalization against ONNX I/O names.
+        # This only rewrites retained-state aliases:
+        # *_InternalRetainedState <-> *_RetainedState.
+        # Any other custom-IO key is preserved as-is for backward compatibility.
+        if custom_io is not None and onnx_path is not None:
+            try:
+                model = onnx.load(onnx_path, load_external_data=False)
+                io_names = {value.name for value in list(model.graph.input) + list(model.graph.output)}
+                normalized_custom_io = {}
+                for io_name, dtype in custom_io.items():
+                    resolved_name = io_name
+                    if io_name not in io_names:
+                        if io_name.endswith("_InternalRetainedState"):
+                            candidate = io_name[: -len("_InternalRetainedState")] + "_RetainedState"
+                            if candidate in io_names:
+                                resolved_name = candidate
+                        elif io_name.endswith("_RetainedState"):
+                            candidate = io_name[: -len("_RetainedState")] + "_InternalRetainedState"
+                            if candidate in io_names:
+                                resolved_name = candidate
+                    normalized_custom_io[resolved_name] = dtype
+                custom_io = normalized_custom_io
+            except Exception:
+                pass
+    
+        if use_onnx_subfunctions:
+            logger.info("Using ONNX subfunctions for compilation.")
+            command.append("-sub-functions")
+    
+        compile_hash_params = {
+            "command": command,
+            "specializations": specializations,
+            "custom_io": custom_io,
+            "mdp_ts_num_devices": mdp_ts_num_devices,
+            "mdp_num_partitions": mdp_num_partitions,
+            "mdp_strategy": mdp_strategy.value,
+            "mdp_ts_json": mdp_ts_json,
+            "num_speculative_tokens": num_speculative_tokens,
+            "prefill_only": prefill_only,
+        }
+        compile_hash = hash_dict_params(compile_hash_params)
+    
+        compile_dir = qpc_path.with_name(qpc_path.name + "-" + compile_hash)
+        qpc_path = compile_dir / "qpc"
+        if (qpc_path / "programqpc.bin").is_file():
+            self.qpc_path = qpc_path
+            return qpc_path
+        if qpc_path.is_dir():
+            # Probably compilation failure last time, delete directory to start over.
+            shutil.rmtree(qpc_path)
+        compile_dir.mkdir(parents=True, exist_ok=True)
+    
+        # Write the generated MDP partition config file (not if user provided it)
+    
+        # Write specializations.json file
+        if specializations is not None:
+            specializations_json = compile_dir / "specializations.json"
+            specializations_data = {
+                "specializations": to_named_specializations(specializations, module_name=specialization_module_name)
+            }
+            create_json(str(specializations_json), specializations_data)
+            command.append(f"-network-specialization-config={specializations_json}")
+    
+        # Write custom_io.yaml file
+        model_in_bfloat16 = hasattr(self, "config") and (self.config.torch_dtype == torch.bfloat16)
+        pkv_in_bfloat16 = (custom_io is not None) and any(
+            "past_" in key and "bfloat16" in value for key, value in custom_io.items()
+        )
+        if custom_io is not None:
+            custom_io_yaml = compile_dir / "custom_io.yaml"
+            with open(custom_io_yaml, "w") as fp:
+                for io_name, dtype in custom_io.items():
+                    fp.write(f" - IOName: {io_name}\n   Precision: {dtype}\n\n")
+            if model_in_bfloat16 and pkv_in_bfloat16:
+                logger.warning(
+                    "Model and Past KV types are both bfloat16. Custom IO list file will be ignored during compile."
+                )
+            else:
+                command.append(f"-custom-IO-list-file={custom_io_yaml}")
+    
+        command.append(f"-aic-binary-dir={qpc_path}")
+        logger.info(f"Running compiler: {' '.join(command)}")
+    
+        try:
+>           subprocess.run(command, capture_output=True, check=True)
+
+QEfficient/base/modeling_qeff.py:1086: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+input = None, capture_output = True, timeout = None, check = True
+popenargs = (['/opt/qti-aic/exec/qaic-compile', '-aic-hw', '-aic-hw-version=ai100', '-m=/home/vishsent/.cache/qeff_models/WhisperF...itionalGeneration-9bf8ad3dc0814fc9/WhisperForConditionalGeneration.onnx', '-retained-state', '-convert-to-fp16', ...],)
+kwargs = {'stdout': -1, 'stderr': -1}
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+    
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+    
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+    
+        If timeout (seconds) is given and the process takes too long,
+         a TimeoutExpired exception will be raised.
+    
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+    
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+    
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+    
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+    
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['/opt/qti-aic/exec/qaic-compile', '-aic-hw', '-aic-hw-version=ai100', '-m=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/WhisperForConditionalGeneration.onnx', '-retained-state', '-convert-to-fp16', '-aic-num-cores=16', '-network-specialization-config=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/qpc-30444896ae9c4ccf/specializations.json', '-custom-IO-list-file=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/qpc-30444896ae9c4ccf/custom_io.yaml', '-aic-binary-dir=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/qpc-30444896ae9c4ccf/qpc']' returned non-zero exit status 1.
+
+/usr/lib/python3.12/subprocess.py:571: CalledProcessError
+
+During handling of the above exception, another exception occurred:
+
+model_name = 'openai/whisper-tiny'
+manual_cleanup = <function qeff_models_clean_up at 0x7f85e0291580>
+
+    @pytest.mark.qaic
+    @pytest.mark.llm
+    @pytest.mark.parametrize("model_name", test_models)
+    def test_generate_fp16(model_name, manual_cleanup):
+    
+>       check_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100(model_name, torch_dtype=torch.float16, manual_cleanup=manual_cleanup)
+
+tests/transformers/models/audio_models/test_models.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/transformers/models/audio_models/check_audio_models.py:371: in check_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100
+    qeff_model.compile(
+QEfficient/transformers/models/modeling_auto.py:4902: in compile
+    return self._compile(
+QEfficient/utils/_utils.py:792: in wrapper
+    result = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = QEFFAutoModelForSpeechSeq2Seq
+QEffWhisperForConditionalGeneration(
+  (model): QEffWhisperModel(
+    (encoder): QEffWhi..., eps=1e-05, elementwise_affine=True)
+    )
+  )
+  (proj_out): Linear(in_features=384, out_features=51865, bias=False)
+)
+onnx_path = PosixPath('/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/WhisperForConditionalGeneration.onnx')
+compile_dir = PosixPath('/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/qpc-30444896ae9c4ccf')
+mxint8_kv_cache = False
+specializations = [{'_graph_name': 'Encoder', 'batch_size': 1, 'seq_len': 1, 'encoder_ctx_len': 1500, ...}, {'_graph_name': 'Decode', 'batch_size': 1, 'seq_len': 1, 'encoder_ctx_len': 1500, ...}]
+custom_io = {'input_features': 'float16', 'past_key_self.0': 'float16', 'past_key_self.0_RetainedState': 'float16', 'past_value_self.0': 'float16', ...}
+mdp_ts_num_devices = 1, mdp_num_partitions = 1, num_speculative_tokens = None
+enable_qnn = False, qnn_config = None, use_onnx_subfunctions = False
+prefill_only = None, offload_pt_weights = True, enable_chunking = False
+retain_full_kv = None, qaic_config = None, specialization_module_name = None
+kv_cache_prefix = None
+compiler_options = {'retained_state': True, 'convert_to_fp16': True, 'mxfp6_matmul': False, 'aic_num_cores': 16}
+
+    @dump_qconfig
+    def _compile(
+        self,
+        onnx_path: Optional[str] = None,
+        compile_dir: Optional[str] = None,
+        *,
+        mxint8_kv_cache: bool = False,
+        specializations: Optional[List[Dict[str, int]]] = None,
+        custom_io: Optional[Dict[str, str]] = None,
+        mdp_ts_num_devices: int = 1,
+        mdp_num_partitions: Optional[int] = 1,
+        num_speculative_tokens: Optional[Union[int, List[int]]] = None,
+        enable_qnn: Optional[bool] = False,
+        qnn_config: Optional[str] = None,
+        use_onnx_subfunctions: bool = False,
+        prefill_only: Optional[str] = None,
+        offload_pt_weights: Optional[bool] = True,
+        enable_chunking: Optional[bool] = False,
+        retain_full_kv: Optional[bool] = None,
+        qaic_config: Optional[dict] = None,
+        specialization_module_name: Optional[str] = None,
+        kv_cache_prefix: Optional[str] = None,
+        **compiler_options,
+    ) -> str:
+        """
+        Interface for qaic-compile compiler
+    
+        Args:
+            :onnx_path (str): Onnx file to compile
+            :compile_dir (str): Directory path to compile the qpc. A suffix is added to the directory path to avoid reusing same qpc for different parameters.
+            :mxint8_kv_cache (bool, optional): Whether to use ``mxint8`` compression for KV cache. ``Defaults to False``.
+            :specializations (list): List of specializations to compile for
+            :custom_io (dict): Custom IO to specify the input and outputs in different formats than default
+            :mdp_ts_num_devices (int): Number of devices to partition to use Multi-Device Partitioning with tensor-slicing.
+            :mdp_num_partitions (int): Number of pipeline-parallel partitions for disaggregated prefill serving.
+                When > 1, the ONNX graph is read directly to generate a fully-populated MDP partition
+                config (nodeList per partition) without requiring a compiler round-trip.
+                Ignored when ``mdp_load_partition_config`` is already provided in compiler_options.
+                Defaults to 1 (template / tensor-slice MDP, existing behaviour).
+            :num_speculative_tokens (int | List[int], optional): Number of speculative tokens for TLM decode. A plain int K compiles one decode specialization (seq_len=K+1). A list [K0, K1, ...] compiles one specialization per value, enabling per-step dispatch to the cheapest kernel.
+            :enable_qnn (bool): Enables QNN Compilation. ``Defaults to False.``
+            :qnn_config (str): Path of QNN Config parameters file. Any extra parameters for QNN compilation can be passed via this file. ``Defaults to None.``
+            :compiler_options: Pass any compiler option as input.
+                Any flag that is supported by `qaic-compile` can be passed. Params are converted to flags as below:
+    
+                - aic_num_cores=16 -> -aic-num-cores=16
+                - convert_to_fp16=True -> -convert-to-fp16
+                - aic_hw_version=ai100 -> -aic-hw-version=ai100
+                - aic_hw_version=ai200 -> -aic-hw-version=ai200
+    
+                For QNN Compilation path, when enable_qnn is set to True, any parameter passed in compiler_options will be ignored.
+        """
+    
+        layerwise_cache_probe = compiler_options.pop("_layerwise_cache_probe", False)
+        moe_prefill_packed_chunk_size = compiler_options.pop("moe_prefill_packed_chunk_size", None)
+    
+        for removed_option in ("compile_only", "compile-only"):
+            if removed_option in compiler_options:
+                logger.warning(f"'{removed_option}' is deprecated and is ignored; removing it from compiler options.")
+                compiler_options.pop(removed_option, None)
+    
+        mdp_ts_json_path = compiler_options.pop("mdp_load_partition_config", None)
+        mdp_strategy = MdpStrategy(compiler_options.pop("mdp_strategy", MdpStrategy.ONNX))
+        mdp_compiler_dump_path = compiler_options.pop("mdp_compiler_dump_path", None)
+    
+        if onnx_path is None:
+            # If weights were offloaded after export, compiling must use the existing
+            # ONNX because re-exporting is no longer possible. Otherwise export for
+            # the current compile mode, e.g. decode vs. disaggregated prefill.
+            weights_offloaded = self._is_weights_offloaded or any(param.is_meta for param in self.model.parameters())
+            if self.onnx_path is not None and weights_offloaded:
+                onnx_path = self.onnx_path
+            else:
+                onnx_path = self.get_onnx_path(
+                    prefill_only,
+                    enable_chunking,
+                    specializations,
+                    offload_pt_weights,
+                    use_onnx_subfunctions,
+                    retain_full_kv,
+                    num_devices=mdp_ts_num_devices,
+                    qaic_config=qaic_config,
+                    moe_prefill_packed_chunk_size=moe_prefill_packed_chunk_size,
+                    _layerwise_cache_probe=layerwise_cache_probe,
+                    kv_cache_prefix=kv_cache_prefix,
+                    **compiler_options,
+                )
+        if QEFFBaseModel._layerwise_active:
+            if onnx_path is None:
+                return None
+            onnx_path = Path(onnx_path)
+            return onnx_path
+        onnx_path = Path(onnx_path)
+    
+        compile_dir = Path(compile_dir or onnx_path.parent)
+        qpc_path = compile_dir / "qpc"
+        if not onnx_path.is_file():
+            raise FileNotFoundError(f"ONNX file not found at: {onnx_path}")
+    
+        if enable_qnn:
+            if compiler_options:
+                logger.warning(
+                    f"Extra arguments to QNN compilation are supported only via qnn_config file. Ignoring {compiler_options}"
+                )
+    
+            self.qpc_path = qnn_compile(
+                onnx_path=onnx_path,
+                qpc_base_path=compile_dir,
+                specializations=specializations,
+                custom_io=custom_io,
+                device_group=list(range(mdp_ts_num_devices)),
+                num_cores=compiler_options.get("aic_num_cores", constants.DEFAULT_AIC_NUM_CORES),
+                mxfp6=compiler_options.get("mxfp6_matmul", constants.DEFAULT_AIC_MXPF6_MATMUL),
+                mxint8=mxint8_kv_cache,
+                qnn_config=qnn_config,
+            )
+    
+            return self.qpc_path
+    
+        command = (
+            constants.COMPILER
+            + [
+                f"-aic-hw-version={compiler_options.pop('aic_hw_version', compiler_options.pop('aic-hw-version', constants.DEFAULT_AIC_HW_VERSION))}"
+            ]
+            + [f"-m={onnx_path}"]
+        )
+    
+        # MDP partition config selection (highest priority first):
+        #   1. User-provided pre-built MDP JSON (mdp_load_partition_config).
+        #   2. Disaggregated (pipeline-parallel) MDP — generated from ONNX topsort.
+        #      Strategy ONNX (default): full superset from ONNX graph (~19 MB).
+        #      Strategy INTERSECTION: intersect with compiler dump; compact (~1-2 MB),
+        #        requires a prior -mdp-dump-partition-config run.
+        #   3. Template (tensor-slice) MDP — single partition, nodeList absent.
+        mdp_ts_json = None
+    
+        if mdp_ts_json_path:
+            command.append(f"-mdp-load-partition-config={mdp_ts_json_path}")
+            mdp_ts_json = load_json(str(mdp_ts_json_path))
+        elif mdp_num_partitions > 1:
+            # Disaggregated (pipeline-parallel) MDP — delegate to focused helper.
+            num_cores = compiler_options.get("aic_num_cores", constants.DEFAULT_AIC_NUM_CORES)
+            num_layers = getattr(self, "num_layers", None)
+            if getattr(self, "model", None) and getattr(self.model, "language_model", None) and not num_layers:
+                num_layers = getattr(self.model.language_model.config, "num_hidden_layers", None)
+            if num_layers is None:
+                raise AttributeError(
+                    "Model or Language Model does not expose 'num_layers' or 'num_hidden_layers' respectively. Cannot generate disagg MDP partition config."
+                )
+            mdp_ts_json_path, mdp_ts_json = generate_disagg_mdp_config(
+                onnx_path=onnx_path,
+                compile_dir=compile_dir,
+                mdp_ts_num_devices=mdp_ts_num_devices,
+                mdp_num_partitions=mdp_num_partitions,
+                mdp_strategy=mdp_strategy,
+                mdp_compiler_dump_path=mdp_compiler_dump_path,
+                num_cores=num_cores,
+                num_layers=num_layers,
+            )
+            command.append(f"-mdp-load-partition-config={mdp_ts_json_path}")
+        elif mdp_ts_num_devices > 1 and not compiler_options.get("mdp_dump_partition_config", None):
+            # Template (tensor-slice) MDP: single partition, empty nodeList; compiler fills it.
+            mdp_ts_json = generate_mdp_partition_config(
+                mdp_ts_num_devices, compiler_options.get("aic_num_cores", constants.DEFAULT_AIC_NUM_CORES)
+            )
+            mdp_ts_json_path = compile_dir / f"mdp_ts_{mdp_ts_num_devices}.json"
+            create_json(str(mdp_ts_json_path), mdp_ts_json)
+            command.append(f"-mdp-load-partition-config={mdp_ts_json_path}")
+    
+        for key, value in compiler_options.items():
+            option = "-" + key.replace("_", "-")
+            if isinstance(value, bool):
+                if value:
+                    command.append(option)
+                continue
+            command.append(f"{option}={value}")
+    
+        # Final custom-IO normalization against ONNX I/O names.
+        # This only rewrites retained-state aliases:
+        # *_InternalRetainedState <-> *_RetainedState.
+        # Any other custom-IO key is preserved as-is for backward compatibility.
+        if custom_io is not None and onnx_path is not None:
+            try:
+                model = onnx.load(onnx_path, load_external_data=False)
+                io_names = {value.name for value in list(model.graph.input) + list(model.graph.output)}
+                normalized_custom_io = {}
+                for io_name, dtype in custom_io.items():
+                    resolved_name = io_name
+                    if io_name not in io_names:
+                        if io_name.endswith("_InternalRetainedState"):
+                            candidate = io_name[: -len("_InternalRetainedState")] + "_RetainedState"
+                            if candidate in io_names:
+                                resolved_name = candidate
+                        elif io_name.endswith("_RetainedState"):
+                            candidate = io_name[: -len("_RetainedState")] + "_InternalRetainedState"
+                            if candidate in io_names:
+                                resolved_name = candidate
+                    normalized_custom_io[resolved_name] = dtype
+                custom_io = normalized_custom_io
+            except Exception:
+                pass
+    
+        if use_onnx_subfunctions:
+            logger.info("Using ONNX subfunctions for compilation.")
+            command.append("-sub-functions")
+    
+        compile_hash_params = {
+            "command": command,
+            "specializations": specializations,
+            "custom_io": custom_io,
+            "mdp_ts_num_devices": mdp_ts_num_devices,
+            "mdp_num_partitions": mdp_num_partitions,
+            "mdp_strategy": mdp_strategy.value,
+            "mdp_ts_json": mdp_ts_json,
+            "num_speculative_tokens": num_speculative_tokens,
+            "prefill_only": prefill_only,
+        }
+        compile_hash = hash_dict_params(compile_hash_params)
+    
+        compile_dir = qpc_path.with_name(qpc_path.name + "-" + compile_hash)
+        qpc_path = compile_dir / "qpc"
+        if (qpc_path / "programqpc.bin").is_file():
+            self.qpc_path = qpc_path
+            return qpc_path
+        if qpc_path.is_dir():
+            # Probably compilation failure last time, delete directory to start over.
+            shutil.rmtree(qpc_path)
+        compile_dir.mkdir(parents=True, exist_ok=True)
+    
+        # Write the generated MDP partition config file (not if user provided it)
+    
+        # Write specializations.json file
+        if specializations is not None:
+            specializations_json = compile_dir / "specializations.json"
+            specializations_data = {
+                "specializations": to_named_specializations(specializations, module_name=specialization_module_name)
+            }
+            create_json(str(specializations_json), specializations_data)
+            command.append(f"-network-specialization-config={specializations_json}")
+    
+        # Write custom_io.yaml file
+        model_in_bfloat16 = hasattr(self, "config") and (self.config.torch_dtype == torch.bfloat16)
+        pkv_in_bfloat16 = (custom_io is not None) and any(
+            "past_" in key and "bfloat16" in value for key, value in custom_io.items()
+        )
+        if custom_io is not None:
+            custom_io_yaml = compile_dir / "custom_io.yaml"
+            with open(custom_io_yaml, "w") as fp:
+                for io_name, dtype in custom_io.items():
+                    fp.write(f" - IOName: {io_name}\n   Precision: {dtype}\n\n")
+            if model_in_bfloat16 and pkv_in_bfloat16:
+                logger.warning(
+                    "Model and Past KV types are both bfloat16. Custom IO list file will be ignored during compile."
+                )
+            else:
+                command.append(f"-custom-IO-list-file={custom_io_yaml}")
+    
+        command.append(f"-aic-binary-dir={qpc_path}")
+        logger.info(f"Running compiler: {' '.join(command)}")
+    
+        try:
+            subprocess.run(command, capture_output=True, check=True)
+        except subprocess.CalledProcessError as e:
+>           raise RuntimeError(
+                "\n".join(
+                    [
+                        "Compilation failed!",
+                        f"Compiler command: {e.cmd}",
+                        f"Compiler exitcode: {e.returncode}",
+                        "Compiler stderr:",
+                        e.stderr.decode(),
+                    ]
+                )
+            )
+E           RuntimeError: Compilation failed!
+E           Compiler command: ['/opt/qti-aic/exec/qaic-compile', '-aic-hw', '-aic-hw-version=ai100', '-m=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/WhisperForConditionalGeneration.onnx', '-retained-state', '-convert-to-fp16', '-aic-num-cores=16', '-network-specialization-config=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/qpc-30444896ae9c4ccf/specializations.json', '-custom-IO-list-file=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/qpc-30444896ae9c4ccf/custom_io.yaml', '-aic-binary-dir=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/qpc-30444896ae9c4ccf/qpc']
+E           Compiler exitcode: 1
+E           Compiler stderr:
+E           QAIC_ERROR: 
+E           Error code: MODEL_LOADER_UNSUPPORTED_DATATYPE
+E           Error message: Unhandled ElemKind in Clip operation
+E           Unable to AddNodesToGraphFromModel
+
+QEfficient/base/modeling_qeff.py:1088: RuntimeError
+=========================== short test summary info ============================
+FAILED tests/transformers/models/audio_models/test_models.py::test_export_compile_fp16[openai/whisper-tiny] - RuntimeError: Compilation failed!
+Compiler command: ['/opt/qti-aic/exec/qaic-compile', '-aic-hw', '-aic-hw-version=ai100', '-m=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/WhisperForConditionalGeneration.onnx', '-retained-state', '-convert-to-fp16', '-aic-num-cores=16', '-network-specialization-config=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/qpc-30444896ae9c4ccf/specializations.json', '-custom-IO-list-file=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/qpc-30444896ae9c4ccf/custom_io.yaml', '-aic-binary-dir=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/qpc-30444896ae9c4ccf/qpc']
+Compiler exitcode: 1
+Compiler stderr:
+QAIC_ERROR: 
+Error code: MODEL_LOADER_UNSUPPORTED_DATATYPE
+Error message: Unhandled ElemKind in Clip operation
+Unable to AddNodesToGraphFromModel
+FAILED tests/transformers/models/audio_models/test_models.py::test_generate_fp16[openai/whisper-tiny] - RuntimeError: Compilation failed!
+Compiler command: ['/opt/qti-aic/exec/qaic-compile', '-aic-hw', '-aic-hw-version=ai100', '-m=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/WhisperForConditionalGeneration.onnx', '-retained-state', '-convert-to-fp16', '-aic-num-cores=16', '-network-specialization-config=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/qpc-30444896ae9c4ccf/specializations.json', '-custom-IO-list-file=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/qpc-30444896ae9c4ccf/custom_io.yaml', '-aic-binary-dir=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-9bf8ad3dc0814fc9/qpc-30444896ae9c4ccf/qpc']
+Compiler exitcode: 1
+Compiler stderr:
+QAIC_ERROR: 
+Error code: MODEL_LOADER_UNSUPPORTED_DATATYPE
+Error message: Unhandled ElemKind in Clip operation
+Unable to AddNodesToGraphFromModel
+=================== 2 failed, 2 passed in 1130.31s (0:18:50) ===================

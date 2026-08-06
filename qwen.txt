@@ -1,0 +1,30 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- /home/vishsent/efficient-transformers/venv/bin/python3.12
+cachedir: .pytest_cache
+rootdir: /home/vishsent/efficient-transformers
+configfile: pyproject.toml
+plugins: xdist-3.8.0, anyio-4.14.2, mock-3.15.1
+collecting ... collected 4 items
+
+tests/transformers/models/embedding_models/test_qwen3vl_embedding_mad.py::test_export_compile[Qwen/Qwen3-VL-Embedding-8B] Fetching 22 files:   0%|          | 0/22 [00:00<?, ?it/s]Fetching 22 files: 100%|██████████| 22/22 [00:00<00:00, 17803.34it/s]
+Loading weights:   0%|          | 0/136 [00:00<?, ?it/s]Loading weights:   1%|          | 1/136 [00:00<00:29,  4.51it/s]Loading weights: 100%|██████████| 136/136 [00:00<00:00, 602.48it/s]
+Loading weights:   0%|          | 0/136 [00:00<?, ?it/s]Loading weights:   1%|          | 1/136 [00:00<00:30,  4.39it/s]Loading weights: 100%|██████████| 136/136 [00:00<00:00, 586.12it/s]
+PASSED
+tests/transformers/models/embedding_models/test_qwen3vl_embedding_mad.py::test_generate[Qwen/Qwen3-VL-Embedding-8B] Fetching 22 files:   0%|          | 0/22 [00:00<?, ?it/s]Fetching 22 files: 100%|██████████| 22/22 [00:00<00:00, 25469.14it/s]
+Loading weights:   0%|          | 0/136 [00:00<?, ?it/s]Loading weights:   1%|          | 1/136 [00:00<00:29,  4.60it/s]Loading weights: 100%|██████████| 136/136 [00:00<00:00, 613.52it/s]
+Loading weights:   0%|          | 0/136 [00:00<?, ?it/s]Loading weights:   1%|          | 1/136 [00:00<00:30,  4.50it/s]Loading weights: 100%|██████████| 136/136 [00:00<00:00, 599.66it/s]
+[MAD] CPU vs AI100 mean=7.596303e-06, max=2.315342e-04
+PASSED
+tests/transformers/models/embedding_models/test_qwen3vl_embedding_mad.py::test_export_compile_fp16[Qwen/Qwen3-VL-Embedding-8B] Fetching 22 files:   0%|          | 0/22 [00:00<?, ?it/s]Fetching 22 files: 100%|██████████| 22/22 [00:00<00:00, 39756.44it/s]
+Loading weights:   0%|          | 0/136 [00:00<?, ?it/s]Loading weights: 100%|██████████| 136/136 [00:00<00:00, 1541.95it/s]
+Loading weights:   0%|          | 0/136 [00:00<?, ?it/s]Loading weights:   1%|          | 1/136 [00:00<00:13,  9.66it/s]Loading weights: 100%|██████████| 136/136 [00:00<00:00, 946.89it/s]
+PASSED
+tests/transformers/models/embedding_models/test_qwen3vl_embedding_mad.py::test_generate_fp16[Qwen/Qwen3-VL-Embedding-8B] Fetching 22 files:   0%|          | 0/22 [00:00<?, ?it/s]Fetching 22 files: 100%|██████████| 22/22 [00:00<00:00, 45254.87it/s]
+Loading weights:   0%|          | 0/136 [00:00<?, ?it/s]Loading weights:   1%|          | 1/136 [00:00<00:18,  7.41it/s]Loading weights: 100%|██████████| 136/136 [00:00<00:00, 975.47it/s]
+Loading weights:   0%|          | 0/136 [00:00<?, ?it/s]Loading weights:   1%|          | 1/136 [00:00<00:14,  9.41it/s]Loading weights: 100%|██████████| 136/136 [00:00<00:00, 1229.99it/s]
+[MAD] CPU vs AI100 mean=8.612416e-06, max=3.925115e-04
+PASSED
+.............Cleaned up /home/vishsent/.cache/qeff_models
+
+
+======================== 4 passed in 363.22s (0:06:03) =========================

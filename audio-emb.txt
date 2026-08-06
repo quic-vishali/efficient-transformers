@@ -1,0 +1,113 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- /home/vishsent/efficient-transformers/venv/bin/python3.12
+cachedir: .pytest_cache
+rootdir: /home/vishsent/efficient-transformers
+configfile: pyproject.toml
+plugins: xdist-3.8.0, anyio-4.14.2, mock-3.15.1
+collecting ... collected 4 items
+
+tests/transformers/models/audio_embedding_models/test_models.py::test_export_compile[facebook/wav2vec2-base-960h] Fetching 9 files:   0%|          | 0/9 [00:00<?, ?it/s]Fetching 9 files: 100%|██████████| 9/9 [00:00<00:00, 37560.93it/s]
+Loading weights:   0%|          | 0/212 [00:00<?, ?it/s]Loading weights:   6%|▌         | 13/212 [00:00<00:11, 17.66it/s]Loading weights:   7%|▋         | 15/212 [00:01<00:19, 10.34it/s]Loading weights:   8%|▊         | 17/212 [00:01<00:24,  8.11it/s]Loading weights:   8%|▊         | 18/212 [00:01<00:23,  8.14it/s]Loading weights:   9%|▉         | 19/212 [00:01<00:23,  8.24it/s]Loading weights:   9%|▉         | 20/212 [00:02<00:26,  7.35it/s]Loading weights:  10%|▉         | 21/212 [00:02<00:26,  7.10it/s]Loading weights:  48%|████▊     | 101/212 [00:02<00:00, 114.92it/s]Loading weights:  53%|█████▎    | 112/212 [00:03<00:01, 57.18it/s] Loading weights:  57%|█████▋    | 120/212 [00:04<00:03, 28.21it/s]Loading weights:  81%|████████  | 171/212 [00:05<00:01, 36.05it/s]Loading weights: 100%|██████████| 212/212 [00:05<00:00, 38.12it/s]
+PASSED
+tests/transformers/models/audio_embedding_models/test_models.py::test_generate[facebook/wav2vec2-base-960h] Fetching 9 files:   0%|          | 0/9 [00:00<?, ?it/s]Fetching 9 files: 100%|██████████| 9/9 [00:00<00:00, 11387.25it/s]
+Loading weights:   0%|          | 0/212 [00:00<?, ?it/s]Loading weights: 100%|██████████| 212/212 [00:00<00:00, 5790.45it/s]
+Fetching 6 files:   0%|          | 0/6 [00:00<?, ?it/s]Fetching 6 files: 100%|██████████| 6/6 [00:00<00:00, 40590.04it/s]
+torch.float32
+tensor(False)
+tensor(False)
+['MISTER QUILTER IS THE APOSTLE OF THE MIDDLE CLASSES AND WE ARE GLAD TO WELCOME HIS GOSPEL']
+['MISTER QUILTER IS THE APOSTLE OF THE MIDDLE CLASSES AND WE ARE GLAD TO WELCOME HIS GOSPEL']
+PyTorch output: ['MISTER QUILTER IS THE APOSTLE OF THE MIDDLE CLASSES AND WE ARE GLAD TO WELCOME HIS GOSPEL']
+Cloud AI 100 output: ['MISTER QUILTER IS THE APOSTLE OF THE MIDDLE CLASSES AND WE ARE GLAD TO WELCOME HIS GOSPEL']
+PASSED
+tests/transformers/models/audio_embedding_models/test_models.py::test_export_compile_fp16[facebook/wav2vec2-base-960h] Fetching 9 files:   0%|          | 0/9 [00:00<?, ?it/s]Fetching 9 files: 100%|██████████| 9/9 [00:00<00:00, 49409.34it/s]
+Loading weights:   0%|          | 0/212 [00:00<?, ?it/s]Loading weights: 100%|██████████| 212/212 [00:00<00:00, 2604.46it/s]
+PASSED
+tests/transformers/models/audio_embedding_models/test_models.py::test_generate_fp16[facebook/wav2vec2-base-960h] Fetching 9 files:   0%|          | 0/9 [00:00<?, ?it/s]Fetching 9 files: 100%|██████████| 9/9 [00:00<00:00, 31615.36it/s]
+Loading weights:   0%|          | 0/212 [00:00<?, ?it/s]Loading weights: 100%|██████████| 212/212 [00:00<00:00, 2297.43it/s]
+Fetching 6 files:   0%|          | 0/6 [00:00<?, ?it/s]Fetching 6 files: 100%|██████████| 6/6 [00:00<00:00, 13127.71it/s]
+torch.float16
+tensor(True)
+tensor(False)
+['T']
+['MISTER QUILTER IS THE APOSTLE OF THE MIDDLE CLASSES AND WE ARE GLAD TO WELCOME HIS GOSPEL']
+FAILED
+.............Cleaned up /home/vishsent/.cache/qeff_models
+
+
+=================================== FAILURES ===================================
+_______________ test_generate_fp16[facebook/wav2vec2-base-960h] ________________
+
+model_name = 'facebook/wav2vec2-base-960h'
+
+    @pytest.mark.qaic
+    @pytest.mark.llm
+    @pytest.mark.parametrize("model_name", test_models)
+    def test_generate_fp16(model_name):
+    
+>       check_ctc_pytorch_vs_kv_vs_ort_vs_ai100(model_name, torch_dtype=torch.float16)
+
+tests/transformers/models/audio_embedding_models/test_models.py:53: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+model_name = 'facebook/wav2vec2-base-960h', num_devices = 1, n_layer = -1
+torch_dtype = torch.float16, enable_qnn = False, qnn_config = None
+compare_results = False, export_compile_only = False
+
+    def check_ctc_pytorch_vs_kv_vs_ort_vs_ai100(
+        model_name: str,
+        num_devices: int = 1,
+        n_layer: int = -1,
+        torch_dtype = torch.float32,
+        enable_qnn: Optional[bool] = False,
+        qnn_config: Optional[str] = None,
+        compare_results: Optional[bool] = False,
+        export_compile_only: Optional[bool] = False,
+    ):
+    
+        torch.manual_seed(42)
+        replace_transformers_quantizers()
+        model_config = {"model_name": model_name}
+        model_config["n_layer"] = n_layer
+        model_hf = load_ctc_model(model_config, torch_dtype)
+        batch_size = 1
+    
+        qeff_model = QEFFAutoModelForCTC(
+            copy.deepcopy(model_hf), pretrained_model_name_or_path=model_name, torch_dtype=torch_dtype
+        )
+        qeff_model.export()
+        qeff_model.compile(
+            batch_size=batch_size,
+            enable_qnn=enable_qnn,
+            qnn_config=qnn_config,
+            num_devices=num_devices,
+        )
+    
+        if export_compile_only:
+            return
+    
+        processor = load_hf_processor(pretrained_model_name_or_path=model_name)
+        ds = load_dataset("hf-internal-testing/librispeech_asr_dummy", "clean", split="validation")
+        data = ds[0]["audio"]["array"]
+        data = torch.tensor(data).unsqueeze(0).numpy()
+        sample_rate = ds[0]["audio"]["sampling_rate"]
+    
+        pytorch_tokens = run_ctc_pytorch_hf(model_hf, processor, data, sample_rate, torch_dtype)
+        predicted_ids = torch.argmax(pytorch_tokens, dim=-1)
+        pytorch_output = processor.batch_decode(predicted_ids)
+    
+        ort_tokens = run_ctc_ort(qeff_model.onnx_path, qeff_model.model.config, processor, data, sample_rate, torch_dtype=torch_dtype)
+        predicted_ids = torch.argmax(ort_tokens, dim=-1)
+        ort_output = processor.batch_decode(predicted_ids)
+    
+        print(pytorch_output)
+        print(ort_output)
+    
+>       assert pytorch_output == ort_output, "Tokens don't match for pytorch output and ORT output."
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Tokens don't match for pytorch output and ORT output.
+
+tests/transformers/models/audio_embedding_models/check_audio_embedding_models.py:182: AssertionError
+=========================== short test summary info ============================
+FAILED tests/transformers/models/audio_embedding_models/test_models.py::test_generate_fp16[facebook/wav2vec2-base-960h] - AssertionError: Tokens don't match for pytorch output and ORT output.
+=================== 1 failed, 3 passed in 928.31s (0:15:28) ====================

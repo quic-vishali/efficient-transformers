@@ -1,0 +1,200 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- /home/vishsent/efficient-transformers/venv/bin/python3.12
+cachedir: .pytest_cache
+rootdir: /home/vishsent/efficient-transformers
+configfile: pyproject.toml
+plugins: xdist-3.8.0, anyio-4.14.2, mock-3.15.1
+collecting ... collected 3 items
+
+tests/transformers/models/audio_models/test_speech_seq2seq_models.py::test_full_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100[optimum-intel-internal-testing/tiny-random-whisper] Fetching 12 files:   0%|          | 0/12 [00:00<?, ?it/s]Fetching 12 files: 100%|██████████| 12/12 [00:00<00:00, 36819.05it/s]
+Loading weights:   0%|          | 0/119 [00:00<?, ?it/s]Loading weights: 100%|██████████| 119/119 [00:00<00:00, 7609.50it/s]
+Fetching 10 files:   0%|          | 0/10 [00:00<?, ?it/s]Fetching 10 files: 100%|██████████| 10/10 [00:00<00:00, 30908.65it/s]
+FAILED
+tests/transformers/models/audio_models/test_speech_seq2seq_models.py::test_few_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100[optimum-intel-internal-testing/tiny-random-whisper] Fetching 12 files:   0%|          | 0/12 [00:00<?, ?it/s]Fetching 12 files: 100%|██████████| 12/12 [00:00<00:00, 35976.87it/s]
+Loading weights:   0%|          | 0/119 [00:00<?, ?it/s]Loading weights: 100%|██████████| 119/119 [00:00<00:00, 3226.53it/s]
+Fetching 10 files:   0%|          | 0/10 [00:00<?, ?it/s]Fetching 10 files: 100%|██████████| 10/10 [00:00<00:00, 139810.13it/s]
+FAILED
+tests/transformers/models/audio_models/test_speech_seq2seq_models.py::test_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100_qnn[optimum-intel-internal-testing/tiny-random-whisper] SKIPPED
+
+=================================== FAILURES ===================================
+_ test_full_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100[optimum-intel-internal-testing/tiny-random-whisper] _
+
+model_name = 'optimum-intel-internal-testing/tiny-random-whisper'
+manual_cleanup = <function qeff_models_clean_up at 0x7fa7cd469800>
+
+    @pytest.mark.full_layers
+    @pytest.mark.on_qaic
+    @pytest.mark.llm_model
+    @pytest.mark.parametrize("model_name", test_models)
+    def test_full_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100(model_name, manual_cleanup):
+        torch.manual_seed(42)
+>       check_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100(
+            model_name=model_name, compare_results=True, manual_cleanup=manual_cleanup, num_devices=4
+        )
+
+tests/transformers/models/audio_models/test_speech_seq2seq_models.py:378: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+model_name = 'optimum-intel-internal-testing/tiny-random-whisper'
+manual_cleanup = <function qeff_models_clean_up at 0x7fa7cd469800>, ctx_len = 32
+n_layer = -1, num_devices = 4, enable_qnn = False, qnn_config = None
+compare_results = True
+
+    def check_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100(
+        model_name: str,
+        manual_cleanup: callable,
+        ctx_len: int = Constants.CTX_LEN,
+        n_layer: int = -1,
+        num_devices: int = 1,
+        enable_qnn: Optional[bool] = False,
+        qnn_config: Optional[str] = None,
+        compare_results: Optional[bool] = False,
+    ):
+        """
+        Validate the PyTorch model, the PyTorch model after KV changes, ONNX model and the Cloud AI 100 model
+        ``Mandatory`` Args:
+            :model_name (str): Hugging Face Model Card name, Example: ``whisper``
+            :ctx_len (int): Maximum context length to compile the model.
+            :n_layers (int): Number of layers for the Model.
+        """
+        replace_transformers_quantizers()
+        model_config = {"model_name": model_name}
+        model_config["n_layer"] = n_layer
+    
+        model_hf, _ = load_seq2seq_model(model_config)
+    
+        processor = load_hf_processor(pretrained_model_name_or_path=model_name)
+        batch_size = 1
+    
+        ds = load_dataset("hf-internal-testing/librispeech_asr_dummy", "clean", split="validation")
+        data = ds[0]["audio"]["array"]
+        data = data.reshape(-1)
+        sample_rate = ds[0]["audio"]["sampling_rate"]
+        pytorch_hf_tokens = run_seq2seq_pytorch_hf(model_hf, processor, data, sample_rate, ctx_len)
+    
+        qeff_model = QEFFAutoModelForSpeechSeq2Seq(model_hf, pretrained_model_name_or_path=model_name)
+    
+        pytorch_kv_tokens = run_seq2seq_pytorch_with_kv(qeff_model, processor, data, sample_rate, ctx_len)
+>       assert (pytorch_hf_tokens == pytorch_kv_tokens).all(), (
+            "Tokens don't match for HF PyTorch model output and KV PyTorch model output"
+        )
+E       AssertionError: Tokens don't match for HF PyTorch model output and KV PyTorch model output
+E       assert np.False_
+E        +  where np.False_ = <built-in method all of numpy.ndarray object at 0x7fa6a56cbf90>()
+E        +    where <built-in method all of numpy.ndarray object at 0x7fa6a56cbf90> = array([50258, 42805, 42805,   576,   576,   576,  7162,  7162, 33840,\n       35281, 35281, 35281, 35281, 35281, 35281, 35281, 35281, 35281,\n       35281, 35281, 35281, 35281, 35281, 35281, 35281, 35281, 35281,\n       35431, 35431,  1539, 42046,  2268,  2268]) == array([50258, 42805, 42805,  7966,  7966, 41214, 41214, 41214, 46546,\n       46546, 46546, 46546, 46546, 46546, 46546, 46546, 46546, 46546,\n       46546, 46546, 46546, 46546, 46546, 46546, 46546, 46546, 46546,\n       46546, 46546, 46546, 46546, 46546, 46546])
+E             
+E             Full diff:
+E             - array([50258, 42805, 42805,  7966,  7966, 41214, 41214, 41214, 46546,
+E             -        46546, 46546, 46546, 46546, 46546, 46546, 46546, 46546, 46546,
+E             -        46546, 46546, 46546, 46546, 46546, 46546, 46546, 46546, 46546,
+E             -        46546, 46546, 46546, 46546, 46546, 46546])
+E             + array([50258, 42805, 42805,   576,   576,   576,  7162,  7162, 33840,
+E             +        35281, 35281, 35281, 35281, 35281, 35281, 35281, 35281, 35281,
+E             +        35281, 35281, 35281, 35281, 35281, 35281, 35281, 35281, 35281,
+E             +        35431, 35431,  1539, 42046,  2268,  2268]).all
+
+tests/transformers/models/audio_models/test_speech_seq2seq_models.py:330: AssertionError
+_ test_few_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100[optimum-intel-internal-testing/tiny-random-whisper] _
+
+model_name = 'optimum-intel-internal-testing/tiny-random-whisper'
+manual_cleanup = <function qeff_models_clean_up at 0x7fa7cd469800>
+
+    @pytest.mark.on_qaic
+    @pytest.mark.llm_model
+    @pytest.mark.parametrize("model_name", test_models)
+    def test_few_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100(model_name, manual_cleanup):
+        torch.manual_seed(42)
+>       check_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100(model_name=model_name, n_layer=4, manual_cleanup=manual_cleanup)
+
+tests/transformers/models/audio_models/test_speech_seq2seq_models.py:388: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+model_name = 'optimum-intel-internal-testing/tiny-random-whisper'
+manual_cleanup = <function qeff_models_clean_up at 0x7fa7cd469800>, ctx_len = 32
+n_layer = 4, num_devices = 1, enable_qnn = False, qnn_config = None
+compare_results = False
+
+    def check_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100(
+        model_name: str,
+        manual_cleanup: callable,
+        ctx_len: int = Constants.CTX_LEN,
+        n_layer: int = -1,
+        num_devices: int = 1,
+        enable_qnn: Optional[bool] = False,
+        qnn_config: Optional[str] = None,
+        compare_results: Optional[bool] = False,
+    ):
+        """
+        Validate the PyTorch model, the PyTorch model after KV changes, ONNX model and the Cloud AI 100 model
+        ``Mandatory`` Args:
+            :model_name (str): Hugging Face Model Card name, Example: ``whisper``
+            :ctx_len (int): Maximum context length to compile the model.
+            :n_layers (int): Number of layers for the Model.
+        """
+        replace_transformers_quantizers()
+        model_config = {"model_name": model_name}
+        model_config["n_layer"] = n_layer
+    
+        model_hf, _ = load_seq2seq_model(model_config)
+    
+        processor = load_hf_processor(pretrained_model_name_or_path=model_name)
+        batch_size = 1
+    
+        ds = load_dataset("hf-internal-testing/librispeech_asr_dummy", "clean", split="validation")
+        data = ds[0]["audio"]["array"]
+        data = data.reshape(-1)
+        sample_rate = ds[0]["audio"]["sampling_rate"]
+        pytorch_hf_tokens = run_seq2seq_pytorch_hf(model_hf, processor, data, sample_rate, ctx_len)
+    
+        qeff_model = QEFFAutoModelForSpeechSeq2Seq(model_hf, pretrained_model_name_or_path=model_name)
+    
+        pytorch_kv_tokens = run_seq2seq_pytorch_with_kv(qeff_model, processor, data, sample_rate, ctx_len)
+>       assert (pytorch_hf_tokens == pytorch_kv_tokens).all(), (
+            "Tokens don't match for HF PyTorch model output and KV PyTorch model output"
+        )
+E       AssertionError: Tokens don't match for HF PyTorch model output and KV PyTorch model output
+E       assert np.False_
+E        +  where np.False_ = <built-in method all of numpy.ndarray object at 0x7fa6a56c80f0>()
+E        +    where <built-in method all of numpy.ndarray object at 0x7fa6a56c80f0> = array([50258,  9533,  5729, 25206,  5729,  5729,  5729,  5729,  5729,\n        5729,  5729, 12193, 25206, 25206, 25206, 25206,  4590, 29243,\n       29243, 29243, 29243, 29243, 29243, 29243, 29243, 29243, 29243,\n       38920, 27341,  5729,  5729,  5729, 37687]) == array([50258,  9533,  5729, 25206, 25206, 25206, 25206, 25206, 25206,\n       25206,  3642, 11696, 11696, 11696, 11696, 11696, 11696, 11696,\n       11696, 11696, 25206, 25206, 25206, 25206, 25206, 25206, 25206,\n        3642, 11696, 11696, 11696, 11696, 11696])
+E             
+E             Full diff:
+E             - array([50258,  9533,  5729, 25206, 25206, 25206, 25206, 25206, 25206,
+E             -        25206,  3642, 11696, 11696, 11696, 11696, 11696, 11696, 11696,
+E             -        11696, 11696, 25206, 25206, 25206, 25206, 25206, 25206, 25206,
+E             -         3642, 11696, 11696, 11696, 11696, 11696])
+E             + array([50258,  9533,  5729, 25206,  5729,  5729,  5729,  5729,  5729,
+E             +         5729,  5729, 12193, 25206, 25206, 25206, 25206,  4590, 29243,
+E             +        29243, 29243, 29243, 29243, 29243, 29243, 29243, 29243, 29243,
+E             +        38920, 27341,  5729,  5729,  5729, 37687]).all
+
+tests/transformers/models/audio_models/test_speech_seq2seq_models.py:330: AssertionError
+=========================== short test summary info ============================
+FAILED tests/transformers/models/audio_models/test_speech_seq2seq_models.py::test_full_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100[optimum-intel-internal-testing/tiny-random-whisper] - AssertionError: Tokens don't match for HF PyTorch model output and KV PyTorch model output
+assert np.False_
+ +  where np.False_ = <built-in method all of numpy.ndarray object at 0x7fa6a56cbf90>()
+ +    where <built-in method all of numpy.ndarray object at 0x7fa6a56cbf90> = array([50258, 42805, 42805,   576,   576,   576,  7162,  7162, 33840,\n       35281, 35281, 35281, 35281, 35281, 35281, 35281, 35281, 35281,\n       35281, 35281, 35281, 35281, 35281, 35281, 35281, 35281, 35281,\n       35431, 35431,  1539, 42046,  2268,  2268]) == array([50258, 42805, 42805,  7966,  7966, 41214, 41214, 41214, 46546,\n       46546, 46546, 46546, 46546, 46546, 46546, 46546, 46546, 46546,\n       46546, 46546, 46546, 46546, 46546, 46546, 46546, 46546, 46546,\n       46546, 46546, 46546, 46546, 46546, 46546])
+      
+      Full diff:
+      - array([50258, 42805, 42805,  7966,  7966, 41214, 41214, 41214, 46546,
+      -        46546, 46546, 46546, 46546, 46546, 46546, 46546, 46546, 46546,
+      -        46546, 46546, 46546, 46546, 46546, 46546, 46546, 46546, 46546,
+      -        46546, 46546, 46546, 46546, 46546, 46546])
+      + array([50258, 42805, 42805,   576,   576,   576,  7162,  7162, 33840,
+      +        35281, 35281, 35281, 35281, 35281, 35281, 35281, 35281, 35281,
+      +        35281, 35281, 35281, 35281, 35281, 35281, 35281, 35281, 35281,
+      +        35431, 35431,  1539, 42046,  2268,  2268]).all
+FAILED tests/transformers/models/audio_models/test_speech_seq2seq_models.py::test_few_seq2seq_pytorch_vs_kv_vs_ort_vs_ai100[optimum-intel-internal-testing/tiny-random-whisper] - AssertionError: Tokens don't match for HF PyTorch model output and KV PyTorch model output
+assert np.False_
+ +  where np.False_ = <built-in method all of numpy.ndarray object at 0x7fa6a56c80f0>()
+ +    where <built-in method all of numpy.ndarray object at 0x7fa6a56c80f0> = array([50258,  9533,  5729, 25206,  5729,  5729,  5729,  5729,  5729,\n        5729,  5729, 12193, 25206, 25206, 25206, 25206,  4590, 29243,\n       29243, 29243, 29243, 29243, 29243, 29243, 29243, 29243, 29243,\n       38920, 27341,  5729,  5729,  5729, 37687]) == array([50258,  9533,  5729, 25206, 25206, 25206, 25206, 25206, 25206,\n       25206,  3642, 11696, 11696, 11696, 11696, 11696, 11696, 11696,\n       11696, 11696, 25206, 25206, 25206, 25206, 25206, 25206, 25206,\n        3642, 11696, 11696, 11696, 11696, 11696])
+      
+      Full diff:
+      - array([50258,  9533,  5729, 25206, 25206, 25206, 25206, 25206, 25206,
+      -        25206,  3642, 11696, 11696, 11696, 11696, 11696, 11696, 11696,
+      -        11696, 11696, 25206, 25206, 25206, 25206, 25206, 25206, 25206,
+      -         3642, 11696, 11696, 11696, 11696, 11696])
+      + array([50258,  9533,  5729, 25206,  5729,  5729,  5729,  5729,  5729,
+      +         5729,  5729, 12193, 25206, 25206, 25206, 25206,  4590, 29243,
+      +        29243, 29243, 29243, 29243, 29243, 29243, 29243, 29243, 29243,
+      +        38920, 27341,  5729,  5729,  5729, 37687]).all
+=================== 2 failed, 1 skipped in 281.16s (0:04:41) ===================

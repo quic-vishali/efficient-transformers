@@ -1,0 +1,11 @@
+
+.............Cleaned up /home/vishsent/.cache/qeff_models
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- /home/vishsent/efficient-transformers/venv/bin/python3.12
+cachedir: .pytest_cache
+rootdir: /home/vishsent/efficient-transformers
+configfile: pyproject.toml
+plugins: xdist-3.8.0, anyio-4.14.2, mock-3.15.1
+collecting ... collected 4 items
+
+tests/transformers/disaggregated/test_disagg_mode.py::test_disagg_mode_prefill_only_and_decode_only[Once upon a time-openai/gpt-oss-20b] 

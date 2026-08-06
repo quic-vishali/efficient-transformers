@@ -11,8 +11,9 @@ Test for WAN Image-to-Video pipeline
 """
 
 import time
+import copy
+import os
 from typing import Any, Callable, Dict, List, Optional, Union
-
 import numpy as np
 import pytest
 import torch
@@ -40,7 +41,7 @@ from tests.diffusers.diffusers_utils import (
 CONFIG_PATH = "tests/diffusers/wan_i2v_test_config.json"
 INITIAL_TEST_CONFIG = load_json(CONFIG_PATH)
 TEST_SEED = 42
-
+model_id = "Wan-AI/Wan2.2-I2V-A14B-Diffusers"
 
 def prepare_test_image_with_dynamic_sizing(pipeline, config):
     """
@@ -90,10 +91,8 @@ def wan_i2v_pipeline_call_with_mad_validation(
     latents: Optional[torch.Tensor] = None,
     prompt_embeds: Optional[torch.Tensor] = None,
     negative_prompt_embeds: Optional[torch.Tensor] = None,
-    output_type: Optional[str] = "np",
-    return_dict: bool = True,
+    export_compile_only: bool = False,
     attention_kwargs: Optional[Dict[str, Any]] = None,
-    callback_on_step_end: Optional[Callable[[int, int, Dict], None]] = None,
     callback_on_step_end_tensor_inputs: List[str] = ["latents"],
     max_sequence_length: int = 512,
     custom_config_path: Optional[str] = None,
@@ -114,6 +113,7 @@ def wan_i2v_pipeline_call_with_mad_validation(
     device = "cpu"
 
     # Step 1: Compile() (export and compile)
+    _t_compile_start = time.time()
     pipeline.cl, pipeline.latent_height, pipeline.latent_width, pipeline.latent_frames = (
         calculate_latent_dimensions_with_frames(
             height,
@@ -133,6 +133,10 @@ def wan_i2v_pipeline_call_with_mad_validation(
         num_frames=num_frames,
         use_onnx_subfunctions=use_onnx_subfunctions,
     )
+    print(f"\n[Timing] Export + Compile: {(time.time() - _t_compile_start) / 60:.2f}min")
+
+    if export_compile_only:
+        return
 
     # Step 2: Check inputs
     pipeline.model.check_inputs(
@@ -175,6 +179,7 @@ def wan_i2v_pipeline_call_with_mad_validation(
         batch_size = prompt_embeds.shape[0]
 
     # Step 4: Encode input prompt(using CPU text encoder for now)
+    _t_encode_start = time.time()
     prompt_embeds, negative_prompt_embeds = pipeline.model.encode_prompt(
         prompt=prompt,
         negative_prompt=negative_prompt,
@@ -207,6 +212,7 @@ def wan_i2v_pipeline_call_with_mad_validation(
         pytorch_negative_prompt_embeds = pytorch_negative_prompt_embeds.to(transformer_dtype)
 
     # Step 5: Prepare timesteps
+    print(f"\n[Timing] Text encoding (pipeline + PyTorch ref): {(time.time() - _t_encode_start) / 60:.2f}min")
     pipeline.scheduler.set_timesteps(num_inference_steps, device=device)
     timesteps = pipeline.scheduler.timesteps
 
@@ -217,6 +223,7 @@ def wan_i2v_pipeline_call_with_mad_validation(
     )
 
     # Prepare latents with image conditioning and VAE encoder MAD validation
+    _t_vae_enc_start = time.time()
     latents_outputs = pipeline.prepare_latents(
         processed_image,
         batch_size * num_videos_per_prompt,
@@ -255,6 +262,7 @@ def wan_i2v_pipeline_call_with_mad_validation(
         pytorch_image_latents[0].detach().cpu().numpy(), latents.detach().cpu().numpy(), "vae_encoder", "image encoding"
     )
     release_qpc_session(pipeline.vae_encoder)
+    print(f"\n[Timing] VAE encoding: {(time.time() - _t_vae_enc_start) / 60:.2f}min")
 
     # Step 7: Setup transformer inference session
     if pipeline.transformer.qpc_session is None:
@@ -272,6 +280,7 @@ def wan_i2v_pipeline_call_with_mad_validation(
     transformer_perf = []
 
     # Step 8: Denoising loop with transformer MAD validation
+    _t_denoise_start = time.time()
     if pipeline.model.config.boundary_ratio is not None:
         boundary_timestep = pipeline.model.config.boundary_ratio * pipeline.scheduler.config.num_train_timesteps
     else:
@@ -387,6 +396,7 @@ def wan_i2v_pipeline_call_with_mad_validation(
                 progress_bar.update()
 
     release_qpc_session(pipeline.transformer)
+    print(f"\n[Timing] Denoising loop: {(time.time() - _t_denoise_start) / 60:.2f}min")
     # Handle final conditioning for expand_timesteps mode
     if pipeline.model.config.expand_timesteps:
         latents = (1 - first_frame_mask) * condition + first_frame_mask * latents
@@ -434,6 +444,11 @@ def wan_i2v_pipeline_call_with_mad_validation(
     video_tensor = torch.from_numpy(video["sample"])
     video = pipeline.model.video_processor.postprocess_video(video_tensor)
 
+    first_frame = video[0][0]          # first video, first frame
+    arr = np.array(first_frame)
+    print("PIL frame shape:", arr.shape)   # (height, width, 3)
+    print("pixel values:\n", arr)
+
     # Build performance metrics
     perf_data = {
         "vae_encoder": vae_encoder_perf,
@@ -444,101 +459,105 @@ def wan_i2v_pipeline_call_with_mad_validation(
     # Build performance metrics for output
     perf_metrics = [ModulePerf(module_name=name, perf=perf_data[name]) for name in perf_data.keys()]
 
+    print(
+        f"\n[Timing] Phase summary:"
+        f"\n  Export + Compile : (see above)"
+        f"\n  Text encoding    : (see above)"
+        f"\n  VAE encoding     : (see above)"
+        f"\n  Denoising loop   : (see above)"
+        f"\n  VAE encoder (QAIC): {vae_encoder_perf / 60:.4f}min"
+        f"\n  Transformer steps : {sum(transformer_perf) / 60:.4f}min total ({len(transformer_perf)} steps)"
+        f"\n  VAE decoder      : {vae_decoder_perf / 60:.4f}min"
+    )
+
     return QEffPipelineOutput(
         pipeline_module=perf_metrics,
         images=video,
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def wan_i2v_pipeline():
     """Build the WAN I2V pipeline with random weights/dummy config."""
     torch.manual_seed(TEST_SEED)
     np.random.seed(TEST_SEED)
 
-    config = INITIAL_TEST_CONFIG["model_setup"]
-    model_id = "Wan-AI/Wan2.2-I2V-A14B-Diffusers"
-    pipe_cfg = WanImageToVideoPipeline.load_config(model_id)
+    _t_load_start = time.time()
+    if os.environ.get("QEFF_TEST_PROFILE", "").strip().lower() == "tiny_model":
+        config = INITIAL_TEST_CONFIG["model_setup"]
+        pipe_cfg = WanImageToVideoPipeline.load_config(model_id)
 
-    vae_config = AutoencoderKLWan.load_config(model_id, subfolder="vae")
-    transformer_config = WanTransformer3DModel.load_config(model_id, subfolder="transformer")
-    scheduler_cfg = FlowMatchEulerDiscreteScheduler.load_config(model_id, subfolder="scheduler")
+        vae_config = AutoencoderKLWan.load_config(model_id, subfolder="vae")
+        transformer_config = WanTransformer3DModel.load_config(model_id, subfolder="transformer")
+        scheduler_cfg = FlowMatchEulerDiscreteScheduler.load_config(model_id, subfolder="scheduler")
 
-    # Use a tiny VAE profile for faster smoke tests.
-    tiny_vae_config = dict(vae_config)
-    tiny_vae_config.update(
-        {
-            "num_res_blocks": 1,
-            "base_dim": 16,
-            "dim_mult": [1, 1, 2, 2],
-            "z_dim": 16,
-            "temperal_downsample": [False, True, True],
-        }
-    )
-    vae = AutoencoderKLWan.from_config(tiny_vae_config)
-    # vae = AutoencoderKLWan.from_config(vae_config)  # Uncomment to use full VAE config.
+        # Use a tiny VAE profile for faster smoke tests.
+        tiny_vae_config = dict(vae_config)
+        tiny_vae_config.update(
+            {
+                "num_res_blocks": 1,
+                "base_dim": 16,
+                "dim_mult": [1, 1, 2, 2],
+                "z_dim": 16,
+                "temperal_downsample": [False, True, True],
+            }
+        )
+        vae = AutoencoderKLWan.from_config(tiny_vae_config)
+        vae = AutoencoderKLWan.from_config(vae_config)  # Uncomment to use full VAE config.
 
-    transformer_config["num_layers"] = config["num_transformer_layers_high"]
-    transformer_high = WanTransformer3DModel.from_config(transformer_config)
-    transformer_config["num_layers"] = config["num_transformer_layers_low"]
-    transformer_low = WanTransformer3DModel.from_config(transformer_config)
+        transformer_config["num_layers"] = config["num_transformer_layers_high"]
+        transformer_high = WanTransformer3DModel.from_config(transformer_config)
+        transformer_config["num_layers"] = config["num_transformer_layers_low"]
+        transformer_low = WanTransformer3DModel.from_config(transformer_config)
 
-    text_encoder_cfg = UMT5EncoderModel.config_class.from_pretrained(model_id, subfolder="text_encoder")
-    text_encoder = UMT5EncoderModel(text_encoder_cfg)
-    tokenizer = T5TokenizerFast.from_pretrained(model_id, subfolder="tokenizer")
-    scheduler = FlowMatchEulerDiscreteScheduler.from_config(scheduler_cfg)
+        text_encoder_cfg = UMT5EncoderModel.config_class.from_pretrained(model_id, subfolder="text_encoder")
+        text_encoder = UMT5EncoderModel(text_encoder_cfg)
+        tokenizer = T5TokenizerFast.from_pretrained(model_id, subfolder="tokenizer")
+        scheduler = FlowMatchEulerDiscreteScheduler.from_config(scheduler_cfg)
 
-    pytorch_pipeline = WanImageToVideoPipeline(
-        tokenizer=tokenizer,
-        text_encoder=text_encoder,
-        vae=vae,
-        scheduler=scheduler,
-        transformer=transformer_high,
-        transformer_2=transformer_low,
-        boundary_ratio=pipe_cfg.get("boundary_ratio"),
-        expand_timesteps=pipe_cfg.get("expand_timesteps", False),
-    )
-    vae.eval()
-    transformer_high.eval()
-    transformer_low.eval()
-    text_encoder.eval()
+        pytorch_pipeline = WanImageToVideoPipeline(
+            tokenizer=tokenizer,
+            text_encoder=text_encoder,
+            vae=vae,
+            scheduler=scheduler,
+            transformer=transformer_high,
+            transformer_2=transformer_low,
+            boundary_ratio=pipe_cfg.get("boundary_ratio"),
+            expand_timesteps=pipe_cfg.get("expand_timesteps", False),
+        )
+        vae.eval()
+        transformer_high.eval()
+        transformer_low.eval()
+        text_encoder.eval()
 
-    import copy
+        pipeline = QEffWanImageToVideoPipeline(copy.deepcopy(pytorch_pipeline))
+        shared_vae = pipeline.model.vae
+        pipeline.vae_encoder.model = copy.deepcopy(shared_vae)
+        pipeline.vae_decoder.model = copy.deepcopy(shared_vae)
+    else:
+        pytorch_pipeline = WanImageToVideoPipeline.from_pretrained(model_id, dtype=torch.float32)
+        pipeline = QEffWanImageToVideoPipeline(copy.deepcopy(pytorch_pipeline), pretrained_model_name_or_path=model_id)
+        shared_vae = pipeline.model.vae
+        pipeline.vae_encoder.model = copy.deepcopy(shared_vae)
+        pipeline.vae_decoder.model = copy.deepcopy(shared_vae)
 
-    pipeline = QEffWanImageToVideoPipeline(copy.deepcopy(pytorch_pipeline))
-    shared_vae = pipeline.model.vae
-    pipeline.vae_encoder.model = copy.deepcopy(shared_vae)
-    pipeline.vae_decoder.model = copy.deepcopy(shared_vae)
-
+    print(f"\n[Timing] Model loading: {(time.time() - _t_load_start) / 60:.2f}min")
     return pipeline, pytorch_pipeline
 
 
-@pytest.mark.diffusion_models
-@pytest.mark.on_qaic
-@pytest.mark.wan_i2v
-def test_wan_i2v_pipeline(wan_i2v_pipeline):
-    """
-    Comprehensive WAN I2V pipeline test that focuses on all module validation:
-    - Dynamic image sizing with aspect ratio preservation
-    - 2 transformer layers total (1 high + 1 low)
-    - MAD validation for VAE encoder, transformer modules, and VAE decoder
-    - Functional video generation test with image conditioning
-    - Export/compilation checks for all modules
-    - Returns QEffPipelineOutput with performance metrics
-    """
-    pipeline, pytorch_pipeline = wan_i2v_pipeline
-    config = INITIAL_TEST_CONFIG
-
-    # Prepare test image with dynamic sizing
+def _run_wan_i2v_pipeline_test_case(
+    wan_i2v_pipeline_data,
+    config,
+    test_label: str,
+    export_compile_only: bool = False,
+):
+    pipeline, pytorch_pipeline = wan_i2v_pipeline_data
     test_image, height, width = prepare_test_image_with_dynamic_sizing(pipeline, config)
 
-    # Print test header
     DiffusersTestUtils.print_test_header(
-        f"WAN I2V PIPELINE TEST - {width}x{height} Resolution, {config['model_setup']['num_frames']} Frames, 2 Layers Total",
-        config,
+        test_label
     )
 
-    # Test parameters
     test_prompt = config["pipeline_params"]["test_prompt"]
     num_inference_steps = config["pipeline_params"]["num_inference_steps"]
     guidance_scale = config["pipeline_params"]["guidance_scale"]
@@ -546,12 +565,10 @@ def test_wan_i2v_pipeline(wan_i2v_pipeline):
     max_sequence_length = config["pipeline_params"]["max_sequence_length"]
     num_frames = config["model_setup"]["num_frames"]
 
-    # Generate with MAD validation
     generator = torch.Generator(device="cpu").manual_seed(TEST_SEED)
     start_time = time.time()
 
     try:
-        # Run the I2V pipeline with integrated MAD validation (all 3 modules)
         result = wan_i2v_pipeline_call_with_mad_validation(
             pipeline,
             pytorch_pipeline,
@@ -569,12 +586,41 @@ def test_wan_i2v_pipeline(wan_i2v_pipeline):
             mad_tolerances=config["mad_validation"]["tolerances"],
             use_onnx_subfunctions=config["pipeline_params"]["use_onnx_subfunctions"],
             parallel_compile=True,
-            return_dict=True,
+            export_compile_only=export_compile_only,
         )
 
         execution_time = time.time() - start_time
 
-        # Validate video generation
+        if config["validation_checks"]["onnx_export"]:
+            print("\n ONNX Export Validation:")
+            if hasattr(pipeline.vae_encoder, "onnx_path") and pipeline.vae_encoder.onnx_path:
+                DiffusersTestUtils.check_file_exists(str(pipeline.vae_encoder.onnx_path), "VAE encoder ONNX")
+            if hasattr(pipeline.transformer, "onnx_path") and pipeline.transformer.onnx_path:
+                DiffusersTestUtils.check_file_exists(str(pipeline.transformer.onnx_path), "transformer ONNX")
+            if hasattr(pipeline.vae_decoder, "onnx_path") and pipeline.vae_decoder.onnx_path:
+                DiffusersTestUtils.check_file_exists(str(pipeline.vae_decoder.onnx_path), "VAE decoder ONNX")
+
+        if config["validation_checks"]["compilation"]:
+            print("\n Compilation Validation:")
+            if hasattr(pipeline.vae_encoder, "qpc_path") and pipeline.vae_encoder.qpc_path:
+                DiffusersTestUtils.check_file_exists(str(pipeline.vae_encoder.qpc_path), "VAE encoder QPC")
+            if hasattr(pipeline.transformer, "qpc_path") and pipeline.transformer.qpc_path:
+                DiffusersTestUtils.check_file_exists(str(pipeline.transformer.qpc_path), "transformer QPC")
+            if hasattr(pipeline.vae_decoder, "qpc_path") and pipeline.vae_decoder.qpc_path:
+                DiffusersTestUtils.check_file_exists(str(pipeline.vae_decoder.qpc_path), "VAE decoder QPC")
+
+        DiffusersTestUtils.print_artifact_sizes({
+            "VAE encoder ONNX": str(pipeline.vae_encoder.onnx_path) if pipeline.vae_encoder.onnx_path else None,
+            "VAE encoder QPC":  str(pipeline.vae_encoder.qpc_path) if pipeline.vae_encoder.qpc_path else None,
+            "transformer ONNX": str(pipeline.transformer.onnx_path) if pipeline.transformer.onnx_path else None,
+            "transformer QPC":  str(pipeline.transformer.qpc_path) if pipeline.transformer.qpc_path else None,
+            "VAE decoder ONNX": str(pipeline.vae_decoder.onnx_path) if pipeline.vae_decoder.onnx_path else None,
+            "VAE decoder QPC":  str(pipeline.vae_decoder.qpc_path) if pipeline.vae_decoder.qpc_path else None,
+        })
+
+        if export_compile_only:
+            return
+
         if config["pipeline_params"]["validate_gen_video"]:
             assert result is not None, "Pipeline returned None"
             assert hasattr(result, "images"), "Result missing 'images' attribute"
@@ -583,11 +629,9 @@ def test_wan_i2v_pipeline(wan_i2v_pipeline):
             generated_video = result.images[0]
             assert len(generated_video) == num_frames, f"Expected {num_frames} frames, got {len(generated_video)}"
 
-            # Validate first frame properties
             first_frame = generated_video[0]
             expected_size = (width, height)
 
-            # Convert numpy array to PIL Image if needed for validation
             if isinstance(first_frame, np.ndarray):
                 from PIL import Image
 
@@ -597,7 +641,6 @@ def test_wan_i2v_pipeline(wan_i2v_pipeline):
                     first_frame = first_frame.transpose(1, 2, 0)
                 first_frame = Image.fromarray(first_frame)
 
-            # Validate video frame properties
             frame_validation = DiffusersTestUtils.validate_image_generation(
                 first_frame, expected_size, config["pipeline_params"]["min_video_variance"]
             )
@@ -610,33 +653,11 @@ def test_wan_i2v_pipeline(wan_i2v_pipeline):
             print(f"   - Mean pixel value: {frame_validation['mean_pixel_value']:.2f}")
             print("   - Image conditioning: ✓")
 
-            # Save result as video
             frames = result.images[0]
             export_to_video(frames, "test_wan_i2v_output.mp4", fps=16)
             print("\n VIDEO SAVED: test_wan_i2v_output.mp4")
             print(result)
 
-        if config["validation_checks"]["onnx_export"]:
-            # Check if all ONNX files exist
-            print("\n ONNX Export Validation:")
-            if hasattr(pipeline.vae_encoder, "onnx_path") and pipeline.vae_encoder.onnx_path:
-                DiffusersTestUtils.check_file_exists(str(pipeline.vae_encoder.onnx_path), "VAE encoder ONNX")
-            if hasattr(pipeline.transformer, "onnx_path") and pipeline.transformer.onnx_path:
-                DiffusersTestUtils.check_file_exists(str(pipeline.transformer.onnx_path), "transformer ONNX")
-            if hasattr(pipeline.vae_decoder, "onnx_path") and pipeline.vae_decoder.onnx_path:
-                DiffusersTestUtils.check_file_exists(str(pipeline.vae_decoder.onnx_path), "VAE decoder ONNX")
-
-        if config["validation_checks"]["compilation"]:
-            # Check if all QPC files exist
-            print("\n Compilation Validation:")
-            if hasattr(pipeline.vae_encoder, "qpc_path") and pipeline.vae_encoder.qpc_path:
-                DiffusersTestUtils.check_file_exists(str(pipeline.vae_encoder.qpc_path), "VAE encoder QPC")
-            if hasattr(pipeline.transformer, "qpc_path") and pipeline.transformer.qpc_path:
-                DiffusersTestUtils.check_file_exists(str(pipeline.transformer.qpc_path), "transformer QPC")
-            if hasattr(pipeline.vae_decoder, "qpc_path") and pipeline.vae_decoder.qpc_path:
-                DiffusersTestUtils.check_file_exists(str(pipeline.vae_decoder.qpc_path), "VAE decoder QPC")
-
-        # Print test summary
         print(f"\nDynamic sizing: {width}x{height} (preserved aspect ratio)")
         print(f"Total execution time: {execution_time:.4f}s")
         print(" WAN I2V TRANSFORMER TEST COMPLETED SUCCESSFULLY")
@@ -648,7 +669,28 @@ def test_wan_i2v_pipeline(wan_i2v_pipeline):
         release_pipeline_qpc_sessions(pipeline, ["vae_encoder", "transformer", "vae_decoder"])
 
 
+@pytest.mark.diffusion_models
+@pytest.mark.non_qaic
+@pytest.mark.wan_i2v
+def test_export_compile(wan_i2v_pipeline):
+    _run_wan_i2v_pipeline_test_case(
+        wan_i2v_pipeline,
+        INITIAL_TEST_CONFIG,
+        "WAN I2V PIPELINE EXPORT COMPILE TEST",
+        export_compile_only=True,
+    )
+
+
+@pytest.mark.diffusion_models
+@pytest.mark.on_qaic
+@pytest.mark.wan_i2v
+def test_generate(wan_i2v_pipeline):
+    _run_wan_i2v_pipeline_test_case(
+        wan_i2v_pipeline,
+        INITIAL_TEST_CONFIG,
+        "WAN I2V PIPELINE TEST",
+    )
+
+
 if __name__ == "__main__":
-    # This allows running the test file directly for debugging
     pytest.main([__file__, "-v", "-s", "-m", "wan_i2v"])
-# pytest tests/diffusers/test_wan_i2v.py -m wan_i2v -v -s --tb=short

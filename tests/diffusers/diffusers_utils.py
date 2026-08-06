@@ -96,7 +96,34 @@ class DiffusersTestUtils:
         return exists
 
     @staticmethod
-    def print_test_header(title: str, config: Dict[str, Any]) -> None:
+    def print_artifact_sizes(artifacts: dict) -> None:
+        """
+        Print sizes of ONNX files and QPC directories.
+
+        Args:
+            artifacts: dict mapping label -> path string, e.g.
+                       {"text_encoder ONNX": "/path/to/model.onnx",
+                        "text_encoder QPC":  "/path/to/qpc"}
+        """
+        print("\n Artifact Sizes:")
+        for label, path in artifacts.items():
+            if not path or not os.path.exists(path):
+                print(f"  {label}: path not found ({path})")
+                continue
+            if os.path.isfile(path):
+                size_mb = os.path.getsize(path) / (1024 ** 2)
+                print(f"  {label}: {size_mb:.1f} MB")
+            elif os.path.isdir(path):
+                total = sum(
+                    os.path.getsize(os.path.join(root, f))
+                    for root, _, files in os.walk(path)
+                    for f in files
+                )
+                size_mb = total / (1024 ** 2)
+                print(f"  {label}: {size_mb:.1f} MB")
+
+    @staticmethod
+    def print_test_header(title: str, config: Dict[str, Any] = None) -> None:
         """
         Print formatted test header with configuration details.
 
@@ -108,18 +135,19 @@ class DiffusersTestUtils:
         print(f"{title}")
         print(f"{'=' * 80}")
 
-        if "model_setup" in config:
-            setup = config["model_setup"]
-            for k, v in setup.items():
-                print(f"{k} : {v}")
+        if config is not None:
+            if "model_setup" in config:
+                setup = config["model_setup"]
+                for k, v in setup.items():
+                    print(f"{k} : {v}")
 
-        if "functional_testing" in config:
-            func = config["functional_testing"]
-            print(f"Test Prompt: {func.get('test_prompt', 'N/A')}")
-            print(f"Inference Steps: {func.get('num_inference_steps', 'N/A')}")
-            print(f"Guidance Scale: {func.get('guidance_scale', 'N/A')}")
+            if "functional_testing" in config:
+                func = config["functional_testing"]
+                print(f"Test Prompt: {func.get('test_prompt', 'N/A')}")
+                print(f"Inference Steps: {func.get('num_inference_steps', 'N/A')}")
+                print(f"Guidance Scale: {func.get('guidance_scale', 'N/A')}")
 
-        print(f"{'=' * 80}")
+            print(f"{'=' * 80}")
 
 
 class MADValidator:

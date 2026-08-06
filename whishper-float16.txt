@@ -1,0 +1,177 @@
+/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/onnxscript/converter.py:816: FutureWarning: 'onnxscript.values.Op.param_schemas' is deprecated in version 0.1 and will be removed in the future. Please use '.op_signature' instead.
+  param_schemas = callee.param_schemas()
+Loading Whisper model: openai/whisper-tiny
+Loading audio sample from dataset...
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████| 167/167 [00:00<00:00, 337.44it/s]
+`use_return_dict` is deprecated! Use `return_dict` instead!
+ERROR - QEfficient.base.modeling_qeff - ONNX export or transforms failed: Input type (float) and bias type (c10::Half) should be the same  (modeling_qeff.py:485)
+Traceback (most recent call last):
+  File "/home/vishsent/efficient-transformers/examples/audio/speech_to_text.py", line 67, in <module>
+    main()
+  File "/home/vishsent/efficient-transformers/examples/audio/speech_to_text.py", line 54, in main
+    qeff_model.compile(num_cores=args.num_cores)
+  File "/home/vishsent/efficient-transformers/QEfficient/transformers/models/modeling_auto.py", line 4902, in compile
+    return self._compile(
+           ^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/QEfficient/utils/_utils.py", line 792, in wrapper
+    result = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/QEfficient/base/modeling_qeff.py", line 898, in _compile
+    onnx_path = self.get_onnx_path(
+                ^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/QEfficient/base/modeling_qeff.py", line 549, in get_onnx_path
+    self.export(**kwargs)
+  File "/home/vishsent/efficient-transformers/QEfficient/transformers/models/modeling_auto.py", line 4778, in export
+    return self._export(
+           ^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/QEfficient/utils/export_utils.py", line 62, in wrapper
+    onnx_path = func(self, *args, **kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/QEfficient/base/modeling_qeff.py", line 486, in _export
+    raise e
+  File "/home/vishsent/efficient-transformers/QEfficient/base/modeling_qeff.py", line 438, in _export
+    torch.onnx.export(
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/onnx/__init__.py", line 396, in export
+    export(
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/onnx/utils.py", line 529, in export
+    _export(
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/onnx/utils.py", line 1467, in _export
+    graph, params_dict, torch_out = _model_to_graph(
+                                    ^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/onnx/utils.py", line 1087, in _model_to_graph
+    graph, params, torch_out, module = _create_jit_graph(model, args)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/onnx/utils.py", line 971, in _create_jit_graph
+    graph, torch_out = _trace_and_get_graph_from_model(model, args)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/onnx/utils.py", line 878, in _trace_and_get_graph_from_model
+    trace_graph, torch_out, inputs_states = torch.jit._get_trace_graph(
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/jit/_trace.py", line 1501, in _get_trace_graph
+    outs = ONNXTracedModule(
+           ^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1751, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1762, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/jit/_trace.py", line 138, in forward
+    graph, _out = torch._C._create_graph_by_tracing(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/jit/_trace.py", line 129, in wrapper
+    outs.append(self.inner(*trace_inputs))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1751, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1762, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1741, in _slow_forward
+    result = self.forward(*input, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/QEfficient/transformers/models/whisper/modeling_whisper.py", line 749, in forward
+    outputs = self.model(
+              ^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1751, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1762, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1741, in _slow_forward
+    result = self.forward(*input, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/QEfficient/transformers/models/whisper/modeling_whisper.py", line 665, in forward
+    encoder_outputs = self.encoder(
+                      ^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1751, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1762, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1741, in _slow_forward
+    result = self.forward(*input, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/QEfficient/transformers/models/whisper/modeling_whisper.py", line 328, in forward
+    inputs_embeds = nn.functional.gelu(self.conv1(input_features))
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1751, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1762, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1741, in _slow_forward
+    result = self.forward(*input, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/nn/modules/conv.py", line 375, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/torch/nn/modules/conv.py", line 370, in _conv_forward
+    return F.conv1d(
+           ^^^^^^^^^
+RuntimeError: Input type (float) and bias type (c10::Half) should be the same
+((venv) ) vishsent@gb-blr-31:~/efficient-transformers$ python /home/vishsent/efficient-transformers/examples/audio/speech_to_text.py
+/home/vishsent/efficient-transformers/venv/lib/python3.12/site-packages/onnxscript/converter.py:816: FutureWarning: 'onnxscript.values.Op.param_schemas' is deprecated in version 0.1 and will be removed in the future. Please use '.op_signature' instead.
+  param_schemas = callee.param_schemas()
+Loading Whisper model: openai/whisper-tiny
+Loading audio sample from dataset...
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████| 167/167 [00:00<00:00, 6108.44it/s]
+`use_return_dict` is deprecated! Use `return_dict` instead!
+[Warning]: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+[Warning]: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+We detected that you are passing `past_key_values` as a tuple of tuples. This is deprecated and will be removed in v4.47. Please convert your cache or use an appropriate `Cache` class (https://huggingface.co/docs/transformers/kv_cache#legacy-cache-format)
+[Warning]: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+[Warning]: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+[Warning]: torch.tensor results are registered as constants in the trace. You can safely ignore this warning if you use this function to create tensors out of constant variables that would be the same every time you call this function. In any other case, this might cause the trace to be incorrect.
+[Warning]: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+[Warning]: Converting a tensor to a Python boolean might cause the trace to be incorrect. We can't record the data flow of Python values, so this value will be treated as a constant in the future. This means that the trace might not generalize to other inputs!
+[Warning]: torch.tensor results are registered as constants in the trace. You can safely ignore this warning if you use this function to create tensors out of constant variables that would be the same every time you call this function. In any other case, this might cause the trace to be incorrect.
+[Warning]: torch.tensor results are registered as constants in the trace. You can safely ignore this warning if you use this function to create tensors out of constant variables that would be the same every time you call this function. In any other case, this might cause the trace to be incorrect.
+[Warning]: torch.tensor results are registered as constants in the trace. You can safely ignore this warning if you use this function to create tensors out of constant variables that would be the same every time you call this function. In any other case, this might cause the trace to be incorrect.
+[Warning]: ONNX Preprocess - Removing mutation from node aten::index_put_ on block input: '2'. This changes graph semantics. (Triggered internally at /pytorch/torch/csrc/jit/passes/onnx/remove_inplace_ops_for_onnx.cpp:348.)
+[Warning]: ONNX Preprocess - Removing mutation from node aten::index_put_ on block input: '3'. This changes graph semantics. (Triggered internally at /pytorch/torch/csrc/jit/passes/onnx/remove_inplace_ops_for_onnx.cpp:348.)
+[Warning]: ONNX Preprocess - Removing mutation from node aten::index_put_ on block input: '6'. This changes graph semantics. (Triggered internally at /pytorch/torch/csrc/jit/passes/onnx/remove_inplace_ops_for_onnx.cpp:348.)
+[Warning]: ONNX Preprocess - Removing mutation from node aten::index_put_ on block input: '7'. This changes graph semantics. (Triggered internally at /pytorch/torch/csrc/jit/passes/onnx/remove_inplace_ops_for_onnx.cpp:348.)
+[Warning]: ONNX Preprocess - Removing mutation from node aten::index_put_ on block input: '10'. This changes graph semantics. (Triggered internally at /pytorch/torch/csrc/jit/passes/onnx/remove_inplace_ops_for_onnx.cpp:348.)
+[Warning]: ONNX Preprocess - Removing mutation from node aten::index_put_ on block input: '11'. This changes graph semantics. (Triggered internally at /pytorch/torch/csrc/jit/passes/onnx/remove_inplace_ops_for_onnx.cpp:348.)
+[Warning]: ONNX Preprocess - Removing mutation from node aten::index_put_ on block input: '14'. This changes graph semantics. (Triggered internally at /pytorch/torch/csrc/jit/passes/onnx/remove_inplace_ops_for_onnx.cpp:348.)
+[Warning]: ONNX Preprocess - Removing mutation from node aten::index_put_ on block input: '15'. This changes graph semantics. (Triggered internally at /pytorch/torch/csrc/jit/passes/onnx/remove_inplace_ops_for_onnx.cpp:348.)
+[Warning]: ONNX export mode is set to TrainingMode.EVAL, but operator 'dropout' is set to train=True. Exporting with train=True.
+Traceback (most recent call last):
+  File "/home/vishsent/efficient-transformers/QEfficient/base/modeling_qeff.py", line 1086, in _compile
+    subprocess.run(command, capture_output=True, check=True)
+  File "/usr/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/opt/qti-aic/exec/qaic-compile', '-aic-hw', '-aic-hw-version=ai100', '-m=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-f520444066360849/WhisperForConditionalGeneration.onnx', '-retained-state', '-convert-to-fp16', '-aic-num-cores=16', '-network-specialization-config=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-f520444066360849/qpc-d9819c81e4648ccf/specializations.json', '-custom-IO-list-file=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-f520444066360849/qpc-d9819c81e4648ccf/custom_io.yaml', '-aic-binary-dir=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-f520444066360849/qpc-d9819c81e4648ccf/qpc']' returned non-zero exit status 1.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/vishsent/efficient-transformers/examples/audio/speech_to_text.py", line 67, in <module>
+    main()
+  File "/home/vishsent/efficient-transformers/examples/audio/speech_to_text.py", line 54, in main
+    qeff_model.compile(num_cores=args.num_cores)
+  File "/home/vishsent/efficient-transformers/QEfficient/transformers/models/modeling_auto.py", line 4902, in compile
+    return self._compile(
+           ^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/QEfficient/utils/_utils.py", line 792, in wrapper
+    result = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vishsent/efficient-transformers/QEfficient/base/modeling_qeff.py", line 1088, in _compile
+    raise RuntimeError(
+RuntimeError: Compilation failed!
+Compiler command: ['/opt/qti-aic/exec/qaic-compile', '-aic-hw', '-aic-hw-version=ai100', '-m=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-f520444066360849/WhisperForConditionalGeneration.onnx', '-retained-state', '-convert-to-fp16', '-aic-num-cores=16', '-network-specialization-config=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-f520444066360849/qpc-d9819c81e4648ccf/specializations.json', '-custom-IO-list-file=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-f520444066360849/qpc-d9819c81e4648ccf/custom_io.yaml', '-aic-binary-dir=/home/vishsent/.cache/qeff_models/WhisperForConditionalGeneration/WhisperForConditionalGeneration-f520444066360849/qpc-d9819c81e4648ccf/qpc']
+Compiler exitcode: 1
+Compiler stderr:
+QAIC_ERROR:
+Error code: MODEL_LOADER_UNSUPPORTED_DATATYPE
+Error message: Unhandled ElemKind in Clip operation
+Unable to AddNodesToGraphFromModel
