@@ -26,6 +26,8 @@ LATEST_MODELS = {
     "Qwen/Qwen3-30B-A3B-Instruct-2507",
     "openai/gpt-oss-20b",
     "meta-llama/Llama-3.3-70B-Instruct",
+    "google/gemma-2-9b",
+    "google/gemma-2b"
 }
 
 
