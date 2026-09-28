@@ -222,7 +222,7 @@ pipeline {
         string(name: 'GITHUB_SSH_CREDENTIALS_ID', defaultValue: 'github-ssh-key', description: 'Jenkins "SSH Username with private key" credential ID for GitHub Enterprise (github.qualcomm.com) access to clone qserve. Required unless SKIP_INSTALL=true.')
         string(name: 'QEFF_BRANCH', defaultValue: 'main', description: 'efficient-transformers branch consumed by vllm-qaic scripts/install.sh aot')
         password(name: 'HF_TOKEN', defaultValue: '', description: 'HuggingFace token for gated models. Optional - leave empty to reuse the HF_TOKEN already exported in the Jenkins agent host environment.')
-        string(name: 'HF_HOME', defaultValue: '', description: 'HuggingFace cache directory. Empty = ${HOME}/.cache/huggingface')
+        string(name: 'HF_HOME', defaultValue: '', description: 'Host HuggingFace cache directory. Empty = ${HOME}/.cache/huggingface')
         string(name: 'DEVICE_GROUP_DEFAULT', defaultValue: '', description: 'Device group for default LLM configs (e.g., "0,1,2,3"). Empty = use CSV values.')
         string(name: 'DEVICE_GROUP_CCL', defaultValue: '', description: 'Device group for CCL LLM configs. Empty = use CSV values.')
         string(name: 'DEVICE_GROUP_BLOCKING', defaultValue: '', description: 'Device group for blocking LLM configs. Empty = use CSV values.')
@@ -262,8 +262,8 @@ pipeline {
 
     environment {
         // All paths below are inside the container (bind-mounted at /efficient-transformers
-        // by the Start Container stage), except VLLM_LLM_RESULTS_DIR/HF_HOME which live under
-        // the host's ${HOME}/.cache and are bind-mounted into the container at the same path.
+        // by the Start Container stage), except VLLM_LLM_RESULTS_DIR and the configurable
+        // host HF cache. Results retain the host-visible path for Jenkins post-processing.
         BENCH_ROOT = "/efficient-transformers/vllm_llm_workspace"
         VENV_DIR = "/efficient-transformers/vllm_llm_workspace/venv"
         VLLM_QAIC_DIR = "/efficient-transformers/vllm_llm_workspace/vllm-qaic"
@@ -275,7 +275,10 @@ pipeline {
         AUDIO_BENCHMARK_SCRIPT = "/efficient-transformers/tests/nightly_pipeline/vllm_llm_benchmark/vllm_audio_benchmark.py"
         VLM_BENCHMARK_SCRIPT = "/efficient-transformers/tests/nightly_pipeline/vllm_llm_benchmark/vllm_vlm_benchmark.py"
         QEFF_HOME = "/efficient-transformers/vllm_llm_workspace/qeff_models"
-        HF_HOME = "${params.HF_HOME ?: '${HOME}/.cache/huggingface'}"
+        // HF_HOME is the path used inside the container. HF_HOME_HOST is the optional
+        // host path supplied by Jenkins and is resolved in Start Container.
+        HF_HOME = '/root/.cache/huggingface'
+        HF_HOME_HOST = "${params.HF_HOME}"
         // Intentionally NOT named HF_TOKEN: declaring HF_TOKEN itself here would force every
         // step's shell env to this value (even ''), shadowing any HF_TOKEN already exported in
         // the Jenkins agent's host environment. Keeping it under a different name lets the
@@ -335,7 +338,8 @@ pipeline {
                     set -euo pipefail
                     . ~/.bashrc
                     sudo docker rm -f ${BUILD_TAG} >/dev/null 2>&1 || true
-                    mkdir -p "${HOME}/.cache/huggingface" "${HOME}/.cache/vllm_llm_results"
+                    HF_HOST_DIR="${HF_HOME_HOST:-${HOME}/.cache/huggingface}"
+                    mkdir -p "${HF_HOST_DIR}" "${HOME}/.cache/vllm_llm_results"
                     # HF_TOKEN_PARAM comes from the HF_TOKEN Jenkins param (may be empty). When
                     # empty, fall back to HF_TOKEN already exported in this agent's host shell env.
                     RESOLVED_HF_TOKEN="${HF_TOKEN_PARAM:-${HF_TOKEN:-}}"
@@ -367,7 +371,8 @@ pipeline {
                         -e SERVER_READY_TIMEOUT_MINUTES="${SERVER_READY_TIMEOUT_MINUTES}" \
                         -e QSERVE_BENCHMARK_SCRIPT="${QSERVE_BENCHMARK_SCRIPT:-}" \
                         -v ./:/efficient-transformers \
-                        -v ${HOME}/.cache:${HOME}/.cache \
+                        -v "${HOME}/.cache:${HOME}/.cache" \
+                        -v "${HF_HOST_DIR}:${HF_HOME}" \
                         ${DOCKER_LATEST}:master_latest
                 '''
             }
