@@ -688,12 +688,18 @@ def build_client_command(row: dict, args) -> list[str]:
         add_bool_arg(cmd, "--save-result", row, "save_result")
     elif client_type == "vllm_bench":
         base_url = value(row, "base_url") or f"http://{host}:{port}"
+        # ``vllm-embed`` is the legacy backend name used by the QServe
+        # benchmark script.  ``vllm bench serve`` uses the upstream backend
+        # name ``openai-embeddings`` for the same /v1/embeddings API.
+        vllm_bench_backend = (
+            "openai-embeddings" if backend == "vllm-embed" else backend
+        )
         cmd = [
             "vllm",
             "bench",
             "serve",
             "--backend",
-            backend,
+            vllm_bench_backend,
         ]
         if endpoint:
             cmd.extend(["--endpoint", endpoint])
