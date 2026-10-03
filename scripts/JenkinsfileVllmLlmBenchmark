@@ -216,7 +216,7 @@ pipeline {
         string(name: 'VLLM_QAIC_BRANCH', defaultValue: 'main', description: 'vllm-qaic branch/tag to install')
         string(name: 'QAIC_DISAGG_REPO', defaultValue: 'ssh://review.qualcomm.com:29418/qranium/qaic-disagg', description: 'qaic-disagg Gerrit SSH clone URL (internal repo, requires GERRIT_SSH_CREDENTIALS_ID)')
         string(name: 'QAIC_DISAGG_BRANCH', defaultValue: 'master', description: 'qaic-disagg branch/tag to install')
-        string(name: 'QSERVE_REPO', defaultValue: 'ssh://git@github.qualcomm.com/abukhoye/qserve.git', description: 'qserve git clone URL (internal repo, requires GITHUB_SSH_CREDENTIALS_ID)')
+        string(name: 'QSERVE_REPO', defaultValue: 'ssh://git@github.qualcomm.com/vishsent/qserve.git', description: 'qserve git clone URL (internal repo, requires GITHUB_SSH_CREDENTIALS_ID)')
         string(name: 'QSERVE_BRANCH', defaultValue: 'main', description: 'qserve branch/tag to install')
         string(name: 'GERRIT_SSH_CREDENTIALS_ID', defaultValue: 'gerrit-ssh-key', description: 'Jenkins "SSH Username with private key" credential ID for Gerrit (review.qualcomm.com:29418) access to clone qaic-disagg. Required unless SKIP_INSTALL=true.')
         string(name: 'GITHUB_SSH_CREDENTIALS_ID', defaultValue: 'github-ssh-key', description: 'Jenkins "SSH Username with private key" credential ID for GitHub Enterprise (github.qualcomm.com) access to clone qserve. Required unless SKIP_INSTALL=true.')
@@ -257,7 +257,7 @@ pipeline {
         booleanParam(name: 'FAIL_FAST', defaultValue: false, description: 'Stop within a config after the first failing row')
         booleanParam(name: 'LATEST_MODELS_ONLY', defaultValue: true, description: 'Restrict runs to the curated LATEST_MODELS list (models >70B are always skipped regardless of this flag)')
         booleanParam(name: 'CLEAN_WORKSPACE_AFTER_RUN', defaultValue: false, description: 'Delete the Jenkins workspace after the build finishes (does not affect the persistent HF/results caches under ${HOME}/.cache)')
-        string(name: 'EMAIL_RECIPIENTS', defaultValue: 'abukhoye@qti.qualcomm.com', description: 'Email recipients for benchmark report (comma-separated). Empty = no email sent.')
+        string(name: 'EMAIL_RECIPIENTS', defaultValue: 'vishsent@qti.qualcomm.com', description: 'Email recipients for benchmark report (comma-separated). Empty = no email sent.')
     }
 
     environment {
