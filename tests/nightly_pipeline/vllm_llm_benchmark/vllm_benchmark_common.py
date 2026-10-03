@@ -1671,7 +1671,7 @@ def build_arg_parser(description: str) -> argparse.ArgumentParser:
     parser.add_argument(
         "--server-ready-timeout-s",
         type=int,
-        default=21600,
+        default=0,
         help="Seconds to wait for server readiness; 0 waits forever.",
     )
     parser.add_argument(
