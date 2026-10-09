@@ -28,12 +28,12 @@ except ImportError:
 COMPARISON_THRESHOLD_PERCENT = 5.0
 ROW_KEY_FIELDS = ("model", "model_category", "config_name", "config_summary")
 COMPARISON_FIELDS = (
-    ("qpc_size_mb", "QPC total size"),
-    ("export_compile_time_s", "Export/compile time"),
-    ("prefill_mdp_export_compile_time_s", "Prefill MDP export/compile time"),
-    ("prefill_export_compile_time_s", "Prefill export/compile time"),
-    ("decode_export_compile_time_s", "Decode export/compile time"),
-    ("encode_export_compile_time_s", "Encode export/compile time"),
+    ("qpc_size_mb", "QPC total size (MB)"),
+    ("export_compile_time_s", "Export/compile time (s)"),
+    ("prefill_mdp_export_compile_time_s", "Prefill MDP export/compile time (s)"),
+    ("prefill_export_compile_time_s", "Prefill export/compile time (s)"),
+    ("decode_export_compile_time_s", "Decode export/compile time (s)"),
+    ("encode_export_compile_time_s", "Encode export/compile time (s)"),
 )
 PREVIOUS_VALUE_FIELDS = tuple(f"previous_{field}" for field, _ in COMPARISON_FIELDS)
 HTML_ENVIRONMENT_FIELDS = {
@@ -670,21 +670,21 @@ def generate_html_report(
                 <table style="width: 100%; border-collapse: collapse;">
                     <tr>
                         <td style="width: 50%; padding: 10px; background-color: #f9f9f9; border-left: 4px solid #667eea; border-bottom: 1px solid #eee;">
-                            <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600;">vLLM QAIC Branch</div>
+                            <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600;">vLLM QAIC Branch / Commit</div>
                             <div style="font-size: 13px; font-weight: 500; color: #333; font-family: 'Courier New', monospace; word-break: break-all;">{env_info["vllm_qaic_branch"]}</div>
                         </td>
                         <td style="width: 50%; padding: 10px; background-color: #f9f9f9; border-left: 4px solid #667eea; border-bottom: 1px solid #eee;">
-                            <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600;">QAIC Disagg Branch</div>
+                            <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600;">QAIC Disagg Branch / Commit</div>
                             <div style="font-size: 13px; font-weight: 500; color: #333; font-family: 'Courier New', monospace; word-break: break-all;">{env_info["qaic_disagg_branch"]}</div>
                         </td>
                     </tr>
                     <tr>
                         <td style="width: 50%; padding: 10px; background-color: #f9f9f9; border-left: 4px solid #667eea; border-bottom: 1px solid #eee;">
-                            <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600;">QServe Branch</div>
+                            <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600;">QServe Branch / Commit</div>
                             <div style="font-size: 13px; font-weight: 500; color: #333; font-family: 'Courier New', monospace; word-break: break-all;">{env_info["qserve_branch"]}</div>
                         </td>
                         <td style="width: 50%; padding: 10px; background-color: #f9f9f9; border-left: 4px solid #667eea; border-bottom: 1px solid #eee;">
-                            <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600;">QEff Branch</div>
+                            <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600;">QEff Branch / Commit</div>
                             <div style="font-size: 13px; font-weight: 500; color: #333; font-family: 'Courier New', monospace; word-break: break-all;">{env_info["qeff_branch"]}</div>
                         </td>
                     </tr>
