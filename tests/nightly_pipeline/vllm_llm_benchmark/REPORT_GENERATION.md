@@ -21,6 +21,7 @@ Execute the benchmark pipeline with your desired configurations:
 # Via Jenkins UI or CLI
 # Set parameters:
 # - RUN_DEFAULT=true, RUN_EMBEDDING=true, RUN_AUDIO=true, RUN_VLM=true
+# - COMPARE_BUILD_NUMBER=123 (optional; empty compares with the previous build)
 # - EMAIL_RECIPIENTS=team@example.com (comma-separated for multiple recipients)
 ```
 
@@ -31,13 +32,19 @@ After all benchmark stages complete, the "Generate Report" stage automatically:
 1. **Merges all result CSVs** using `merge_published_results.py`:
    - Reads all `*_results.csv` files from the results directory
    - Consolidates into a single `consolidated_published_results.csv`
-   - Includes 17 key fields: model, model_category, config_name, config_summary, status, mean_ttft_s, mean_tpot_s, mean_itl_s, decode_TPS, request_throughput_req_s, vllm_qaic_branch, qaic_disagg_branch, qserve_branch, qeff_branch, qaic_sdk_version, server_command, client_command
+   - Includes the benchmark, comparison, and `vllm_exec_time_s` fields. The common environment fields `vllm_qaic_branch`, `qaic_disagg_branch`, `qserve_branch`, `qeff_branch`, and `qaic_sdk_version` are shown once at the top of the HTML report instead of being repeated in every CSV row.
 
 2. **Generates HTML report** using `generate_html_report.py`:
    - Creates a professional HTML report with styling
    - Includes environment information section (branch details, SDK version)
    - Includes test results summary (total, passed, failed counts)
-   - Includes detailed test results table with all metrics
+   - Includes detailed test results table with timing and performance metrics
+   - Compares each matching row with the selected comparison build; rows with an absolute change greater than 5% in QPC total size or export/compile timing metrics are marked `FAIL` in red with the failure reason shown
+   - Writes `N/A` for metrics that are not applicable to a model, and `-` for a successful row with no failure or comparison reason, in both the consolidated CSV and HTML table
+   - Displays comparable metrics as adjacent previous/current columns, such as `Previous QPC Size` and `Current QPC Size`
+   - Reports `vllm_exec_time_s` immediately before the failure reason; it measures from server launch until client completion
+   - Keeps QPC count and per-QPC size-list fields in the CSV, while showing only the previous/current QPC total size pair in the HTML table
+   - Stores the five common environment values in a sidecar `<csv>.environment.json` file so rerunning report generation does not lose the values after they are removed from the CSV rows
 
 ### Step 3: Email Distribution (Automatic)
 
@@ -80,6 +87,8 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/generate_html_report.py \
   --csv /path/to/consolidated_published_results.csv \
   --output /path/to/benchmark_report.html
 ```
+
+For a local comparison, add `--previous-csv` with the previous consolidated CSV.
 
 ## Report Contents
 
