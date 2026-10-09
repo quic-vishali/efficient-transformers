@@ -16,30 +16,82 @@ import argparse
 import csv
 from pathlib import Path
 
+try:
+    from .vllm_benchmark_common import extract_server_error
+except ImportError:
+    from vllm_benchmark_common import extract_server_error
+
 PUBLISHED_FIELDS = [
-    "model",
-    "model_category",
-    "config_name",
-    "config_summary",
-    "status",
-    "export_compile_time_s",
-    "prefill_mdp_export_compile_time_s",
-    "prefill_export_compile_time_s",
-    "decode_export_compile_time_s",
-    "encode_export_compile_time_s",
-    "mean_ttft_s",
-    "mean_tpot_s",
-    "mean_itl_s",
-    "decode_TPS",
-    "request_throughput_req_s",
     "vllm_qaic_branch",
     "qaic_disagg_branch",
     "qserve_branch",
     "qeff_branch",
     "qaic_sdk_version",
+    "model",
+    "model_category",
+    "config_name",
+    "config_summary",
+    "status",
+    "error",
+    "qpc_count",
+    "previous_qpc_size_mb",
+    "qpc_size_mb",
+    "qpc_sizes_mb",
+    "previous_export_compile_time_s",
+    "export_compile_time_s",
+    "previous_prefill_mdp_export_compile_time_s",
+    "prefill_mdp_export_compile_time_s",
+    "previous_prefill_export_compile_time_s",
+    "prefill_export_compile_time_s",
+    "previous_decode_export_compile_time_s",
+    "decode_export_compile_time_s",
+    "previous_encode_export_compile_time_s",
+    "encode_export_compile_time_s",
+    "mean_ttft_s",
+    "mean_tpot_s",
+    "mean_itl_s",
+    "comparison_build_number",
+    "decode_TPS",
+    "request_throughput_req_s",
+    "vllm_exec_time_s",
     "server_command",
     "client_command",
 ]
+
+
+def _normalize_published_row(row: dict) -> dict:
+    normalized = dict(row)
+    for field in PUBLISHED_FIELDS:
+        if normalized.get(field) is None or str(normalized.get(field)).strip() == "":
+            normalized[field] = "N/A"
+    return normalized
+
+
+def _resolve_server_log(raw_path: str, results_dir: Path) -> Path | None:
+    if not raw_path:
+        return None
+    path = Path(raw_path)
+    if path.exists():
+        return path
+    marker = "/logs/"
+    if marker in raw_path:
+        candidate = results_dir / "logs" / raw_path.split(marker, 1)[1]
+        if candidate.exists():
+            return candidate
+    candidate = results_dir / raw_path
+    return candidate if candidate.exists() else None
+
+
+def _backfill_server_error(row: dict, results_dir: Path) -> None:
+    status = (row.get("status") or "").strip().lower()
+    if status in {"dry_run", "pass"}:
+        return
+    server_log = _resolve_server_log(row.get("server_log", ""), results_dir)
+    if server_log is None:
+        return
+    server_error = extract_server_error(server_log)
+    if server_error:
+        row["error"] = server_error
 
 
 def _model_category_from_filename(filename: str) -> str | None:
@@ -74,6 +126,7 @@ def generate_published_csv(input_csv: Path, output_csv: Path) -> None:
 
     # Convert milliseconds to seconds for latency metrics and add model_category
     for row in rows:
+        _backfill_server_error(row, input_csv.parent)
         if row.get("mean_TTFT_ms"):
             row["mean_ttft_s"] = str(round(float(row["mean_TTFT_ms"]) / 1000, 4))
         if row.get("mean_TPOT_ms"):
@@ -96,7 +149,7 @@ def generate_published_csv(input_csv: Path, output_csv: Path) -> None:
     with output_csv.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=PUBLISHED_FIELDS, extrasaction="ignore")
         writer.writeheader()
-        writer.writerows(rows)
+        writer.writerows(_normalize_published_row(row) for row in rows)
 
 
 def merge_results_to_published_csv(results_dir: Path, output_csv: Path) -> int:
@@ -133,6 +186,7 @@ def merge_results_to_published_csv(results_dir: Path, output_csv: Path) -> int:
 
     # Convert milliseconds to seconds for latency metrics and add model_category
     for row in all_rows:
+        _backfill_server_error(row, results_dir)
         if row.get("mean_TTFT_ms"):
             row["mean_ttft_s"] = str(round(float(row["mean_TTFT_ms"]) / 1000, 4))
         if row.get("mean_TPOT_ms"):
@@ -155,7 +209,7 @@ def merge_results_to_published_csv(results_dir: Path, output_csv: Path) -> int:
     with output_csv.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=PUBLISHED_FIELDS, extrasaction="ignore")
         writer.writeheader()
-        writer.writerows(all_rows)
+        writer.writerows(_normalize_published_row(row) for row in all_rows)
 
     print()
     print(f"✓ Merged {len(result_csvs)} result CSV files")

@@ -27,7 +27,7 @@ LATEST_MODELS = {
     "openai/gpt-oss-20b",
     "meta-llama/Llama-3.3-70B-Instruct",
     "google/gemma-2-9b",
-    "google/gemma-2b"
+    "google/gemma-2b",
 }
 
 
