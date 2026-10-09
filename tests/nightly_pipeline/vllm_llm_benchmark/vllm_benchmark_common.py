@@ -84,6 +84,11 @@ INT_RESULT_KEYS = {
 
 OUTPUT_FIELDS = [
     "run_timestamp_utc",
+    "vllm_qaic_branch",
+    "qaic_disagg_branch",
+    "qserve_branch",
+    "qeff_branch",
+    "qaic_sdk_version",
     "config_name",
     "status",
     "error",
@@ -111,6 +116,9 @@ OUTPUT_FIELDS = [
     "prefill_export_compile_time_s",
     "decode_export_compile_time_s",
     "encode_export_compile_time_s",
+    "qpc_count",
+    "qpc_size_mb",
+    "qpc_sizes_mb",
     "request_throughput_req_s",
     "output_token_throughput_tok_s",
     "total_token_throughput_tok_s",
@@ -121,11 +129,7 @@ OUTPUT_FIELDS = [
     "mean_ITL_ms",
     "P99_ITL_ms",
     "decode_TPS",
-    "vllm_qaic_branch",
-    "qaic_disagg_branch",
-    "qserve_branch",
-    "qeff_branch",
-    "qaic_sdk_version",
+    "vllm_exec_time_s",
     "server_command",
     "client_command",
     "server_log",
@@ -134,26 +138,38 @@ OUTPUT_FIELDS = [
 ]
 
 PUBLISHED_FIELDS = [
-    "model",
-    "model_category",
-    "config_name",
-    "config_summary",
-    "status",
-    "export_compile_time_s",
-    "prefill_mdp_export_compile_time_s",
-    "prefill_export_compile_time_s",
-    "decode_export_compile_time_s",
-    "encode_export_compile_time_s",
-    "mean_ttft_s",
-    "mean_tpot_s",
-    "mean_itl_s",
-    "decode_TPS",
-    "request_throughput_req_s",
     "vllm_qaic_branch",
     "qaic_disagg_branch",
     "qserve_branch",
     "qeff_branch",
     "qaic_sdk_version",
+    "model",
+    "model_category",
+    "config_name",
+    "config_summary",
+    "status",
+    "error",
+    "qpc_count",
+    "previous_qpc_size_mb",
+    "qpc_size_mb",
+    "qpc_sizes_mb",
+    "previous_export_compile_time_s",
+    "export_compile_time_s",
+    "previous_prefill_mdp_export_compile_time_s",
+    "prefill_mdp_export_compile_time_s",
+    "previous_prefill_export_compile_time_s",
+    "prefill_export_compile_time_s",
+    "previous_decode_export_compile_time_s",
+    "decode_export_compile_time_s",
+    "previous_encode_export_compile_time_s",
+    "encode_export_compile_time_s",
+    "mean_ttft_s",
+    "mean_tpot_s",
+    "mean_itl_s",
+    "comparison_build_number",
+    "decode_TPS",
+    "request_throughput_req_s",
+    "vllm_exec_time_s",
     "server_command",
     "client_command",
 ]
@@ -291,6 +307,15 @@ def sanitize_name(raw: str) -> str:
 
 def command_to_shell_string(cmd: list[str]) -> str:
     return " ".join(shlex.quote(str(part)) for part in cmd)
+
+
+def _normalize_csv_row(row: dict, fields: list[str]) -> dict:
+    normalized = dict(row)
+    for field in fields:
+        raw = normalized.get(field)
+        if raw is None or str(raw).strip() == "":
+            normalized[field] = "N/A"
+    return normalized
 
 
 def build_api_additional_config(row: dict) -> str:
@@ -691,9 +716,7 @@ def build_client_command(row: dict, args) -> list[str]:
         # ``vllm-embed`` is the legacy backend name used by the QServe
         # benchmark script.  ``vllm bench serve`` uses the upstream backend
         # name ``openai-embeddings`` for the same /v1/embeddings API.
-        vllm_bench_backend = (
-            "openai-embeddings" if backend == "vllm-embed" else backend
-        )
+        vllm_bench_backend = "openai-embeddings" if backend == "vllm-embed" else backend
         cmd = [
             "vllm",
             "bench",
@@ -1223,6 +1246,235 @@ def extract_compilation_times(log_path: Path, server_type: str) -> dict[str, flo
     return times
 
 
+_ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+_SERVER_EXCEPTION_RE = re.compile(r"\b(?P<exception>[A-Za-z_][\w.]*(?:Error|Exception)):\s+(?P<message>.+)$")
+_SERVER_ERROR_RE = re.compile(
+    r"\bERROR\b(?:\s+\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})?\s+(?P<message>.+)$",
+    re.IGNORECASE,
+)
+_SERVER_LOG_PREFIX_RE = re.compile(
+    r"^\s*(?:\[[^\]]+\]\s*)?(?:\([^)]*\)\s*)?"
+    r"(?:(?:INFO|WARNING|ERROR|DEBUG)\s+\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+)?",
+    re.IGNORECASE,
+)
+_QPC_PATH_MARKER_RE = re.compile(r"\bUsing\s+qpc\s*:-\s*", re.IGNORECASE)
+_QPC_PATH_RE = re.compile(
+    r"(?P<path>[A-Za-z0-9_./+:-]+(?:\s*\n\s*[A-Za-z0-9_./+:-]+)*?/qpc)"
+    r"(?![A-Za-z0-9_./+:-])"
+)
+_LOG_TIME_PREFIX_RE = re.compile(r"^\s*\d{2}:\d{2}:\d{2}(?:\.\d+)?\s+")
+
+_GENERIC_SERVER_ERRORS = (
+    "engine core initialization failed",
+    "enginecore encountered an issue",
+    "compilation failed for",
+    "compilation failed",
+    "engine core",
+    "output_handler failed",
+    "failed to start",
+    "fastapi.exceptions.httpexception",
+    "request failed with",
+    "internal server error",
+    "error occurred in disagg proxy server",
+    "occurred in disagg proxy server",
+)
+
+
+def extract_server_error(log_path: Path) -> str:
+    """Extract the most useful failure message from a server log.
+
+    Wrapper errors such as ``Engine core initialization failed`` are ignored
+    when a more specific exception or compiler error is available earlier in
+    the log. Informational messages containing words such as ``runtime error``
+    are not treated as failures.
+    """
+    if not log_path.exists():
+        return ""
+    try:
+        content = log_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+
+    # vLLM prefixes every line and frequently wraps one error over several
+    # physical lines. Remove those prefixes first so messages such as
+    # ``Error message: Unable to ensure`` + ``partial update ...`` can be
+    # extracted as one logical error.
+    cleaned_lines = [
+        _SERVER_LOG_PREFIX_RE.sub("", _ANSI_ESCAPE_RE.sub("", raw_line)).strip() for raw_line in content.splitlines()
+    ]
+    cleaned_content = "\n".join(cleaned_lines)
+
+    candidates: list[tuple[int, int, str]] = []
+
+    def add_candidate(priority: int, index: int, message: str) -> None:
+        message = " ".join(message.split()).strip(" -:")
+        if not message or len(message) > 500:
+            return
+        message_lower = message.lower()
+        if "resource_tracker" in message_lower:
+            return
+        if any(error in message_lower for error in _GENERIC_SERVER_ERRORS):
+            priority = min(priority, 20)
+        if message_lower.startswith("runtimeerror: engine core"):
+            priority = min(priority, 5)
+        candidates.append((priority, index, message))
+
+    # These patterns intentionally operate across newlines because compiler
+    # diagnostics and Python exception messages are commonly wrapped.
+    root_cause_patterns = (
+        (
+            120,
+            re.compile(
+                r"Error message:\s*(?P<message>.+?)(?=\n(?:Unable to Compile|"
+                r"ERROR\b|Traceback\b|[A-Za-z_][\w.]*Error:)|\Z)",
+                re.IGNORECASE | re.DOTALL,
+            ),
+        ),
+        (
+            115,
+            re.compile(
+                r"QAIC_ERROR:\s*(?P<message>Network compilation failed:.*?)(?=\n"
+                r"(?:Unable to Compile|ERROR\b|Traceback\b)|\Z)",
+                re.IGNORECASE | re.DOTALL,
+            ),
+        ),
+        (
+            110,
+            re.compile(
+                r"(?P<exception>(?:Attribute|Assertion|FileNotFound|Import|"
+                r"Index|Key|ModuleNotFound|NotImplemented|OSError|Type|Value)Error):\s*"
+                r"(?P<message>.+?)(?=\n(?:Traceback\b|INFO\b|WARNING\b|ERROR\b|"
+                r"[A-Za-z_][\w.]*Error:|The above exception|Log file:|"
+                r"Transforming\b|QEFF\b|Compiler\b|Gracefully\b|JobManager\b)|\Z)",
+                re.DOTALL,
+            ),
+        ),
+        (
+            105,
+            re.compile(
+                r"(?P<message>Invalid option\s+[^\n]+)",
+                re.IGNORECASE,
+            ),
+        ),
+    )
+    for priority, pattern in root_cause_patterns:
+        for match in pattern.finditer(cleaned_content):
+            if match.groupdict().get("exception"):
+                add_candidate(
+                    priority,
+                    match.start(),
+                    f"{match.group('exception')}: {match.group('message')}",
+                )
+            else:
+                add_candidate(priority, match.start(), match.group("message"))
+
+    for index, normalized in enumerate(cleaned_lines):
+        if not normalized:
+            continue
+
+        exception_match = _SERVER_EXCEPTION_RE.search(normalized)
+        if exception_match:
+            message = f"{exception_match.group('exception')}: {exception_match.group('message')}"
+            message_lower = message.lower()
+            generic = any(error in message_lower for error in _GENERIC_SERVER_ERRORS)
+            add_candidate(20 if generic else 80, index, message)
+            continue
+
+        error_match = _SERVER_ERROR_RE.search(normalized)
+        if error_match:
+            message = error_match.group("message").strip()
+            message_lower = message.lower()
+            if message and not message_lower.endswith("traceback (most recent call last):"):
+                generic = any(error in message_lower for error in _GENERIC_SERVER_ERRORS)
+                add_candidate(10 if generic else 60, index, f"Server error: {message}")
+
+    if not candidates:
+        return ""
+    # For equally ranked errors, keep the first root cause rather than the
+    # later wrapper exception raised while shutting the server down.
+    priority, _, message = max(candidates, key=lambda candidate: (candidate[0], -candidate[1]))
+    return message
+
+
+def _qpc_directory_size(path: Path) -> int:
+    """Return the size of a QPC file or directory, ignoring unreadable entries."""
+    try:
+        if path.is_file():
+            return path.stat().st_size
+        if not path.is_dir():
+            return 0
+    except OSError:
+        return 0
+
+    total = 0
+    try:
+        for child in path.rglob("*"):
+            try:
+                if child.is_file():
+                    total += child.stat().st_size
+            except OSError:
+                continue
+    except OSError:
+        pass
+    return total
+
+
+def extract_qpc_sizes(log_path: Path, base_dir: str = ".") -> dict[str, object]:
+    """Extract unique paths from ``Using qpc:-`` log entries and size them.
+
+    Long paths can be wrapped across log lines. Timestamp-only prefixes added by
+    some launchers are removed before joining the wrapped path components. Other
+    log references such as ``qpc_path=`` and ``-aic-binary-dir=`` are ignored
+    because they duplicate the ``Using qpc:-`` entry.
+    """
+    result: dict[str, object] = {
+        # No QPC entry means this metric is not applicable to the row.  The
+        # CSV normalizer converts this empty value to ``N/A``.
+        "qpc_count": "",
+        "qpc_size_mb": "",
+        "qpc_sizes_mb": "",
+    }
+    if not log_path.exists():
+        return result
+
+    try:
+        content = log_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return result
+
+    content = _ANSI_ESCAPE_RE.sub("", content)
+    # Some captured logs prefix every wrapped line with only a wall-clock time.
+    # Removing that prefix lets the path regex join a wrapped path correctly.
+    normalized_lines = [_LOG_TIME_PREFIX_RE.sub("", line) for line in content.splitlines()]
+    content = "\n".join(normalized_lines)
+
+    discovered: dict[str, Path] = {}
+    for marker in _QPC_PATH_MARKER_RE.finditer(content):
+        path_match = _QPC_PATH_RE.match(content, marker.end())
+        if path_match is None:
+            continue
+
+        raw_path = re.sub(r"\s+", "", path_match.group("path"))
+        path = Path(raw_path).expanduser()
+        if not path.is_absolute():
+            path = Path(base_dir).expanduser() / path
+        try:
+            path = path.resolve(strict=False)
+        except OSError:
+            path = path.absolute()
+        discovered[str(path)] = path
+
+    if not discovered:
+        return result
+
+    sizes_bytes = [_qpc_directory_size(path) for path in discovered.values()]
+    total_bytes = sum(sizes_bytes)
+    result["qpc_count"] = len(discovered)
+    result["qpc_size_mb"] = round(total_bytes / (1024 * 1024), 2)
+    result["qpc_sizes_mb"] = ";".join(str(round(size / (1024 * 1024), 2)) for size in sizes_bytes)
+    return result
+
+
 def parse_benchmark_output(log_path: Path) -> list[dict]:
     if not log_path.exists():
         return []
@@ -1330,6 +1582,8 @@ def make_output_row(
     run: dict,
     server_log: Path,
     client_log: Path,
+    base_dir: str = ".",
+    vllm_exec_time_s: float | str = "",
     server_cmd: list[str] | None = None,
     client_cmd: list[str] | None = None,
 ) -> dict:
@@ -1346,6 +1600,7 @@ def make_output_row(
     # Extract compilation times from server log
     server_type = value(row, "server_type", default="api_server").lower()
     timing_data = extract_compilation_times(server_log, server_type)
+    qpc_data = extract_qpc_sizes(server_log, base_dir)
 
     return {
         "run_timestamp_utc": datetime.now(timezone.utc).isoformat(),
@@ -1376,6 +1631,9 @@ def make_output_row(
         "prefill_export_compile_time_s": rounded(timing_data.get("prefill_export_compile_time_s", "")),
         "decode_export_compile_time_s": rounded(timing_data.get("decode_export_compile_time_s", "")),
         "encode_export_compile_time_s": rounded(timing_data.get("encode_export_compile_time_s", "")),
+        "qpc_count": qpc_data["qpc_count"],
+        "qpc_size_mb": qpc_data["qpc_size_mb"],
+        "qpc_sizes_mb": qpc_data["qpc_sizes_mb"],
         "request_throughput_req_s": rounded(run.get("request_throughput_req_s", "")),
         "output_token_throughput_tok_s": rounded(run.get("output_token_throughput_tok_s", "")),
         "total_token_throughput_tok_s": rounded(run.get("total_token_throughput_tok_s", "")),
@@ -1386,6 +1644,7 @@ def make_output_row(
         "mean_ITL_ms": rounded(run.get("mean_itl_ms", "")),
         "P99_ITL_ms": rounded(run.get("p99_itl_ms", "")),
         "decode_TPS": decode_tps,
+        "vllm_exec_time_s": rounded(vllm_exec_time_s),
         "vllm_qaic_branch": os.environ.get("VLLM_QAIC_BRANCH", ""),
         "qaic_disagg_branch": os.environ.get("QAIC_DISAGG_BRANCH", ""),
         "qserve_branch": os.environ.get("QSERVE_BRANCH", ""),
@@ -1403,11 +1662,26 @@ def append_output_rows(output_csv: Path, rows: list[dict]) -> None:
     if not rows:
         return
     output_csv.parent.mkdir(parents=True, exist_ok=True)
-    exists = output_csv.exists()
-    with output_csv.open("a", newline="", encoding="utf-8") as f:
+    existing_rows: list[dict] = []
+    rewrite = False
+    if output_csv.exists():
+        try:
+            with output_csv.open(newline="", encoding="utf-8-sig") as f:
+                reader = csv.DictReader(f)
+                existing_rows = list(reader)
+                rewrite = reader.fieldnames != OUTPUT_FIELDS
+        except (OSError, csv.Error):
+            rewrite = True
+
+    output_exists = output_csv.exists()
+    existing_rows = [_normalize_csv_row(row, OUTPUT_FIELDS) for row in existing_rows]
+    rows = [_normalize_csv_row(row, OUTPUT_FIELDS) for row in rows]
+    with output_csv.open("w" if rewrite else "a", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=OUTPUT_FIELDS, extrasaction="ignore")
-        if not exists:
+        if rewrite or not output_exists:
             writer.writeheader()
+        if rewrite:
+            writer.writerows(existing_rows)
         writer.writerows(rows)
 
 
@@ -1445,7 +1719,7 @@ def generate_published_csv(input_csv: Path, output_csv: Path) -> None:
     with output_csv.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=PUBLISHED_FIELDS, extrasaction="ignore")
         writer.writeheader()
-        writer.writerows(rows)
+        writer.writerows(_normalize_csv_row(row, PUBLISHED_FIELDS) for row in rows)
 
 
 def merge_published_csvs(results_dir: Path, output_csv: Path) -> None:
@@ -1472,7 +1746,7 @@ def merge_published_csvs(results_dir: Path, output_csv: Path) -> None:
     with output_csv.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=PUBLISHED_FIELDS, extrasaction="ignore")
         writer.writeheader()
-        writer.writerows(all_rows)
+        writer.writerows(_normalize_csv_row(row, PUBLISHED_FIELDS) for row in all_rows)
 
 
 def read_csv_rows(csv_path: Path) -> list[dict]:
@@ -1570,6 +1844,8 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
                     run={},
                     server_log=server_log,
                     client_log=client_log,
+                    base_dir=args.base_dir,
+                    vllm_exec_time_s="",
                     server_cmd=server_cmd,
                     client_cmd=client_cmd,
                 )
@@ -1581,8 +1857,11 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
     client_returncode = None
     parsed_runs: list[dict] = []
     error = ""
+    vllm_exec_time_s: float | str = ""
+    execution_start_time: float | None = None
 
     try:
+        execution_start_time = time.monotonic()
         server = launch_server(
             server_cmd,
             server_log,
@@ -1592,6 +1871,8 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
         )
         print(f"  Server ready after {server.ready_time_s:.2f}s")
         client_returncode = run_client(client_cmd, client_log, cwd=args.base_dir)
+        execution_end_time = time.monotonic()
+        vllm_exec_time_s = execution_end_time - execution_start_time
         parsed_runs = parse_benchmark_output(client_log)
         status = result_status(client_returncode, parsed_runs)
     except (BenchmarkError, OSError, subprocess.TimeoutExpired, ValueError) as exc:
@@ -1599,6 +1880,10 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
         error = str(exc)
         print(f"  ERROR: {error}")
     finally:
+        if execution_start_time is not None and vllm_exec_time_s == "":
+            vllm_exec_time_s = time.monotonic() - execution_start_time
+        if status not in {"success", "dry_run"}:
+            error = extract_server_error(server_log) or error
         if server is not None:
             terminate_server(server, timeout_s=args.server_stop_timeout_s)
 
@@ -1614,6 +1899,8 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
                     run=run,
                     server_log=server_log,
                     client_log=client_log,
+                    base_dir=args.base_dir,
+                    vllm_exec_time_s=vllm_exec_time_s,
                     server_cmd=server_cmd,
                     client_cmd=client_cmd,
                 )
