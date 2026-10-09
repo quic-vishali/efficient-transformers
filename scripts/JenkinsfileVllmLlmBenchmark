@@ -210,17 +210,14 @@ pipeline {
 
     parameters {
         string(name: 'NODE_LABEL', defaultValue: 'qeff_nightly_node', description: 'Jenkins agent/node label')
-        string(name: 'REF_SPEC', defaultValue: '', description: 'Branch name or PR number to build. Empty = use the branch configured in this job\'s SCM.')
         string(name: 'PYTHON_BIN', defaultValue: 'python3.12', description: 'Python used to create the benchmark venv')
         string(name: 'VLLM_QAIC_REPO', defaultValue: 'https://github.com/qualcomm/vllm-qaic.git', description: 'vllm-qaic git clone URL')
         string(name: 'VLLM_QAIC_BRANCH', defaultValue: 'main', description: 'vllm-qaic branch/tag/commit SHA/ref to clone. scripts/install.sh from this repository installs vLLM, QEfficient, and related packages.')
         string(name: 'VLLM_VERSION', defaultValue: '', description: 'Optional vLLM version consumed by vllm-qaic/scripts/install.sh. Empty uses the default from vllm-qaic/scripts/utility.sh; otherwise the installer uses Git tag v<VLLM_VERSION>.')
-        string(name: 'QAIC_DISAGG_REPO', defaultValue: 'ssh://review.qualcomm.com:29418/qranium/qaic-disagg', description: 'qaic-disagg Gerrit SSH clone URL (internal repo, requires GERRIT_SSH_CREDENTIALS_ID)')
+        string(name: 'QAIC_DISAGG_REPO', defaultValue: 'ssh://review.qualcomm.com:29418/qranium/qaic-disagg', description: 'qaic-disagg Gerrit SSH clone URL. Uses the Jenkins node SSH setup mounted from ${HOME}/.ssh.')
         string(name: 'QAIC_DISAGG_BRANCH', defaultValue: 'master', description: 'qaic-disagg branch/tag/commit SHA/ref to install')
-        string(name: 'QSERVE_REPO', defaultValue: 'ssh://git@github.qualcomm.com/vishsent/qserve.git', description: 'qserve git clone URL (internal repo, requires GITHUB_SSH_CREDENTIALS_ID)')
+        string(name: 'QSERVE_REPO', defaultValue: 'ssh://git@github.qualcomm.com/vishsent/qserve.git', description: 'qserve git clone URL. Uses the Jenkins node SSH setup mounted from ${HOME}/.ssh; qserve remains optional.')
         string(name: 'QSERVE_BRANCH', defaultValue: 'main', description: 'qserve branch/tag/commit SHA/ref to install')
-        string(name: 'GERRIT_SSH_CREDENTIALS_ID', defaultValue: 'gerrit-ssh-key', description: 'Jenkins "SSH Username with private key" credential ID for Gerrit (review.qualcomm.com:29418) to clone qaic-disagg. Required for a fresh clone when SKIP_INSTALL=false. If unavailable, QAIC_DISAGG_DIR must already exist in BENCH_ROOT.')
-        string(name: 'GITHUB_SSH_CREDENTIALS_ID', defaultValue: 'github-ssh-key', description: 'Jenkins "SSH Username with private key" credential ID for GitHub Enterprise (github.qualcomm.com) to clone qserve. Required for a fresh qserve clone when SKIP_INSTALL=false. If unavailable, qserve is skipped and QAIC_DISAGG_DIR must already exist in BENCH_ROOT.')
         string(name: 'QEFF_BRANCH', defaultValue: 'main', description: 'efficient-transformers branch/tag/commit SHA/ref consumed by vllm-qaic scripts/install.sh aot')
         password(name: 'HF_TOKEN', defaultValue: '', description: 'HuggingFace token for gated models. Optional - leave empty to reuse the HF_TOKEN already exported in the Jenkins agent host environment.')
         string(name: 'HF_HOME', defaultValue: '', description: 'Host HuggingFace cache directory. Empty = ${HOME}/.cache/huggingface')
@@ -312,29 +309,6 @@ pipeline {
     }
 
     stages {
-        stage('Checkout Ref') {
-            when { expression { params.REF_SPEC?.trim() } }
-            steps {
-                script {
-                    def refSpec = params.REF_SPEC.trim()
-                    def targetRef
-                    if (refSpec ==~ /[1-9][0-9]*/) {
-                        targetRef = "refs/remotes/origin/pr-${refSpec}"
-                        sh "git fetch --no-tags origin '+refs/pull/${refSpec}/head:${targetRef}'"
-                        echo "Building PR-${refSpec} at ${targetRef}"
-                    } else {
-                        if (!(refSpec ==~ /[A-Za-z0-9._\/-]+/)) {
-                            error("Unsafe REF_SPEC: ${refSpec}")
-                        }
-                        targetRef = "refs/remotes/origin/${refSpec}"
-                        sh "git fetch --no-tags origin '+refs/heads/${refSpec}:${targetRef}'"
-                        echo "Building branch '${refSpec}' at ${targetRef}"
-                    }
-                    sh "git switch --detach '${targetRef}'"
-                }
-            }
-        }
-
         stage('Start Container') {
             steps {
                 sh '''#!/bin/bash
@@ -343,6 +317,16 @@ pipeline {
                     sudo docker rm -f ${BUILD_TAG} >/dev/null 2>&1 || true
                     HF_HOST_DIR="${HF_HOME_HOST:-${HOME}/.cache/huggingface}"
                     mkdir -p "${HF_HOST_DIR}" "${HOME}/.cache/vllm_llm_results"
+                    SSH_MOUNT_ARGS=()
+                    if [[ -d "${HOME}/.ssh" ]]; then
+                        SSH_MOUNT_ARGS=(-v "${HOME}/.ssh:/host_ssh:ro")
+                    else
+                        echo "Warning: ${HOME}/.ssh not found; internal SSH clones may fail."
+                    fi
+                    if [[ -n "${SSH_AUTH_SOCK:-}" && -S "${SSH_AUTH_SOCK}" ]]; then
+                        SSH_AUTH_SOCK_DIR="$(dirname "${SSH_AUTH_SOCK}")"
+                        SSH_MOUNT_ARGS+=(-v "${SSH_AUTH_SOCK_DIR}:${SSH_AUTH_SOCK_DIR}" -e SSH_AUTH_SOCK="${SSH_AUTH_SOCK}")
+                    fi
                     # HF_TOKEN_PARAM comes from the HF_TOKEN Jenkins param (may be empty). When
                     # empty, fall back to HF_TOKEN already exported in this agent's host shell env.
                     RESOLVED_HF_TOKEN="${HF_TOKEN_PARAM:-${HF_TOKEN:-}}"
@@ -364,7 +348,7 @@ pipeline {
                         -e PYTHON_BIN="${PYTHON_BIN}" \
                         -e VLLM_QAIC_REPO="${VLLM_QAIC_REPO}" \
                         -e VLLM_QAIC_BRANCH="${VLLM_QAIC_BRANCH}" \
-                        -e VLLM_VERSION="${VLLM_VERSION}" \
+                        -e VLLM_VERSION="${VLLM_VERSION:-}" \
                         -e QAIC_DISAGG_REPO="${QAIC_DISAGG_REPO}" \
                         -e QAIC_DISAGG_BRANCH="${QAIC_DISAGG_BRANCH}" \
                         -e QSERVE_DIR="${QSERVE_DIR}" \
@@ -374,9 +358,11 @@ pipeline {
                         -e SKIP_INSTALL="${SKIP_INSTALL}" \
                         -e SERVER_READY_TIMEOUT_MINUTES="${SERVER_READY_TIMEOUT_MINUTES}" \
                         -e QSERVE_BENCHMARK_SCRIPT="${QSERVE_BENCHMARK_SCRIPT:-}" \
+                        -e HOST_SSH_DIR="${HOME}/.ssh" \
                         -v ./:/efficient-transformers \
                         -v "${HOME}/.cache:${HOME}/.cache" \
                         -v "${HF_HOST_DIR}:${HF_HOME}" \
+                        "${SSH_MOUNT_ARGS[@]}" \
                         ${DOCKER_LATEST}:master_latest
                 '''
             }
@@ -441,12 +427,43 @@ clone_or_update() {
         git -C "${dest}" checkout --detach FETCH_HEAD
     fi
 }
+
+setup_node_ssh() {
+    if [[ -d /host_ssh ]]; then
+        rm -rf /root/.ssh
+        mkdir -p /root/.ssh
+        cp -a /host_ssh/. /root/.ssh/
+        chown -R root:root /root/.ssh
+        echo "SSH ownership:"
+        ls -ldn /root/.ssh
+        find /root/.ssh -maxdepth 1 -mindepth 1 -printf '  %u:%g %m %p\n' | sort
+    else
+        mkdir -p /root/.ssh
+        if [[ -z "${SSH_AUTH_SOCK:-}" || ! -S "${SSH_AUTH_SOCK}" ]]; then
+            echo "ERROR: Host SSH directory was not mounted at /host_ssh and SSH_AUTH_SOCK is unavailable." >&2
+            echo "       Configure SSH keys on the Jenkins node at ${HOST_SSH_DIR:-the Jenkins user .ssh directory} or pre-populate the required repos and use SKIP_INSTALL=true." >&2
+            exit 1
+        fi
+        echo "Host SSH directory was not mounted; using forwarded SSH agent."
+    fi
+
+    chmod 700 /root/.ssh
+    find /root/.ssh -type d -exec chmod 700 {} +
+    find /root/.ssh -type f -exec chmod 600 {} +
+    find /root/.ssh -type f -name "*.pub" -exec chmod 644 {} +
+    touch /root/.ssh/known_hosts
+    chmod 600 /root/.ssh/known_hosts
+
+    ssh-keyscan -p 29418 review.qualcomm.com >> /root/.ssh/known_hosts 2>/dev/null || true
+    ssh-keyscan github.qualcomm.com >> /root/.ssh/known_hosts 2>/dev/null || true
+    export GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh -o StrictHostKeyChecking=accept-new}"
+}
 HELPER
 SCRIPT
                         '''
                     }
 
-                    def installVllmQaic = {
+                    def installBenchmarkEnvironment = {
                         sh '''#!/bin/bash
                             set -euo pipefail
 sudo docker exec -i ${BUILD_TAG} bash -s <<'SCRIPT'
@@ -454,6 +471,17 @@ set -euo pipefail
 
 . "${BENCH_ROOT}/.jenkins/git_helpers.sh"
 
+setup_node_ssh
+
+clone_or_update "${QAIC_DISAGG_REPO}" "${QAIC_DISAGG_DIR}" "${QAIC_DISAGG_BRANCH}"
+
+# qserve is optional; embedding/audio clients fall back to vllm_bench when absent.
+if clone_or_update "${QSERVE_REPO}" "${QSERVE_DIR}" "${QSERVE_BRANCH}" 2>&1; then
+    echo "qserve cloned successfully"
+else
+    echo "Warning: qserve clone failed; embedding/audio clients will fall back to vllm_bench"
+fi
+
 clone_or_update "${VLLM_QAIC_REPO}" "${VLLM_QAIC_DIR}" "${VLLM_QAIC_BRANCH}"
 (
     cd "${VLLM_QAIC_DIR}"
@@ -464,13 +492,6 @@ clone_or_update "${VLLM_QAIC_REPO}" "${VLLM_QAIC_DIR}" "${VLLM_QAIC_BRANCH}"
     QEFF_BRANCH="${QEFF_BRANCH}" scripts/install.sh aot
 )
 
-echo "SSH credentials are unavailable; qserve will be skipped."
-if [[ ! -d "${QAIC_DISAGG_DIR}" ]]; then
-    echo "ERROR: qaic-disagg checkout is required at ${QAIC_DISAGG_DIR} when SSH credentials are unavailable." >&2
-    echo "       Provide both SSH credentials or pre-populate QAIC_DISAGG_DIR before running with SKIP_INSTALL=false." >&2
-    exit 1
-fi
-
 . "${VENV_DIR}/bin/activate"
 python -m pip install -e "${QAIC_DISAGG_DIR}"
 python "${BENCHMARK_SCRIPT}" --help >/dev/null
@@ -478,118 +499,18 @@ python "${EMBEDDING_BENCHMARK_SCRIPT}" --help >/dev/null
 python "${AUDIO_BENCHMARK_SCRIPT}" --help >/dev/null
 python "${VLM_BENCHMARK_SCRIPT}" --help >/dev/null
 
-# Clone qserve repo (optional, for embedding/audio client support)
-# Note: qserve is an internal Qualcomm repo; requires SSH credentials (GERRIT_SSH_CREDENTIALS_ID)
-# Skipping in this branch since SSH credentials are not available
-# If qserve is not cloned, embedding/audio clients will gracefully fall back to vllm_bench
-echo "Skipping qserve clone (SSH credentials not available in this branch)"
+if [[ -f "${QSERVE_DIR}/qserve/benchmarks/benchmark_serving.py" ]]; then
+    echo "qserve detected at: ${QSERVE_DIR}/qserve/benchmarks/benchmark_serving.py"
+else
+    echo "qserve not found; embedding/audio clients will fall back to vllm_bench"
+fi
 SCRIPT
                         '''
                     }
 
-                    if (!params.SKIP_INSTALL &&
-                        params.GERRIT_SSH_CREDENTIALS_ID?.trim() &&
-                        params.GITHUB_SSH_CREDENTIALS_ID?.trim()) {
-                        withCredentials([
-                            sshUserPrivateKey(
-                                credentialsId: params.GERRIT_SSH_CREDENTIALS_ID,
-                                keyFileVariable: 'GERRIT_SSH_KEY',
-                                usernameVariable: 'GERRIT_SSH_USER'
-                            ),
-                            sshUserPrivateKey(
-                                credentialsId: params.GITHUB_SSH_CREDENTIALS_ID,
-                                keyFileVariable: 'GITHUB_SSH_KEY',
-                                usernameVariable: 'GITHUB_SSH_USER'
-                            )
-                        ]) {
-                            prepareSh()
-                            sh '''#!/bin/bash
-                                set -euo pipefail
-                                sudo docker cp "${GERRIT_SSH_KEY}" ${BUILD_TAG}:/tmp/gerrit_ssh_key
-                                sudo docker cp "${GITHUB_SSH_KEY}" ${BUILD_TAG}:/tmp/github_ssh_key
-                                sudo docker exec ${BUILD_TAG} chmod 600 /tmp/gerrit_ssh_key /tmp/github_ssh_key
-                                sudo docker exec ${BUILD_TAG} chown root:root /tmp/gerrit_ssh_key /tmp/github_ssh_key
-                                sudo docker exec -e GERRIT_SSH_KEY=/tmp/gerrit_ssh_key -e GERRIT_SSH_USER="${GERRIT_SSH_USER}" -e GITHUB_SSH_KEY=/tmp/github_ssh_key -e GITHUB_SSH_USER="${GITHUB_SSH_USER}" -i ${BUILD_TAG} bash -s <<'SCRIPT'
-set -euo pipefail
-
-# Create SSH config for both Gerrit and GitHub Enterprise
-# Note: variables are already expanded by the outer shell via docker exec -e
-mkdir -p ~/.ssh
-cat > ~/.ssh/config <<EOF
-Host review.qualcomm.com
-    HostName review.qualcomm.com
-    Port 29418
-    User ${GERRIT_SSH_USER}
-    IdentityFile ${GERRIT_SSH_KEY}
-    StrictHostKeyChecking no
-    UserKnownHostsFile /dev/null
-
-Host github.qualcomm.com
-    HostName github.qualcomm.com
-    Port 22
-    User ${GITHUB_SSH_USER}
-    IdentityFile ${GITHUB_SSH_KEY}
-    StrictHostKeyChecking no
-    UserKnownHostsFile /dev/null
-EOF
-chmod 600 ~/.ssh/config
-
-# Use SSH config for all git operations
-export GIT_SSH_COMMAND="ssh -F ~/.ssh/config"
-
-# Pre-accept host keys to avoid "Host key verification failed" errors
-ssh-keyscan -p 29418 review.qualcomm.com >> ~/.ssh/known_hosts 2>/dev/null || true
-ssh-keyscan github.qualcomm.com >> ~/.ssh/known_hosts 2>/dev/null || true
-
-. "${BENCH_ROOT}/.jenkins/git_helpers.sh"
-
-# Clone qaic-disagg first
-clone_or_update "${QAIC_DISAGG_REPO}" "${QAIC_DISAGG_DIR}" "${QAIC_DISAGG_BRANCH}"
-
-# Clone qserve second (optional, for embedding/audio client support)
-# Note: qserve is an internal Qualcomm repo; clone may fail if SSH key not configured
-# If clone fails, embedding/audio clients will gracefully fall back to vllm_bench
-if clone_or_update "${QSERVE_REPO}" "${QSERVE_DIR}" "${QSERVE_BRANCH}" 2>&1; then
-    echo "qserve cloned successfully"
-else
-    echo "Warning: qserve clone failed (SSH key may not be configured); embedding/audio clients will fall back to vllm_bench"
-fi
-
-# Clone vllm-qaic third
-clone_or_update "${VLLM_QAIC_REPO}" "${VLLM_QAIC_DIR}" "${VLLM_QAIC_BRANCH}"
-(
-    cd "${VLLM_QAIC_DIR}"
-    # Create Python 3.12 venv and run install.sh aot with it
-    "${PYTHON_BIN}" -m venv "${VENV_DIR}"
-    . "${VENV_DIR}/bin/activate"
-    python -m pip install --upgrade pip setuptools wheel
-    QEFF_BRANCH="${QEFF_BRANCH}" scripts/install.sh aot
-)
-
-. "${VENV_DIR}/bin/activate"
-python -m pip install -e "${QAIC_DISAGG_DIR}"
-python "${BENCHMARK_SCRIPT}" --help >/dev/null
-python "${EMBEDDING_BENCHMARK_SCRIPT}" --help >/dev/null
-python "${AUDIO_BENCHMARK_SCRIPT}" --help >/dev/null
-python "${VLM_BENCHMARK_SCRIPT}" --help >/dev/null
-
-# Detect qserve presence and set QSERVE_BENCHMARK_SCRIPT if found
-if [[ -f "${QSERVE_DIR}/qserve/benchmarks/benchmark_serving.py" ]]; then
-    export QSERVE_BENCHMARK_SCRIPT="${QSERVE_DIR}/qserve/benchmarks/benchmark_serving.py"
-    echo "qserve detected at: ${QSERVE_BENCHMARK_SCRIPT}"
-else
-    echo "qserve not found; embedding/audio clients will fall back to vllm_bench"
-fi
-rm -f /tmp/gerrit_ssh_key /tmp/github_ssh_key ~/.ssh/config
-SCRIPT
-                            '''
-                            sh 'sudo docker exec ${BUILD_TAG} rm -f /tmp/gerrit_ssh_key /tmp/github_ssh_key ~/.ssh/config || true'
-                        }
-                    } else {
-                        prepareSh()
-                        if (!params.SKIP_INSTALL) {
-                            installVllmQaic()
-                        }
+                    prepareSh()
+                    if (!params.SKIP_INSTALL) {
+                        installBenchmarkEnvironment()
                     }
                 }
             }
