@@ -258,6 +258,7 @@ pipeline {
         booleanParam(name: 'FAIL_FAST', defaultValue: false, description: 'Stop within a config after the first failing row')
         booleanParam(name: 'LATEST_MODELS_ONLY', defaultValue: true, description: 'Restrict runs to the curated LATEST_MODELS list (models >70B are always skipped regardless of this flag)')
         booleanParam(name: 'CLEAN_WORKSPACE_AFTER_RUN', defaultValue: false, description: 'Delete the Jenkins workspace after the build finishes (does not affect the persistent HF/results caches under ${HOME}/.cache)')
+        string(name: 'COMPARE_BUILD_NUMBER', defaultValue: '', description: 'Build number to compare in the report. Empty = compare with the previous build.')
         string(name: 'EMAIL_RECIPIENTS', defaultValue: 'vishsent@qti.qualcomm.com', description: 'Email recipients for benchmark report (comma-separated). Empty = no email sent.')
     }
 
@@ -660,15 +661,39 @@ SCRIPT
         stage('Generate Report') {
             steps {
                 script {
-                    sh '''#!/bin/bash
+                    def compareBuildNumber = params.COMPARE_BUILD_NUMBER?.trim()
+                    if (compareBuildNumber && !(compareBuildNumber ==~ /[1-9][0-9]*/)) {
+                        error("COMPARE_BUILD_NUMBER must be a positive Jenkins build number: ${compareBuildNumber}")
+                    }
+                    if (!compareBuildNumber) {
+                        compareBuildNumber = currentBuild.previousBuild?.number?.toString() ?: ''
+                    }
+                    def previousResultsCsv = compareBuildNumber
+                        ? "${env.HOME}/.cache/vllm_llm_results/${compareBuildNumber}/consolidated_published_results.csv"
+                        : ''
+                    withEnv([
+                        "COMPARE_BUILD_NUMBER=${compareBuildNumber}",
+                        "PREVIOUS_RESULTS_CSV=${previousResultsCsv}"
+                    ]) {
+                        sh '''#!/bin/bash
                         set -euo pipefail
                         sudo docker exec -i \
                             -e BUILD_URL="${BUILD_URL}" \
+                            -e COMPARE_BUILD_NUMBER="${COMPARE_BUILD_NUMBER:-}" \
+                            -e PREVIOUS_RESULTS_CSV="${PREVIOUS_RESULTS_CSV:-}" \
                             ${BUILD_TAG} bash -s <<'SCRIPT'
 set -euo pipefail
 cd /efficient-transformers
 . "${VENV_DIR}/bin/activate"
 export PYTHONUNBUFFERED=1
+
+PREVIOUS_CSV_ARG=()
+if [[ -n "${PREVIOUS_RESULTS_CSV:-}" && -f "${PREVIOUS_RESULTS_CSV}" ]]; then
+    PREVIOUS_CSV_ARG=(--previous-csv "${PREVIOUS_RESULTS_CSV}")
+    echo "Comparing report with build #${COMPARE_BUILD_NUMBER}: ${PREVIOUS_RESULTS_CSV}"
+else
+    echo "No consolidated CSV found for build #${COMPARE_BUILD_NUMBER:-N/A}; comparison will be skipped."
+fi
 
 # Generate consolidated published CSV
 python tests/nightly_pipeline/vllm_llm_benchmark/merge_published_results.py \
@@ -679,11 +704,14 @@ python tests/nightly_pipeline/vllm_llm_benchmark/merge_published_results.py \
 python tests/nightly_pipeline/vllm_llm_benchmark/generate_html_report.py \
     --csv "${VLLM_LLM_RESULTS_DIR}/consolidated_published_results.csv" \
     --output "${VLLM_LLM_RESULTS_DIR}/benchmark_report.html" \
-    --build-url "${BUILD_URL}"
+    --build-url "${BUILD_URL}" \
+    --comparison-build-number "${COMPARE_BUILD_NUMBER:-}" \
+    "${PREVIOUS_CSV_ARG[@]}"
 
 echo "Report generation completed successfully"
 SCRIPT
-                    '''
+                        '''
+                    }
                 }
             }
         }
