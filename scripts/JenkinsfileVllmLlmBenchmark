@@ -213,8 +213,7 @@ pipeline {
         string(name: 'PYTHON_BIN', defaultValue: 'python3.12', description: 'Python used to create the benchmark venv')
         string(name: 'VLLM_QAIC_REPO', defaultValue: 'https://github.com/qualcomm/vllm-qaic.git', description: 'vllm-qaic git clone URL')
         string(name: 'VLLM_QAIC_BRANCH', defaultValue: 'main', description: 'vllm-qaic branch/tag/commit SHA/ref to clone. scripts/install.sh from this repository installs vLLM, QEfficient, and related packages.')
-        string(name: 'VLLM_VERSION', defaultValue: '', description: 'Optional vLLM version consumed by vllm-qaic/scripts/install.sh. Empty uses the default from vllm-qaic/scripts/utility.sh; otherwise the installer uses Git tag v<VLLM_VERSION>.')
-        string(name: 'QAIC_DISAGG_REPO', defaultValue: 'ssh://review.qualcomm.com:29418/qranium/qaic-disagg', description: 'qaic-disagg Gerrit SSH clone URL. Uses the Jenkins node SSH setup mounted from ${HOME}/.ssh.')
+        string(name: 'QAIC_DISAGG_REPO', defaultValue: 'ssh://vishsent@review.qualcomm.com:29418/qranium/qaic-disagg', description: 'qaic-disagg Gerrit SSH clone URL. Uses the Jenkins node SSH setup mounted from ${HOME}/.ssh.')
         string(name: 'QAIC_DISAGG_BRANCH', defaultValue: 'master', description: 'qaic-disagg branch/tag/commit SHA/ref to install')
         string(name: 'QSERVE_REPO', defaultValue: 'ssh://git@github.qualcomm.com/vishsent/qserve.git', description: 'qserve git clone URL. Uses the Jenkins node SSH setup mounted from ${HOME}/.ssh; qserve remains optional.')
         string(name: 'QSERVE_BRANCH', defaultValue: 'main', description: 'qserve branch/tag/commit SHA/ref to install')
@@ -289,7 +288,6 @@ pipeline {
         PYTHON_BIN = "${params.PYTHON_BIN}"
         VLLM_QAIC_REPO = "${params.VLLM_QAIC_REPO}"
         VLLM_QAIC_BRANCH = "${params.VLLM_QAIC_BRANCH}"
-        VLLM_VERSION = "${params.VLLM_VERSION}"
         QAIC_DISAGG_REPO = "${params.QAIC_DISAGG_REPO}"
         QAIC_DISAGG_BRANCH = "${params.QAIC_DISAGG_BRANCH}"
         QEFF_BRANCH = "${params.QEFF_BRANCH}"
@@ -316,7 +314,8 @@ pipeline {
                     . ~/.bashrc
                     sudo docker rm -f ${BUILD_TAG} >/dev/null 2>&1 || true
                     HF_HOST_DIR="${HF_HOME_HOST:-${HOME}/.cache/huggingface}"
-                    mkdir -p "${HF_HOST_DIR}" "${HOME}/.cache/vllm_llm_results"
+                    QEFF_LOG_HOST_DIR="${HOME}/.cache/qefficient_logs"
+                    mkdir -p "${HF_HOST_DIR}" "${HOME}/.cache/vllm_llm_results" "${QEFF_LOG_HOST_DIR}"
                     SSH_MOUNT_ARGS=()
                     if [[ -d "${HOME}/.ssh" ]]; then
                         SSH_MOUNT_ARGS=(-v "${HOME}/.ssh:/host_ssh:ro")
@@ -348,7 +347,6 @@ pipeline {
                         -e PYTHON_BIN="${PYTHON_BIN}" \
                         -e VLLM_QAIC_REPO="${VLLM_QAIC_REPO}" \
                         -e VLLM_QAIC_BRANCH="${VLLM_QAIC_BRANCH}" \
-                        -e VLLM_VERSION="${VLLM_VERSION:-}" \
                         -e QAIC_DISAGG_REPO="${QAIC_DISAGG_REPO}" \
                         -e QAIC_DISAGG_BRANCH="${QAIC_DISAGG_BRANCH}" \
                         -e QSERVE_DIR="${QSERVE_DIR}" \
@@ -361,6 +359,7 @@ pipeline {
                         -e HOST_SSH_DIR="${HOME}/.ssh" \
                         -v ./:/efficient-transformers \
                         -v "${HOME}/.cache:${HOME}/.cache" \
+                        -v "${QEFF_LOG_HOST_DIR}:/root/.cache/qefficient_logs" \
                         -v "${HF_HOST_DIR}:${HF_HOME}" \
                         "${SSH_MOUNT_ARGS[@]}" \
                         ${DOCKER_LATEST}:master_latest

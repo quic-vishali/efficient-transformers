@@ -95,10 +95,10 @@ For a local comparison, add `--previous-csv` with the previous consolidated CSV.
 ### Environment Information Section
 
 Displays:
-- vLLM QAIC Branch
-- QAIC Disagg Branch
-- QServe Branch
-- QEff Branch
+- vLLM QAIC Branch / Commit
+- QAIC Disagg Branch / Commit
+- QServe Branch / Commit
+- QEff Branch / Commit
 - QAIC SDK Version
 
 ### Test Results Summary
