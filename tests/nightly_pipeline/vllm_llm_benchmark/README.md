@@ -66,9 +66,9 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_audio_benchmark.py \
 python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_vlm_benchmark.py \
   --config-name vlm \
   --input-csv tests/nightly_pipeline/vllm_llm_benchmark/configs/vlm_configs.csv \
-  --output-csv /tmp/vllm_vlm_smoke/vlm_results.csv \
-  --results-dir /tmp/vllm_vlm_smoke \
-  --rows 1 \
+  --output-csv vllm_vlm_smoke/vlm_results.csv \
+  --results-dir vllm_vlm_smoke \
+  --rows 3 \
   --dry-run
 ```
 
@@ -84,18 +84,22 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/merge_published_results.py \
 ```
 
 This merges all `*_results.csv` files (from LLM, embedding, audio, VLM categories)
-into one file with 22 key columns: model, model_category, config_name, config_summary,
-status, export_compile_time_s, prefill_mdp_export_compile_time_s,
-prefill_export_compile_time_s, decode_export_compile_time_s,
-encode_export_compile_time_s, mean_ttft_s, mean_tpot_s, mean_itl_s, decode_TPS,
-request_throughput_req_s, vllm_qaic_branch, qaic_disagg_branch, qserve_branch,
-qeff_branch, qaic_sdk_version, server_command, client_command. Model categories
+into one file with row-level fields including model, model_category, config_name,
+config_summary, status, previous/current QPC total size, previous/current
+export/compile timings, qpc_count, qpc_sizes_mb, mean_ttft_s, mean_tpot_s,
+mean_itl_s, decode_TPS, request_throughput_req_s, server_command,
+client_command, comparison_build_number, vllm_exec_time_s, and reason. The five common
+environment fields are removed from the final CSV and shown once at the top of the
+HTML report. Model categories
 are auto-detected based on config_name. The five `*_export_compile_time_s` columns
 are populated only for the fields relevant to that row's server type — e.g. a
 non-disagg (`api_server`) row only fills `export_compile_time_s`, while a disagg
 row fills the per-stage `prefill_mdp_export_compile_time_s`/
 `prefill_export_compile_time_s`/`decode_export_compile_time_s`/
 `encode_export_compile_time_s` fields instead.
+Fields that do not apply to a row are written as `N/A` in the consolidated CSV
+and displayed as `N/A` in the HTML table. A successful row with no failure or
+comparison reason uses `-` in the `reason` column.
 
 ## HTML Report Generation
 
@@ -107,12 +111,28 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/generate_html_report.py \
   --output vllm_llm_results/benchmark_report.html
 ```
 
+For a local comparison against a previous consolidated CSV, add
+`--previous-csv /path/to/previous/consolidated_published_results.csv`. Rows with
+an absolute change greater than 5% in QPC size or timing metrics are marked
+`FAIL` in the merged status column, highlighted red, and include the previous
+value, current value, percentage change, and failure reason.
+
 The HTML report includes:
 - **Environment Information**: Branch details (vLLM QAIC, QAIC Disagg, QServe, QEff) and QAIC SDK version
 - **Test Results Summary**: Total tests, passed, and failed counts
 - **Detailed Test Results**: Table with model name, category, config, status, per-stage
-  export/compile times (export/compile, prefill MDP, prefill, decode, encode), and
-  performance metrics (TTFT/TPOT/ITL/decode TPS/throughput)
+  export/compile times (export/compile, prefill MDP, prefill, decode, encode), previous
+  timing values, and performance metrics
+(TTFT/TPOT/ITL/decode TPS/throughput) with a combined failure-reason column
+CSV comparison metrics are displayed as adjacent previous/current pairs, for
+example `Previous QPC Size` followed by `Current QPC Size`.
+`vllm_exec_time_s` measures elapsed time from server process launch until the
+client process exits, including server startup/load and benchmark execution.
+QPC count and per-QPC size-list fields remain available in the CSV but are not
+previous-value comparison fields and are omitted from the HTML table. The HTML
+table includes only the previous/current QPC total size pair.
+The generator also writes `<csv>.environment.json` beside the consolidated CSV;
+this preserves the common environment values when the report is generated again.
 
 ## Jenkins Flow
 
@@ -506,5 +526,3 @@ they have no effect on the LLM/embedding/audio runners.
 
 Skipped rows are logged to stdout with the reason and do not appear in the
 output CSV, matching how `enabled=false` rows are already excluded silently.
-
-

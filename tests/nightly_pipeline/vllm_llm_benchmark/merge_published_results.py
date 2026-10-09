@@ -67,6 +67,13 @@ def _normalize_published_row(row: dict) -> dict:
     return normalized
 
 
+def _milliseconds_to_seconds(value: object) -> str:
+    try:
+        return str(round(float(value) / 1000, 4))
+    except (TypeError, ValueError):
+        return "N/A"
+
+
 def _resolve_server_log(raw_path: str, results_dir: Path) -> Path | None:
     if not raw_path:
         return None
@@ -128,11 +135,11 @@ def generate_published_csv(input_csv: Path, output_csv: Path) -> None:
     for row in rows:
         _backfill_server_error(row, input_csv.parent)
         if row.get("mean_TTFT_ms"):
-            row["mean_ttft_s"] = str(round(float(row["mean_TTFT_ms"]) / 1000, 4))
+            row["mean_ttft_s"] = _milliseconds_to_seconds(row["mean_TTFT_ms"])
         if row.get("mean_TPOT_ms"):
-            row["mean_tpot_s"] = str(round(float(row["mean_TPOT_ms"]) / 1000, 4))
+            row["mean_tpot_s"] = _milliseconds_to_seconds(row["mean_TPOT_ms"])
         if row.get("mean_ITL_ms"):
-            row["mean_itl_s"] = str(round(float(row["mean_ITL_ms"]) / 1000, 4))
+            row["mean_itl_s"] = _milliseconds_to_seconds(row["mean_ITL_ms"])
 
         # Concatenate config_summary and mode_type
         config_summary = row.get("config_summary", "").strip()
@@ -188,11 +195,11 @@ def merge_results_to_published_csv(results_dir: Path, output_csv: Path) -> int:
     for row in all_rows:
         _backfill_server_error(row, results_dir)
         if row.get("mean_TTFT_ms"):
-            row["mean_ttft_s"] = str(round(float(row["mean_TTFT_ms"]) / 1000, 4))
+            row["mean_ttft_s"] = _milliseconds_to_seconds(row["mean_TTFT_ms"])
         if row.get("mean_TPOT_ms"):
-            row["mean_tpot_s"] = str(round(float(row["mean_TPOT_ms"]) / 1000, 4))
+            row["mean_tpot_s"] = _milliseconds_to_seconds(row["mean_TPOT_ms"])
         if row.get("mean_ITL_ms"):
-            row["mean_itl_s"] = str(round(float(row["mean_ITL_ms"]) / 1000, 4))
+            row["mean_itl_s"] = _milliseconds_to_seconds(row["mean_ITL_ms"])
 
         # Concatenate config_summary and mode_type
         config_summary = row.get("config_summary", "").strip()
