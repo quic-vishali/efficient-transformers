@@ -15,7 +15,6 @@ from vllm_benchmark_common import build_arg_parser, run_benchmarks
 
 LATEST_MODELS = {
     "google/gemma-4-E2B-it",
-    "google/gemma-4-31B-it",
     "google/gemma-3-4b-it",
     "Qwen/Qwen3.6-35B-A3B",
     "Qwen/Qwen3.5-35B-A3B",
