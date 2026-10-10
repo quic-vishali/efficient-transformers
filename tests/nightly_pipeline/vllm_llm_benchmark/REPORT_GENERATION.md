@@ -39,7 +39,7 @@ After all benchmark stages complete, the "Generate Report" stage automatically:
    - Includes environment information section (branch details, SDK version)
    - Includes test results summary (total, passed, failed counts)
    - Includes detailed test results table with timing and performance metrics
-   - Compares each matching row with the selected comparison build; rows with an absolute change greater than 5% in QPC total size or export/compile timing metrics are marked `FAIL` in red with the failure reason shown
+   - Compares each matching row with the selected comparison build; rows with an absolute change greater than 5% in QPC total size or export/compile timing metrics are marked `WARNING` in amber with the comparison reason shown
    - Writes `N/A` for metrics that are not applicable to a model, and `-` for a successful row with no failure or comparison reason, in both the consolidated CSV and HTML table
    - Displays comparable metrics as adjacent previous/current columns, such as `Previous QPC Size` and `Current QPC Size`
    - Reports `vllm_exec_time_s` immediately before the failure reason; it measures from server launch until client completion
