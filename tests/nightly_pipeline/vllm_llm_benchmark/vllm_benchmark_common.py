@@ -1259,7 +1259,7 @@ _SERVER_LOG_PREFIX_RE = re.compile(
 )
 _QPC_PATH_MARKER_RE = re.compile(r"\bUsing\s+qpc\s*:-\s*", re.IGNORECASE)
 _QPC_PATH_RE = re.compile(
-    r"(?P<path>[A-Za-z0-9_./+:-]+(?:\s*\n\s*[A-Za-z0-9_./+:-]+)*?/qpc)"
+    r"(?P<path>[A-Za-z0-9_./+:-]+(?:\s*\n\s*[A-Za-z0-9_./+:-]+)*?/q\s*p\s*c)"
     r"(?![A-Za-z0-9_./+:-])"
 )
 _LOG_TIME_PREFIX_RE = re.compile(r"^\s*\d{2}:\d{2}:\d{2}(?:\.\d+)?\s+")
