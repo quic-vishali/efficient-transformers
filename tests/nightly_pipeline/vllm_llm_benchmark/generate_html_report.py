@@ -314,18 +314,18 @@ def _write_comparison_csv(
         existing_reason = (row.get("reason") or "").strip()
         model_failed = model_status not in {"success", "dry_run", "pass"}
         # A prior report may already have merged comparison failures into
-        # status=FAIL. Preserve their yellow comparison classification when
+        # status=FAIL. Preserve their comparison classification when
         # that CSV is regenerated.
-        if model_status == "fail" and not model_error and _is_comparison_reason(existing_reason):
+        if model_status in {"fail", "warning"} and not model_error and _is_comparison_reason(existing_reason):
             model_failed = False
         if model_failed:
             row["status"] = "FAIL"
             row["reason"] = model_error or existing_reason or model_status or "Model benchmark failed"
         elif reason:
-            row["status"] = "FAIL"
+            row["status"] = "WARNING"
             row["reason"] = reason
-        elif model_status == "fail" and _is_comparison_reason(existing_reason):
-            row["status"] = "FAIL"
+        elif model_status in {"fail", "warning"} and _is_comparison_reason(existing_reason):
+            row["status"] = "WARNING"
             row["reason"] = existing_reason
         else:
             row["status"] = "PASS"
@@ -394,19 +394,11 @@ def generate_html_report(
         comparison_results,
         comparison_build_number,
     )
-    inference_failure_count = sum(1 for row in rows if row.get("_failure_type") == "model")
-    comparison_failure_count = sum(1 for row in rows if row.get("_failure_type") == "comparison")
-    inference_failure_label = (
-        f"{inference_failure_count} model" if inference_failure_count == 1 else f"{inference_failure_count} models"
-    )
-    comparison_failure_label = (
-        f"{comparison_failure_count} model" if comparison_failure_count == 1 else f"{comparison_failure_count} models"
-    )
     if previous_rows:
         baseline = f" build #{comparison_build_number}" if comparison_build_number else ""
         comparison_message = (
-            f"Red rows indicate inference failures ({inference_failure_label}). "
-            f"Amber rows indicate performance comparison failures ({comparison_failure_label}), "
+            "Red rows indicate inference failures. "
+            "Amber rows indicate performance comparison warnings, "
             f"where an absolute "
             f"change greater than {COMPARISON_THRESHOLD_PERCENT:.0f}% in QPC total size "
             f"or export/compile timing versus the comparison{baseline}."
@@ -563,6 +555,10 @@ def generate_html_report(
             color: #e74c3c;
             font-weight: 600;
         }}
+        .status-warning {{
+            color: #d97706;
+            font-weight: 600;
+        }}
         .model-name {{
             font-family: 'Courier New', monospace;
             font-size: 11px;
@@ -717,7 +713,11 @@ def generate_html_report(
                             <div class="summary-card-label">Passed</div>
                         </td>
                         <td class="summary-cell">
-                            <div class="summary-card-value">{sum(1 for r in rows if (r.get("status") or "").upper() != "PASS")}</div>
+                            <div class="summary-card-value">{sum(1 for r in rows if (r.get("status") or "").upper() == "WARNING")}</div>
+                            <div class="summary-card-label">Warnings</div>
+                        </td>
+                        <td class="summary-cell">
+                            <div class="summary-card-value">{sum(1 for r in rows if (r.get("status") or "").upper() not in {"PASS", "WARNING"})}</div>
                             <div class="summary-card-label">Failed</div>
                         </td>
                     </tr>
@@ -729,8 +729,8 @@ def generate_html_report(
                 <div class="section-title">Detailed Test Results</div>
                 <div class="comparison-note">{html.escape(comparison_message)}</div>
                 <div class="failure-legend">
-                    <span class="model-failure-legend">Inference failure ({inference_failure_label})</span>
-                    <span class="comparison-failure-legend">Perf comparison failure ({comparison_failure_label})</span>
+                    <span class="model-failure-legend">Inference failure</span>
+                    <span class="comparison-failure-legend">Perf comparison warning</span>
                 </div>
                 <div class="results-table-wrapper">
                 <table>
@@ -756,8 +756,15 @@ def generate_html_report(
 
     for index, row in enumerate(rows):
         status = (row.get("status") or "FAIL").upper()
-        status_class = "status-success" if status == "PASS" else "status-failed"
-        status_text = "✓ PASS" if status == "PASS" else "✗ FAIL"
+        if status == "PASS":
+            status_class = "status-success"
+            status_text = "✓ PASS"
+        elif status == "WARNING":
+            status_class = "status-warning"
+            status_text = "⚠ WARNING"
+        else:
+            status_class = "status-failed"
+            status_text = "✗ FAIL"
         _, _, previous_row = comparison_results.get(index, (False, "", {}))
         reason = row.get("reason", "-")
         failure_type = row.get("_failure_type", "")
