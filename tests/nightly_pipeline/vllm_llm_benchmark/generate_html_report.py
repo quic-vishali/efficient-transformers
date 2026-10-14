@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# -----------------------------------------------------------------------------
+#
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# -----------------------------------------------------------------------------
+
 """
 Generate an HTML report from the consolidated published CSV for email distribution.
 
@@ -26,6 +33,7 @@ except ImportError:
 
 
 COMPARISON_THRESHOLD_PERCENT = 5.0
+COSINE_SIMILARITY_THRESHOLD = 0.98
 ROW_KEY_FIELDS = ("model", "model_category", "config_name", "config_summary")
 COMPARISON_FIELDS = (
     ("qpc_size_mb", "QPC total size (MB)"),
@@ -44,6 +52,7 @@ HTML_ENVIRONMENT_FIELDS = {
     "qaic_sdk_version",
 }
 REPORT_INTERNAL_FIELDS = {"error"}
+REPORT_REASON_MAX_CHARS = 600
 COMPARISON_CURRENT_FIELDS = {field for field, _ in COMPARISON_FIELDS}
 VLLM_EXEC_TIME_FIELD = "vllm_exec_time_s"
 CURRENT_METRIC_FIELDS = {
@@ -73,6 +82,15 @@ def _is_empty_or_na(raw: object) -> bool:
 def _display_value(row: dict, field: str, default: str = "N/A") -> str:
     raw = row.get(field)
     return default if _is_missing(raw) else str(raw)
+
+
+def _display_reason(raw: object) -> str:
+    """Keep HTML notes readable while retaining the full value in CSV/logs."""
+    reason = " ".join(str(raw or "").split())
+    if len(reason) <= REPORT_REASON_MAX_CHARS:
+        return reason
+    head = REPORT_REASON_MAX_CHARS - 180
+    return f"{reason[:head]} ... [truncated; see logs] ... {reason[-160:]}"
 
 
 def _is_comparison_reason(raw: object) -> bool:
@@ -329,7 +347,7 @@ def _write_comparison_csv(
             row["reason"] = existing_reason
         else:
             row["status"] = "PASS"
-            row["reason"] = "-"
+            row["reason"] = row.get("validation_error") or "-"
         if model_failed:
             row["_failure_type"] = "model"
         elif reason:
@@ -748,7 +766,9 @@ def generate_html_report(
                             <th style="text-align: right;">Decode TPS</th>
                             <th style="text-align: right;">Throughput (req/s)</th>
                             <th style="text-align: right;">vLLM execution time (s)</th>
-                            <th style="text-align: left;">Failure Reason</th>
+                            <th style="text-align: left;">Validation</th>
+                            <th style="text-align: right;" title="Validation passes when cosine similarity is at least {COSINE_SIMILARITY_THRESHOLD:.2f}">Cosine Similarity Score</th>
+                            <th style="text-align: left;">Note</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -766,7 +786,7 @@ def generate_html_report(
             status_class = "status-failed"
             status_text = "✗ FAIL"
         _, _, previous_row = comparison_results.get(index, (False, "", {}))
-        reason = row.get("reason", "-")
+        reason = _display_reason(row.get("reason", "-"))
         failure_type = row.get("_failure_type", "")
         if failure_type == "model":
             reason_class = "model-failure-reason"
@@ -791,6 +811,8 @@ def generate_html_report(
                             <td class="metric">{_display_value(row, "decode_TPS")}</td>
                             <td class="metric">{_display_value(row, "request_throughput_req_s")}</td>
                             <td class="metric">{_display_value(row, "vllm_exec_time_s")}</td>
+                            <td style="text-align: left;">{_display_value(row, "validation_status")}</td>
+                            <td class="metric">{_display_value(row, "validation_score")}</td>
                             <td class="{reason_class}">{html.escape(reason) or "-"}</td>
                         </tr>
 """
