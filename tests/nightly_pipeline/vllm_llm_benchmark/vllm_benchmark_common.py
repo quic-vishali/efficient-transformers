@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# -----------------------------------------------------------------------------
+#
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# -----------------------------------------------------------------------------
+
 """
 Shared CSV-driven orchestration for vLLM QAIC serving benchmarks.
 
@@ -16,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import os
 import re
@@ -23,12 +31,22 @@ import shlex
 import signal
 import subprocess
 import sys
+import tempfile
 import threading
 import time
+import urllib.error
+import urllib.request
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+
+if __package__:
+    from .pytorch_references import reference_for
+    from .validation_utils import cosine_similarity, normalize_transcription, text_cosine_fallback
+else:
+    from pytorch_references import reference_for
+    from validation_utils import cosine_similarity, normalize_transcription, text_cosine_fallback
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -45,6 +63,7 @@ SKIPPED_MODELS = {
     "zai-org/GLM-4.5",
     "hpcai-tech/grok-1",
 }
+CUSTOM_DATASET_NAMES = frozenset({"custom", "custom_image", "custom_audio"})
 
 BENCH_BLOCK_RE = re.compile(r"=+\s*Serving Benchmark Result\s*=+(.*?)=+", re.DOTALL)
 BENCH_KV_RE = re.compile(
@@ -134,6 +153,16 @@ OUTPUT_FIELDS = [
     "client_command",
     "server_log",
     "client_log",
+    "response_file",
+    "response_text_file",
+    "reference_file",
+    "reference_text_file",
+    "golden_output_file",
+    "golden_status",
+    "validation_method",
+    "validation_status",
+    "validation_score",
+    "validation_error",
     "pooling_method",
 ]
 
@@ -620,7 +649,25 @@ def resolve_qserve_script(row: dict, args, require_exists: bool = True) -> str:
     return ""
 
 
-def add_hf_random_dataset_args(cmd: list[str], row: dict) -> None:
+def resolve_dataset_path(raw_path: str, base_dir: str = ".") -> str:
+    """Resolve a config dataset path before passing it to an external client."""
+    path = Path(raw_path).expanduser()
+    if path.is_absolute():
+        return str(path)
+
+    candidates = [
+        Path(base_dir).expanduser() / path,
+        Path.cwd() / path,
+        Path(__file__).resolve().parents[3] / path,
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate.resolve())
+    # Keep a deterministic absolute path in the error reported by vLLM.
+    return str(candidates[0].resolve())
+
+
+def add_hf_random_dataset_args(cmd: list[str], row: dict, base_dir: str = ".") -> None:
     tokenizer = value(row, "tokenizer")
     if tokenizer:
         cmd.extend(["--tokenizer", tokenizer])
@@ -629,7 +676,7 @@ def add_hf_random_dataset_args(cmd: list[str], row: dict) -> None:
         cmd.extend(["--random-range-ratio", random_range_ratio])
     dataset_path = value(row, "dataset_path")
     if dataset_path:
-        cmd.extend(["--dataset-path", dataset_path])
+        cmd.extend(["--dataset-path", resolve_dataset_path(dataset_path, base_dir)])
     hf_subset = value(row, "hf_subset")
     if hf_subset:
         cmd.extend(["--hf-subset", hf_subset])
@@ -639,6 +686,12 @@ def add_hf_random_dataset_args(cmd: list[str], row: dict) -> None:
     hf_output_len = value(row, "hf_output_len")
     if hf_output_len:
         cmd.extend(["--hf-output-len", hf_output_len])
+
+
+def add_custom_dataset_path_arg(cmd: list[str], row: dict, base_dir: str = ".") -> None:
+    dataset_path = value(row, "dataset_path")
+    if dataset_path:
+        cmd.extend(["--dataset-path", resolve_dataset_path(dataset_path, base_dir)])
 
 
 def add_random_mm_args(cmd: list[str], row: dict) -> None:
@@ -659,7 +712,7 @@ def add_random_mm_args(cmd: list[str], row: dict) -> None:
         cmd.extend(["--random-mm-bucket-config", bucket_config])
 
 
-def build_client_command(row: dict, args) -> list[str]:
+def build_client_command(row: dict, args, result_dir: Path | None = None) -> list[str]:
     client_type = resolve_client_type(row, args)
     host = value(row, "host", default="127.0.0.1")
     port = value(row, "port", "server_port", default="8080")
@@ -672,6 +725,8 @@ def build_client_command(row: dict, args) -> list[str]:
     request_rate = value(row, "request_rate", "request-rate")
     input_len = value(row, "input_len", "random_input_len", "PL")
     output_len = value(row, "output_len", "random_output_len", "GL")
+    is_custom_image = dataset_name == "custom_image"
+    is_custom_dataset = dataset_name in CUSTOM_DATASET_NAMES
 
     if client_type == "qserve":
         script_path = resolve_qserve_script(row, args)
@@ -707,8 +762,11 @@ def build_client_command(row: dict, args) -> list[str]:
             cmd.extend(["--endpoint", endpoint])
         if seed:
             cmd.extend(["--seed", seed])
-        add_hf_random_dataset_args(cmd, row)
-        add_bool_arg(cmd, "--ignore-eos", row, "ignore_eos")
+        if is_custom_image:
+            add_custom_dataset_path_arg(cmd, row, args.base_dir)
+        else:
+            add_hf_random_dataset_args(cmd, row, args.base_dir)
+            add_bool_arg(cmd, "--ignore-eos", row, "ignore_eos")
         add_bool_arg(cmd, "--trust-remote-code", row, "trust_remote_code")
         add_bool_arg(cmd, "--save-result", row, "save_result")
     elif client_type == "vllm_bench":
@@ -743,28 +801,65 @@ def build_client_command(row: dict, args) -> list[str]:
         if max_concurrency:
             cmd.extend(["--max-concurrency", max_concurrency])
 
-        length_style = value(row, "length_arg_style", default="random").lower()
-        if length_style == "general":
-            if input_len:
-                cmd.extend(["--input-len", input_len])
-            if output_len:
-                cmd.extend(["--output-len", output_len])
-        else:
-            if input_len:
-                cmd.extend(["--random-input-len", input_len])
-            if output_len:
-                cmd.extend(["--random-output-len", output_len])
+        if not is_custom_dataset:
+            length_style = value(row, "length_arg_style", default="random").lower()
+            if length_style == "general":
+                if input_len:
+                    cmd.extend(["--input-len", input_len])
+                if output_len:
+                    cmd.extend(["--output-len", output_len])
+            else:
+                if input_len:
+                    cmd.extend(["--random-input-len", input_len])
+                if output_len:
+                    cmd.extend(["--random-output-len", output_len])
+
+        if is_custom_dataset:
+            custom_output_len = value(row, "custom_output_len", "output_len", "GL")
+            if custom_output_len:
+                cmd.extend(["--custom-output-len", custom_output_len])
 
         if seed:
             cmd.extend(["--seed", seed])
-        add_hf_random_dataset_args(cmd, row)
-        add_random_mm_args(cmd, row)
-        add_bool_arg(cmd, "--ignore-eos", row, "ignore_eos")
+        if is_custom_image:
+            add_custom_dataset_path_arg(cmd, row, args.base_dir)
+        else:
+            add_hf_random_dataset_args(cmd, row, args.base_dir)
+            add_random_mm_args(cmd, row)
+        if is_custom_image:
+            # Encode local image files in the client request. The benchmark
+            # client does not expose the server-only allowed-local-media-path
+            # option, and remote/local file URLs would otherwise be rejected.
+            cmd.append("--custom-ensure-client-side-data")
+        # Custom embedding inputs are plain text, not chat messages. vLLM's
+        # CustomDataset otherwise calls tokenizer.apply_chat_template(), which
+        # fails for embedding tokenizers such as BGE that have no template.
+        if endpoint == "/v1/embeddings":
+            cmd.append("--skip-chat-template")
+        else:
+            add_bool_arg(cmd, "--skip-chat-template", row, "skip_chat_template")
+        if not is_custom_image:
+            add_bool_arg(cmd, "--ignore-eos", row, "ignore_eos")
         add_bool_arg(cmd, "--trust-remote-code", row, "trust_remote_code")
         temperature = value(row, "temperature")
         if temperature:
             cmd.extend(["--temperature", temperature])
-        add_bool_arg(cmd, "--save-result", row, "save_result")
+        elif _validation_method(row).lower() == "pytorch" and endpoint not in {
+            "/v1/embeddings",
+            "/v1/audio/transcriptions",
+        }:
+            # Match pytorch_llm_reference.py, which uses deterministic greedy
+            # decoding (do_sample=False) for parity validation.
+            cmd.extend(["--temperature", "0.0"])
+        if _capture_enabled(row):
+            cmd.extend(["--save-result", "--save-detailed"])
+        else:
+            add_bool_arg(cmd, "--save-result", row, "save_result")
+            add_bool_arg(cmd, "--save-detailed", row, "save_detailed")
+        if _capture_enabled(row):
+            if result_dir is None:
+                raise BenchmarkError("result_dir is required when save_detailed=true")
+            cmd.extend(["--result-dir", str(result_dir), "--result-filename", "benchmark_result.json"])
     else:
         raise BenchmarkError(f"unsupported client_type: {client_type}")
 
@@ -1265,6 +1360,7 @@ _QPC_PATH_RE = re.compile(
 _LOG_TIME_PREFIX_RE = re.compile(r"^\s*\d{2}:\d{2}:\d{2}(?:\.\d+)?\s+")
 
 _GENERIC_SERVER_ERRORS = (
+    "calledprocesserror",
     "engine core initialization failed",
     "enginecore encountered an issue",
     "compilation failed for",
@@ -1278,6 +1374,7 @@ _GENERIC_SERVER_ERRORS = (
     "error occurred in disagg proxy server",
     "occurred in disagg proxy server",
 )
+DEFAULT_COSINE_THRESHOLD = 0.98
 
 
 def extract_server_error(log_path: Path) -> str:
@@ -1313,7 +1410,7 @@ def extract_server_error(log_path: Path) -> str:
         message_lower = message.lower()
         if "resource_tracker" in message_lower:
             return
-        if any(error in message_lower for error in _GENERIC_SERVER_ERRORS):
+        if priority < 130 and any(error in message_lower for error in _GENERIC_SERVER_ERRORS):
             priority = min(priority, 20)
         if message_lower.startswith("runtimeerror: engine core"):
             priority = min(priority, 5)
@@ -1322,6 +1419,14 @@ def extract_server_error(log_path: Path) -> str:
     # These patterns intentionally operate across newlines because compiler
     # diagnostics and Python exception messages are commonly wrapped.
     root_cause_patterns = (
+        (
+            140,
+            re.compile(
+                r"(?P<exception>ValueError):\s*(?P<message>Compilation failed for\s+"
+                r"[^\n]+)",
+                re.IGNORECASE,
+            ),
+        ),
         (
             120,
             re.compile(
@@ -1555,7 +1660,10 @@ def result_status(client_returncode: int | None, parsed_runs: list[dict]) -> str
         return "server_failed"
     if client_returncode != 0:
         return "client_failed_with_results" if parsed_runs else "client_failed"
-    return "success" if parsed_runs else "no_results"
+    successful_requests = sum(int(run.get("successful_requests", 0) or 0) for run in parsed_runs)
+    if successful_requests == 0:
+        return "no_results"
+    return "success"
 
 
 def get_qaic_sdk_version() -> str:
@@ -1574,6 +1682,491 @@ def get_qaic_sdk_version() -> str:
     return ""
 
 
+def _validation_bool(row: dict, key: str) -> bool:
+    return parse_bool(row.get(key), default=False)
+
+
+def _validation_method(row: dict) -> str:
+    configured = value(row, "validation_method")
+    if configured:
+        return configured
+    endpoint = value(row, "endpoint").lower()
+    dataset_name = value(row, "dataset_name").lower()
+    if dataset_name in CUSTOM_DATASET_NAMES and endpoint in {
+        "/v1/completions",
+        "/v1/chat/completions",
+        "/v1/embeddings",
+        "/v1/audio/transcriptions",
+    }:
+        return "pytorch"
+    return "none"
+
+
+def _capture_enabled(row: dict) -> bool:
+    return _validation_bool(row, "save_detailed") or (value(row, "dataset_name").lower() in CUSTOM_DATASET_NAMES)
+
+
+def _golden_path(row: dict, base_dir: str) -> Path:
+    configured = value(row, "golden_output_file")
+    if configured:
+        path = Path(configured)
+        return path if path.is_absolute() else Path(base_dir) / path
+    return Path(base_dir) / "tests" / "nightly_pipeline" / "vllm_llm_benchmark" / "golden_outputs" / "goldens.json"
+
+
+def _golden_identity(row: dict, base_dir: str) -> dict:
+    dataset = Path(value(row, "dataset_path"))
+    if not dataset.is_absolute():
+        dataset = Path(base_dir) / dataset
+    try:
+        dataset_bytes = dataset.read_bytes()
+    except OSError:
+        dataset_bytes = str(dataset).encode("utf-8")
+    prompts = []
+    try:
+        for line in dataset_bytes.decode("utf-8").splitlines():
+            if line.strip():
+                item = json.loads(line)
+                prompts.append(item.get("prompt", item.get("messages", item)))
+    except (UnicodeDecodeError, json.JSONDecodeError, TypeError):
+        prompts = []
+    # Include the complete normalized row so changes to any generation-
+    # affecting option create a distinct golden entry. The dataset digest
+    # represents the fixed prompt(s) and any associated request content.
+    generation_parameters = {
+        key: row.get(key, "")
+        for key in (
+            "PL",
+            "GL",
+            "CL",
+            "custom_output_len",
+            "num_prompts",
+            "seed",
+            "dtype",
+            "generation_config",
+            "temperature",
+            "top_p",
+            "top_k",
+            "min_p",
+            "frequency_penalty",
+            "presence_penalty",
+            "repetition_penalty",
+            "skip_chat_template",
+            "trust_remote_code",
+            "tokenizer",
+            "tokenizer_mode",
+            "chat_template_kwargs",
+            "extra_body",
+            "pooling_method",
+        )
+        if key in row
+    }
+    if not generation_parameters.get("temperature") and _validation_method(row).lower() == "pytorch":
+        generation_parameters["temperature"] = "0.0"
+    return {
+        "model": value(row, "model"),
+        "endpoint": value(row, "endpoint"),
+        "dataset_name": value(row, "dataset_name"),
+        "dataset": str(dataset),
+        "dataset_sha256": hashlib.sha256(dataset_bytes).hexdigest(),
+        "prompts": prompts,
+        "generation_parameters": generation_parameters,
+    }
+
+
+def _golden_key(row: dict, base_dir: str) -> tuple[str, str, str, str, dict]:
+    identity = _golden_identity(row, base_dir)
+    encoded = json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    digest = hashlib.sha256(encoded).hexdigest()[:16]
+    endpoint = value(row, "endpoint").lower()
+    family = "image_text_to_text" if "image" in value(row, "dataset_name").lower() else "causal_lm"
+    if endpoint == "/v1/embeddings":
+        family = "embedding"
+    elif endpoint == "/v1/audio/transcriptions":
+        family = "audio"
+    model = value(row, "model")
+    model_slug = re.sub(r"[^A-Za-z0-9_.-]+", "_", model).strip("_") or "model"
+    config_fp = hashlib.sha256(
+        json.dumps(
+            {"model": model, "generation_parameters": identity["generation_parameters"]},
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()[:8]
+    generation_len = value(row, "custom_output_len", "GL", default="0")
+    variant = f"{model_slug}_{value(row, 'dtype', default='auto')}_gl{generation_len}_{config_fp}_{digest}"
+    return family, model, variant, digest, identity
+
+
+def _write_golden_store(path: Path, store: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as output:
+            json.dump(store, output, indent=2)
+            output.write("\n")
+        os.replace(temporary_name, path)
+    except Exception:
+        try:
+            os.unlink(temporary_name)
+        except OSError:
+            pass
+        raise
+
+
+def _golden_identity_matches(candidate: object, expected: dict) -> bool:
+    """Match a stored golden, including entries written before key migration."""
+    if not isinstance(candidate, dict):
+        return False
+    candidate_identity = candidate.get("identity")
+    if not isinstance(candidate_identity, dict):
+        return False
+
+    def normalized(identity: dict) -> dict:
+        result = dict(identity)
+        result.pop("config", None)
+        params = dict(result.get("generation_parameters") or {})
+        if not params.get("temperature"):
+            params["temperature"] = "0.0"
+        result["generation_parameters"] = params
+        return result
+
+    return normalized(candidate_identity) == normalized(expected)
+
+
+def _find_golden(store: object, family: str, model: str, variant: str, identity: dict) -> dict | None:
+    if not isinstance(store, dict):
+        return None
+    family_models = store.get(family, {})
+    if isinstance(family_models, dict):
+        model_entries = family_models.get(model, {})
+        if isinstance(model_entries, dict):
+            exact = model_entries.get(variant)
+            if isinstance(exact, dict) and _reference_values(exact):
+                return exact
+            for candidate in model_entries.values():
+                if _golden_identity_matches(candidate, identity) and _reference_values(candidate):
+                    return candidate
+
+    # Support the previous entries-based format during migration.
+    entries = store.get("entries", {})
+    if isinstance(entries, dict):
+        exact = entries.get(variant)
+        if isinstance(exact, dict) and _reference_values(exact):
+            return exact
+        for candidate in entries.values():
+            if _golden_identity_matches(candidate, identity) and _reference_values(candidate):
+                return candidate
+
+    if _reference_values(store):
+        return store
+    return None
+
+
+def _reference_values(record: object) -> object | None:
+    if not isinstance(record, dict):
+        return None
+    for key in ("generated_texts", "embeddings"):
+        values = record.get(key)
+        if values:
+            return values
+    return None
+
+
+def _response_values(response: object, kind: str) -> object | None:
+    """Extract saved vLLM values across text, embedding, and audio formats."""
+    if not isinstance(response, dict):
+        return None
+    keys = ("embeddings", "data") if kind == "embeddings" else ("generated_texts", "transcriptions", "texts")
+    for key in keys:
+        values = response.get(key)
+        if values:
+            if kind == "embeddings" and key == "data" and isinstance(values, list):
+                return [item.get("embedding") if isinstance(item, dict) else item for item in values]
+            return values
+    outputs = response.get("outputs")
+    if isinstance(outputs, list) and outputs:
+        if kind == "embeddings":
+            return [item.get("embedding", item) if isinstance(item, dict) else item for item in outputs]
+        return [
+            item.get("text", item.get("generated_text", item)) if isinstance(item, dict) else item for item in outputs
+        ]
+    return None
+
+
+def _capture_embedding_response(row: dict, log_dir: Path, base_dir: str) -> dict:
+    """Capture embedding vectors because vLLM bench saves metrics only."""
+    dataset = Path(value(row, "dataset_path"))
+    if not dataset.is_absolute():
+        dataset = Path(base_dir) / dataset
+    prompts = []
+    for line in dataset.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            prompts.append(str(json.loads(line)["prompt"]))
+    limit = optional_int(row, "num_prompts", default=len(prompts)) or len(prompts)
+    payload = {
+        "model": value(row, "model"),
+        "input": prompts[:limit],
+    }
+    host = value(row, "host", default="127.0.0.1")
+    port = value(row, "port", "server_port", default="8080")
+    endpoint = value(row, "endpoint", default="/v1/embeddings")
+    url = f"http://{host}:{port}{endpoint}"
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=120) as response:
+        captured = json.loads(response.read().decode("utf-8"))
+    capture_file = log_dir / "embedding_response.json"
+    capture_file.write_text(json.dumps(captured, indent=2) + "\n", encoding="utf-8")
+    return captured
+
+
+def _expected_value(row: dict, base_dir: str) -> object:
+    raw = value(row, "expected_output")
+    expected_file = value(row, "expected_output_file")
+    if expected_file:
+        path = Path(expected_file)
+        if not path.is_absolute():
+            path = Path(base_dir) / path
+        raw = path.read_text(encoding="utf-8")
+    if not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return raw
+
+
+def _run_reference(row: dict, log_dir: Path, base_dir: str) -> tuple[Path, object, str]:
+    golden_file = _golden_path(row, base_dir)
+    family, model, variant, _digest, identity = _golden_key(row, base_dir)
+    reference = reference_for(value(row, "endpoint"), value(row, "dataset_name"))
+    reference_kind = reference.output_key
+    if golden_file.exists():
+        store = json.loads(golden_file.read_text(encoding="utf-8"))
+        golden = _find_golden(store, family, model, variant, identity)
+        if golden is not None:
+            values = _reference_values(golden)
+            if reference_kind == "generated_texts":
+                values = [str(item) for item in values]
+            return golden_file, values, "golden"
+
+    dataset = Path(value(row, "dataset_path"))
+    if not dataset.is_absolute():
+        dataset = Path(base_dir) / dataset
+    max_new_tokens = optional_int(row, "custom_output_len", "GL", default=1) or 1
+    # Keep the temporary HF/PyTorch result outside the run logs. Only the
+    # golden reference is persisted for later comparisons.
+    with tempfile.TemporaryDirectory(prefix="pytorch_llm_reference_") as temp_dir:
+        reference_file = Path(temp_dir) / "reference.json"
+        command = [
+            sys.executable,
+            str(reference.script),
+            "--model",
+            value(row, "model"),
+            "--dataset",
+            str(dataset),
+            "--output",
+            str(reference_file),
+        ]
+        if reference.requires_max_new_tokens:
+            command.extend(["--max-new-tokens", str(max_new_tokens)])
+        if reference.output_key == "embeddings":
+            command.extend(["--pooling-method", value(row, "pooling_method", default="mean")])
+        if _validation_bool(row, "trust_remote_code"):
+            command.append("--trust-remote-code")
+        if _validation_bool(row, "skip_chat_template"):
+            command.append("--skip-chat-template")
+        completed = subprocess.run(
+            command,
+            cwd=base_dir,
+            capture_output=True,
+            text=True,
+            timeout=int(value(row, "pytorch_timeout_s", default="1800")),
+            check=False,
+        )
+        if completed.returncode != 0:
+            detail = (completed.stderr or completed.stdout).strip()
+            raise ValueError(f"PyTorch reference failed ({completed.returncode}): {detail[-2000:]}")
+        reference = json.loads(reference_file.read_text(encoding="utf-8"))
+        generated = reference.get(reference_kind, [])
+        if not generated:
+            raise ValueError(f"PyTorch reference did not produce {reference_kind}")
+        store: dict = {}
+        if golden_file.exists():
+            existing = json.loads(golden_file.read_text(encoding="utf-8"))
+            if isinstance(existing, dict):
+                store = existing
+        store.setdefault(family, {})
+        store[family].setdefault(model, {})
+        store[family][model][variant] = {
+            "identity": identity,
+            "model": reference.get("model", value(row, "model")),
+            "prompts": reference.get("prompts", []),
+            reference_kind: generated,
+            "is_encoder_decoder": reference.get("is_encoder_decoder", False),
+            "device": "cpu",
+            "dtype": reference.get("dtype", "torch.float32"),
+            "config_fp": variant.split("_")[-2],
+            "gen_len": max_new_tokens,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+        _write_golden_store(golden_file, store)
+    if reference_kind == "generated_texts":
+        generated = [str(item) for item in generated]
+    return golden_file, generated, "created"
+
+
+def _remove_reference_log_artifacts(log_dir: Path) -> None:
+    """Remove temporary PyTorch text artifacts, preserving vLLM JSON output."""
+    for artifact in (
+        log_dir / "response.txt",
+        log_dir / "pytorch_response.txt",
+        log_dir / "pytorch_llm_reference.json",
+    ):
+        try:
+            artifact.unlink()
+        except FileNotFoundError:
+            pass
+
+
+def _format_validation_text(value: object, max_chars: int = 100) -> str:
+    """Render a short generated-text preview for CSV and HTML reports."""
+    rendered = json.dumps(value, ensure_ascii=False)
+    if len(rendered) <= max_chars:
+        return rendered
+    return rendered[:max_chars] + "... [truncated]"
+
+
+def validate_saved_benchmark_output(row: dict, log_dir: Path, base_dir: str) -> dict:
+    """Validate the exact responses saved by vllm bench --save-detailed."""
+    result = {
+        "response_file": "",
+        "response_text_file": "",
+        "reference_file": "",
+        "reference_text_file": "",
+        "validation_method": _validation_method(row),
+        "validation_status": "not_run",
+        "validation_score": "",
+        "validation_error": "",
+        "golden_output_file": "",
+        "golden_status": "",
+    }
+    if not _capture_enabled(row):
+        return result
+
+    response_file = log_dir / "benchmark_result.json"
+    result["response_file"] = str(response_file)
+    try:
+        response = json.loads(response_file.read_text(encoding="utf-8"))
+        method = result["validation_method"].lower()
+        endpoint = value(row, "endpoint").lower()
+        response_kind = "embeddings" if endpoint == "/v1/embeddings" else "generated_texts"
+        generated = _response_values(response, response_kind)
+        if response_kind == "embeddings" and not generated:
+            # vLLM bench records embedding metrics but omits vector payloads
+            # from benchmark_result.json. Query the still-running server once
+            # to capture the exact vectors used for golden validation.
+            response = _capture_embedding_response(row, log_dir, base_dir)
+            generated = _response_values(response, response_kind)
+        if not generated:
+            raise ValueError(f"benchmark_result.json does not contain {response_kind}; use --save-detailed")
+        expected = _expected_value(row, base_dir)
+        if method in {"", "none", "off"}:
+            result["validation_status"] = "not_run"
+        elif method == "pytorch":
+            reference_file, reference_generated, golden_status = _run_reference(row, log_dir, base_dir)
+            result["reference_file"] = str(reference_file)
+            result["golden_output_file"] = str(reference_file)
+            result["golden_status"] = golden_status
+            actual = generated if response_kind == "embeddings" else [str(item) for item in generated]
+            # Whether the golden was reused or created above, the QAIC result
+            # must be checked against the PyTorch reference on this run.
+            if response_kind == "embeddings":
+                if (
+                    not isinstance(actual, list)
+                    or not isinstance(reference_generated, list)
+                    or len(actual) != len(reference_generated)
+                ):
+                    matched = False
+                    score = 0.0
+                else:
+                    scores = [cosine_similarity(left, right) for left, right in zip(actual, reference_generated)]
+                    score = min(scores) if scores else 0.0
+                    matched = score >= float(value(row, "cosine_threshold", default=str(DEFAULT_COSINE_THRESHOLD)))
+                result["validation_score"] = str(round(score, 6))
+                if not matched:
+                    result["validation_error"] = "cosine similarity failed"
+            else:
+                # Text validation is exact first. If formatting or harmless
+                # generation differences remain, use a fixed sentence encoder
+                # as a semantic fallback rather than comparing model hidden
+                # states, which are not a stable sentence-embedding space.
+                if endpoint == "/v1/audio/transcriptions":
+                    actual_for_match = [normalize_transcription(item) for item in actual]
+                    reference_for_match = [normalize_transcription(item) for item in reference_generated]
+                else:
+                    actual_for_match = actual
+                    reference_for_match = reference_generated
+
+                matched = actual_for_match == reference_for_match
+                if matched:
+                    result["validation_score"] = "1.0"
+                else:
+                    score = text_cosine_fallback(actual, reference_generated)
+                    threshold = float(value(row, "text_cosine_threshold", "cosine_threshold", default="0.98"))
+                    matched = score >= threshold
+                    result["validation_score"] = str(round(score, 6))
+                    result["validation_error"] = (
+                        "string match failed; cosine similarity passed"
+                        if matched
+                        else (
+                            "string match failed; cosine similarity failed"
+                            f"; vLLM={_format_validation_text(actual)}"
+                            f"; PyTorch={_format_validation_text(reference_generated)}"
+                        )
+                    )
+            result["validation_status"] = "passed" if matched else "failed"
+        elif method in {"string", "contains", "exact", "regex"}:
+            if expected is None:
+                raise ValueError("expected_output or expected_output_file is required for validation")
+            actual = "\n".join(str(item) for item in generated)
+            expected_text = str(expected)
+            match_mode = value(row, "string_match_mode", default=method).lower()
+            if match_mode == "regex":
+                matched = re.search(expected_text, actual, flags=re.DOTALL) is not None
+            elif match_mode == "exact":
+                matched = actual.strip() == expected_text.strip()
+            else:
+                matched = expected_text in actual
+            result["validation_status"] = "passed" if matched else "failed"
+            result["validation_score"] = "1.0" if matched else "0.0"
+        elif method == "cosine":
+            if expected is None:
+                raise ValueError("expected_output or expected_output_file is required for validation")
+            score = cosine_similarity(generated[0], expected)
+            threshold = float(value(row, "cosine_threshold", default=str(DEFAULT_COSINE_THRESHOLD)))
+            result["validation_score"] = str(round(score, 6))
+            result["validation_status"] = "passed" if score >= threshold else "failed"
+        else:
+            raise ValueError(f"unsupported validation_method: {method}")
+        _remove_reference_log_artifacts(log_dir)
+    except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+        result["validation_status"] = "error"
+        result["validation_error"] = str(exc)
+        # Preserve benchmark_result.json, including generated_texts, so the
+        # complete vLLM response remains available for inspection.
+        try:
+            _remove_reference_log_artifacts(log_dir)
+        except OSError:
+            pass
+    return result
+
+
 def make_output_row(
     row: dict,
     config_name: str,
@@ -1586,6 +2179,7 @@ def make_output_row(
     vllm_exec_time_s: float | str = "",
     server_cmd: list[str] | None = None,
     client_cmd: list[str] | None = None,
+    validation: dict | None = None,
 ) -> dict:
     model = value(row, "model")
     max_concurrency = value(row, "max_concurrency", "max-concurrency")
@@ -1654,6 +2248,16 @@ def make_output_row(
         "client_command": command_to_shell_string(client_cmd) if client_cmd else "",
         "server_log": str(server_log),
         "client_log": str(client_log),
+        "response_file": (validation or {}).get("response_file", ""),
+        "response_text_file": (validation or {}).get("response_text_file", ""),
+        "reference_file": (validation or {}).get("reference_file", ""),
+        "reference_text_file": (validation or {}).get("reference_text_file", ""),
+        "golden_output_file": (validation or {}).get("golden_output_file", ""),
+        "golden_status": (validation or {}).get("golden_status", ""),
+        "validation_method": (validation or {}).get("validation_method", "none"),
+        "validation_status": (validation or {}).get("validation_status", "not_run"),
+        "validation_score": (validation or {}).get("validation_score", ""),
+        "validation_error": (validation or {}).get("validation_error", ""),
         "pooling_method": value(row, "pooling_method"),
     }
 
@@ -1810,7 +2414,7 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
     client_log = log_dir / "client.log"
 
     server_cmd = build_server_command(row, args)
-    client_cmd = build_client_command(row, args)
+    client_cmd = build_client_command(row, args, result_dir=log_dir)
 
     # Pre-check and cleanup ports before starting server
     ports_to_use = server_ports_from_command(server_cmd)
@@ -1848,6 +2452,7 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
                     vllm_exec_time_s="",
                     server_cmd=server_cmd,
                     client_cmd=client_cmd,
+                    validation={"validation_method": _validation_method(row)},
                 )
             ],
         )
@@ -1857,6 +2462,10 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
     client_returncode = None
     parsed_runs: list[dict] = []
     error = ""
+    # Initialize before launch_server: Ctrl-C or an early startup failure can
+    # enter finally before the normal result_status() assignment.
+    status = "error"
+    validation = {"validation_method": _validation_method(row), "validation_status": "not_run"}
     vllm_exec_time_s: float | str = ""
     execution_start_time: float | None = None
 
@@ -1882,7 +2491,15 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
     finally:
         if execution_start_time is not None and vllm_exec_time_s == "":
             vllm_exec_time_s = time.monotonic() - execution_start_time
-        if status not in {"success", "dry_run"}:
+        if _capture_enabled(row):
+            validation = validate_saved_benchmark_output(row, log_dir, args.base_dir)
+            if validation["validation_status"] in {"failed", "error"} and status == "success":
+                status = "validation_failed"
+                error = validation["validation_error"] or "response validation failed"
+        # Preserve the actionable validation mismatch. Server logs can contain
+        # unrelated compiler warnings/errors from startup, which otherwise
+        # overwrite the actual validation failure in the CSV.
+        if status not in {"success", "dry_run", "validation_failed"}:
             error = extract_server_error(server_log) or error
         if server is not None:
             terminate_server(server, timeout_s=args.server_stop_timeout_s)
@@ -1903,6 +2520,7 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
                     vllm_exec_time_s=vllm_exec_time_s,
                     server_cmd=server_cmd,
                     client_cmd=client_cmd,
+                    validation=validation,
                 )
                 for run in output_runs
             ],
@@ -1937,7 +2555,7 @@ def build_arg_parser(description: str) -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--base-dir",
-        default=".",
+        default=str(Path(__file__).resolve().parents[3]),
         help="Subprocess working directory.",
     )
     parser.add_argument(

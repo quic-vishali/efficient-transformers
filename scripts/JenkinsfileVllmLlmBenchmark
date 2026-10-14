@@ -49,7 +49,7 @@ python "${BENCHMARK_SCRIPT}" \
     --rows "${ROWS_TO_RUN}" \
     --latest-models-only "${LATEST_MODELS_ONLY_ARG:-true}" \
     --results-dir "${VLLM_LLM_RESULTS_DIR}" \
-    --base-dir "${BENCH_ROOT}" \
+    --base-dir "${REPO_ROOT}" \
     --python-bin python \
     --qserve-benchmark-script "${QSERVE_BENCHMARK_SCRIPT:-}" \
     --vllm-qaic-dir "${VLLM_QAIC_DIR}" \
@@ -113,7 +113,7 @@ python "${BENCH_SCRIPT}" \
     --rows "${ROWS_TO_RUN}" \
     --latest-models-only "${LATEST_MODELS_ONLY_ARG:-true}" \
     --results-dir "${VLLM_LLM_RESULTS_DIR}" \
-    --base-dir "${BENCH_ROOT}" \
+    --base-dir "${REPO_ROOT}" \
     --python-bin python \
     --qserve-benchmark-script "${QSERVE_BENCHMARK_SCRIPT:-}" \
     --vllm-qaic-dir "${VLLM_QAIC_DIR}" \
@@ -180,7 +180,7 @@ python "${VLM_BENCHMARK_SCRIPT}" \
     --rows "${ROWS_TO_RUN}" \
     --latest-models-only "${LATEST_MODELS_ONLY_ARG:-true}" \
     --results-dir "${VLLM_LLM_RESULTS_DIR}" \
-    --base-dir "${BENCH_ROOT}" \
+    --base-dir "${REPO_ROOT}" \
     --python-bin python \
     --qserve-benchmark-script "${QSERVE_BENCHMARK_SCRIPT:-}" \
     --vllm-qaic-dir "${VLLM_QAIC_DIR}" \
@@ -262,6 +262,7 @@ pipeline {
         // All paths below are inside the container (bind-mounted at /efficient-transformers
         // by the Start Container stage), except VLLM_LLM_RESULTS_DIR and the configurable
         // host HF cache. Results retain the host-visible path for Jenkins post-processing.
+        REPO_ROOT = "/efficient-transformers"
         BENCH_ROOT = "/efficient-transformers/vllm_llm_workspace"
         VENV_DIR = "/efficient-transformers/vllm_llm_workspace/venv"
         VLLM_QAIC_DIR = "/efficient-transformers/vllm_llm_workspace/vllm-qaic"
@@ -334,6 +335,7 @@ pipeline {
                         -e HF_HUB_ENABLE_HF_TRANSFER="${HF_HUB_ENABLE_HF_TRANSFER}" \
                         -e TMPDIR="${TMPDIR}" \
                         -e VENV_DIR="${VENV_DIR}" \
+                        -e REPO_ROOT="${REPO_ROOT}" \
                         -e BENCH_ROOT="${BENCH_ROOT}" \
                         -e VLLM_QAIC_DIR="${VLLM_QAIC_DIR}" \
                         -e QAIC_DISAGG_DIR="${QAIC_DISAGG_DIR}" \

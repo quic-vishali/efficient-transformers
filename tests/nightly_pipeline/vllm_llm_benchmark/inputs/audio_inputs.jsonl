@@ -1,0 +1,1 @@
+{"prompt":"Transcribe this audio.","audio":"tests/nightly_pipeline/vllm_llm_benchmark/inputs/sample.wav","output_tokens":64}
