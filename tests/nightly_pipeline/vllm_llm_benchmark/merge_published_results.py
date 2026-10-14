@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# -----------------------------------------------------------------------------
+#
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# -----------------------------------------------------------------------------
+
 """
 Generate a consolidated published CSV from all benchmark result CSVs.
 
@@ -33,6 +40,11 @@ PUBLISHED_FIELDS = [
     "config_summary",
     "status",
     "error",
+    "validation_method",
+    "validation_status",
+    "validation_score",
+    "golden_status",
+    "golden_output_file",
     "qpc_count",
     "previous_qpc_size_mb",
     "qpc_size_mb",

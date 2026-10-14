@@ -58,17 +58,24 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_embedding_benchmark.py \
 python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_audio_benchmark.py \
   --config-name audio \
   --input-csv tests/nightly_pipeline/vllm_llm_benchmark/configs/audio_configs.csv \
-  --output-csv /tmp/vllm_audio_smoke/audio_results.csv \
-  --results-dir /tmp/vllm_audio_smoke \
+  --output-csv tmp/vllm_audio_smoke/audio_results.csv \
+  --results-dir tmp/vllm_audio_smoke \
   --rows 1 \
   --dry-run
+
+python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_llm_benchmark.py \
+    --config-name default \
+    --input-csv tmp/test_validation.csv \
+    --output-csv tmp/test_results.csv \
+    --results-dir tmp/test_results \
+    --rows 47
 
 python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_vlm_benchmark.py \
   --config-name vlm \
   --input-csv tests/nightly_pipeline/vllm_llm_benchmark/configs/vlm_configs.csv \
   --output-csv vllm_vlm_smoke/vlm_results.csv \
   --results-dir vllm_vlm_smoke \
-  --rows 3 \
+  --rows 47 \
   --dry-run
 ```
 
@@ -100,6 +107,48 @@ row fills the per-stage `prefill_mdp_export_compile_time_s`/
 Fields that do not apply to a row are written as `N/A` in the consolidated CSV
 and displayed as `N/A` in the HTML table. A successful row with no failure or
 comparison reason uses `-` in the `reason` column.
+
+## Response Capture and Validation
+
+Response capture is opt-in per CSV row. Add the following fields to a row:
+
+```text
+save_result=true
+save_detailed=true
+validation_method=string
+expected_output=OK
+```
+
+The exact benchmark result is saved under the case log directory as
+`benchmark_result.json`; generated text is in its `generated_texts` field and
+is also written to `response.txt`.
+
+For PyTorch-backed validation, embedding responses are compared as native
+vectors using cosine similarity. Text responses are compared exactly first;
+when they differ, both sides are encoded with the fixed
+`sentence-transformers/all-MiniLM-L6-v2` encoder and compared using cosine
+similarity. Text cosine uses `text_cosine_threshold` (or
+`cosine_threshold`), defaulting to `0.98`. A semantic fallback pass is
+reported as `passed_cosine`. Set `VLLM_TEXT_VALIDATION_MODEL` to use a
+different fixed encoder.
+
+For standalone validation, use `validation_method=string` for substring
+matching or `validation_method=cosine` for numeric vectors, with
+`expected_output` or `expected_output_file` containing a JSON vector and an
+optional `cosine_threshold` (default `0.98`). Embedding rows should provide a
+request for `/v1/embeddings`, such as:
+
+```text
+validation_method=cosine
+validation_request={"model":"my-embedding-model","input":"hello"}
+expected_output_file=validation/hello_embedding.json
+cosine_threshold=0.95
+```
+
+The result CSV records `response_file`, `validation_status`,
+`validation_score`, and `validation_error`. Failed or errored validation is
+reported as `validation_failed`. Jenkins archives the response JSON files and
+the server/client logs.
 
 ## HTML Report Generation
 
@@ -335,10 +384,10 @@ Test a single category manually:
 python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_llm_benchmark.py \
   --config-name default \
   --input-csv tests/nightly_pipeline/vllm_llm_benchmark/configs/llm_default_configs.csv \
-  --output-csv /tmp/test_llm_default.csv \
-  --rows 1 \
+  --output-csv test/test_llm_default.csv \
+  --rows 47 \
   --latest-models-only false \
-  --results-dir /tmp \
+  --results-dir test \
   --base-dir . \
   --python-bin python3 \
   --vllm-qaic-dir . \
