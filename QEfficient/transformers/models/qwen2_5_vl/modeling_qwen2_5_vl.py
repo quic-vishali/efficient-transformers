@@ -49,11 +49,12 @@ from QEfficient.utils.logging_utils import QEFFLogger
 logger = QEFFLogger.get_logger("MODEL")
 
 
-def qeff_prepare_mrope_cos_sin(cos, sin, position_ids):
+def qeff_prepare_mrope_cos_sin(cos, sin, position_ids, mrope_section):
     cos = cos[position_ids]
     sin = sin[position_ids]
-    cos = torch.cat([cos[0, ..., 0:32], cos[1, ..., 32:80], cos[2, ..., 80:128]], dim=-1).unsqueeze(1)
-    sin = torch.cat([sin[0, ..., 0:32], sin[1, ..., 32:80], sin[2, ..., 80:128]], dim=-1).unsqueeze(1)
+    mrope_section = list(mrope_section) * 2
+    cos = torch.cat([m[i % 3] for i, m in enumerate(cos.split(mrope_section, dim=-1))], dim=-1).unsqueeze(1)
+    sin = torch.cat([m[i % 3] for i, m in enumerate(sin.split(mrope_section, dim=-1))], dim=-1).unsqueeze(1)
     return cos, sin
 
 
@@ -657,7 +658,13 @@ class QEffQwen2_5_VLTextModel(Qwen2_5_VLTextModel):
         # decoder layers
         all_hidden_states = () if output_hidden_states else None
         all_self_attns = () if output_attentions else None
-        cos, sin = qeff_prepare_mrope_cos_sin(self.cos_cached, self.sin_cached, position_ids[1:])
+        rope_parameters = getattr(self.config, "rope_parameters", None) or getattr(self.config, "rope_scaling", {})
+        cos, sin = qeff_prepare_mrope_cos_sin(
+            self.cos_cached,
+            self.sin_cached,
+            position_ids[1:],
+            rope_parameters.get("mrope_section", [16, 24, 24]),
+        )
 
         for decoder_layer in self.layers:
             if output_hidden_states:
