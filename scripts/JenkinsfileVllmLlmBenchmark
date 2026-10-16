@@ -410,6 +410,13 @@ clone_or_update() {
     local dest="$2"
     local ref="$3"
 
+    # Repositories under BENCH_ROOT may have been created by a different UID
+    # during an earlier container run. Git rejects those repositories as
+    # "dubious ownership" unless the directory is explicitly trusted.
+    if ! git config --global --get-all safe.directory 2>/dev/null | grep -Fxq -- "${dest}"; then
+        git config --global --add safe.directory "${dest}"
+    fi
+
     if [[ -d "${dest}/.git" ]]; then
         git -C "${dest}" fetch --all --tags
     else
