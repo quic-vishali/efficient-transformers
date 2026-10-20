@@ -209,7 +209,7 @@ pipeline {
     }
 
     parameters {
-        string(name: 'NODE_LABEL', defaultValue: 'qeff_nightly_node', description: 'Jenkins agent/node label')
+        string(name: 'NODE_LABEL', defaultValue: 'qeff_nightly', description: 'Jenkins agent/node label')
         string(name: 'PYTHON_BIN', defaultValue: 'python3.12', description: 'Python used to create the benchmark venv')
         string(name: 'VLLM_QAIC_REPO', defaultValue: 'https://github.com/qualcomm/vllm-qaic.git', description: 'vllm-qaic git clone URL')
         string(name: 'VLLM_QAIC_BRANCH', defaultValue: 'main', description: 'vllm-qaic branch/tag/commit SHA/ref to clone. scripts/install.sh from this repository installs vLLM, QEfficient, and related packages.')
@@ -379,6 +379,10 @@ pipeline {
 set -euo pipefail
 mkdir -p "${BENCH_ROOT}" "${VLLM_LLM_RESULTS_DIR}" "${QEFF_HOME}" "${HF_HOME}" "${TMPDIR}"
 ln -sfn "$(dirname "${VLLM_LLM_RESULTS_DIR}")" "/efficient-transformers/vllm_llm_results"
+echo "Cleaning stale QEFF_HOME contents before benchmark run: ${QEFF_HOME}"
+find "${QEFF_HOME}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+echo "Cleaning stale TMPDIR contents before benchmark run: ${TMPDIR}"
+find "${TMPDIR}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
 
 if [[ "${SKIP_INSTALL}" == "true" ]]; then
     echo "SKIP_INSTALL=true; reusing existing venv and repository installations."
@@ -657,6 +661,44 @@ SCRIPT
                     '''
                 } catch (error) {
                     echo "Failed to collect container diagnostics: ${error}"
+                }
+                try {
+                    sh '''#!/bin/bash
+                        set +e
+                        sudo docker exec -i ${BUILD_TAG} bash -s <<'SCRIPT'
+set +e
+for path in "${QEFF_HOME:-}" "${TMPDIR:-}"; do
+    case "${path}" in
+        /efficient-transformers/vllm_llm_workspace/*)
+            if [[ -d "${path}" ]]; then
+                echo "Cleaning runtime artifacts from ${path}"
+                find "${path}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+            fi
+            ;;
+        *)
+            echo "Skipping unsafe runtime cleanup path: ${path}"
+            ;;
+    esac
+done
+SCRIPT
+                    '''
+                } catch (error) {
+                    echo "Failed to clean runtime artifacts: ${error}"
+                }
+                try {
+                    sh '''#!/bin/bash
+                        set +e
+                        workspace_root="$(pwd -P)"
+                        for path in "${workspace_root}/vllm_llm_workspace/qeff_models" "${workspace_root}/vllm_llm_workspace/tmp"; do
+                            resolved="$(readlink -f "${path}" 2>/dev/null || true)"
+                            if [[ -n "${resolved}" && "${resolved}" == "${workspace_root}/vllm_llm_workspace/"* && -d "${resolved}" ]]; then
+                                echo "Cleaning host runtime artifacts from ${resolved}"
+                                sudo find "${resolved}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+                            fi
+                        done
+                    '''
+                } catch (error) {
+                    echo "Failed to clean host runtime artifacts: ${error}"
                 }
                 try {
                     sh 'sudo docker rm -f ${BUILD_TAG}'

@@ -28,6 +28,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import signal
 import subprocess
 import sys
@@ -1580,6 +1581,46 @@ def extract_qpc_sizes(log_path: Path, base_dir: str = ".") -> dict[str, object]:
     return result
 
 
+def _clear_directory_contents(path: Path, label: str) -> None:
+    """Remove children of a runtime artifact directory without deleting the directory itself."""
+    try:
+        resolved = path.expanduser().resolve(strict=False)
+    except OSError:
+        resolved = path.expanduser().absolute()
+
+    # Guard against a malformed env var causing a broad delete.
+    if str(resolved) in {"/", "/root", "/home", "/tmp", "/efficient-transformers"}:
+        print(f"  Skipping {label} cleanup for unsafe path: {resolved}")
+        return
+    if not resolved.exists():
+        return
+    if not resolved.is_dir():
+        print(f"  Skipping {label} cleanup because path is not a directory: {resolved}")
+        return
+
+    removed = 0
+    for child in resolved.iterdir():
+        try:
+            if child.is_dir() and not child.is_symlink():
+                shutil.rmtree(child)
+            else:
+                child.unlink()
+            removed += 1
+        except OSError as exc:
+            print(f"  Warning: failed to remove {child}: {exc}")
+    print(f"  Cleaned {label}: removed {removed} entries from {resolved}")
+
+
+def cleanup_runtime_artifacts() -> None:
+    """Free per-row compiled artifacts so large model rows do not accumulate on disk."""
+    qeff_home = os.environ.get("QEFF_HOME", "").strip()
+    if qeff_home:
+        _clear_directory_contents(Path(qeff_home), "QEFF_HOME")
+    tmpdir = os.environ.get("TMPDIR", "").strip()
+    if tmpdir:
+        _clear_directory_contents(Path(tmpdir), "TMPDIR")
+
+
 def parse_benchmark_output(log_path: Path) -> list[dict]:
     if not log_path.exists():
         return []
@@ -2489,42 +2530,48 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
         error = str(exc)
         print(f"  ERROR: {error}")
     finally:
-        if execution_start_time is not None and vllm_exec_time_s == "":
-            vllm_exec_time_s = time.monotonic() - execution_start_time
-        if _capture_enabled(row):
-            validation = validate_saved_benchmark_output(row, log_dir, args.base_dir)
-            if validation["validation_status"] in {"failed", "error"} and status == "success":
-                status = "validation_failed"
-                error = validation["validation_error"] or "response validation failed"
-        # Preserve the actionable validation mismatch. Server logs can contain
-        # unrelated compiler warnings/errors from startup, which otherwise
-        # overwrite the actual validation failure in the CSV.
-        if status not in {"success", "dry_run", "validation_failed"}:
-            error = extract_server_error(server_log) or error
-        if server is not None:
-            terminate_server(server, timeout_s=args.server_stop_timeout_s)
+        try:
+            if execution_start_time is not None and vllm_exec_time_s == "":
+                vllm_exec_time_s = time.monotonic() - execution_start_time
+            if _capture_enabled(row):
+                validation = validate_saved_benchmark_output(row, log_dir, args.base_dir)
+                if validation["validation_status"] in {"failed", "error"} and status == "success":
+                    status = "validation_failed"
+                    error = validation["validation_error"] or "response validation failed"
+            # Preserve the actionable validation mismatch. Server logs can contain
+            # unrelated compiler warnings/errors from startup, which otherwise
+            # overwrite the actual validation failure in the CSV.
+            if status not in {"success", "dry_run", "validation_failed"}:
+                error = extract_server_error(server_log) or error
+            if server is not None:
+                terminate_server(server, timeout_s=args.server_stop_timeout_s)
 
-        output_runs = parsed_runs or [{}]
-        append_output_rows(
-            output_csv,
-            [
-                make_output_row(
-                    row=row,
-                    config_name=effective_config_name,
-                    status=status,
-                    error=error,
-                    run=run,
-                    server_log=server_log,
-                    client_log=client_log,
-                    base_dir=args.base_dir,
-                    vllm_exec_time_s=vllm_exec_time_s,
-                    server_cmd=server_cmd,
-                    client_cmd=client_cmd,
-                    validation=validation,
-                )
-                for run in output_runs
-            ],
-        )
+            output_runs = parsed_runs or [{}]
+            append_output_rows(
+                output_csv,
+                [
+                    make_output_row(
+                        row=row,
+                        config_name=effective_config_name,
+                        status=status,
+                        error=error,
+                        run=run,
+                        server_log=server_log,
+                        client_log=client_log,
+                        base_dir=args.base_dir,
+                        vllm_exec_time_s=vllm_exec_time_s,
+                        server_cmd=server_cmd,
+                        client_cmd=client_cmd,
+                        validation=validation,
+                    )
+                    for run in output_runs
+                ],
+            )
+        finally:
+            try:
+                cleanup_runtime_artifacts()
+            except Exception as exc:
+                print(f"  Warning: runtime artifact cleanup failed: {exc}")
 
     return status == "success"
 
@@ -2675,6 +2722,8 @@ def run_benchmarks(args, latest_models: set[str]) -> int:
 
     if output_csv.exists():
         output_csv.unlink()
+
+    cleanup_runtime_artifacts()
 
     failures = 0
     for row in rows:
