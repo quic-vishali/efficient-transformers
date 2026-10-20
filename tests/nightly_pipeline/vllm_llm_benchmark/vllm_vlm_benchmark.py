@@ -21,14 +21,19 @@ from __future__ import annotations
 from vllm_benchmark_common import build_arg_parser, run_benchmarks
 
 LATEST_MODELS = {
-    "google/gemma-4-E2B-it",
-    "google/gemma-3-4b-it",
-    "Qwen/Qwen3.6-35B-A3B",
-    "Qwen/Qwen3.5-35B-A3B",
-    "Qwen/Qwen3.6-27B",
-    "Qwen/Qwen3.5-27B",
-    "Qwen/Qwen3-VL-2B-Instruct",
     "Qwen/Qwen2.5-VL-3B-Instruct",
+    "Qwen/Qwen3-VL-2B-Instruct",
+    # "Qwen/Qwen3-VL-30B-A3B-Instruct",
+    "Qwen/Qwen3.5-0.8B",
+    # "Qwen/Qwen3.5-27B",
+    # "Qwen/Qwen3.5-35B-A3B",
+    "Qwen/Qwen3.6-27B",
+    "Qwen/Qwen3.6-35B-A3B",
+    "google/gemma-3-4b-it",
+    # "google/gemma-4-26B-A4B-it",
+    # "google/gemma-4-31B-it",
+    "google/gemma-4-E2B-it",
+    # "google/gemma-4-E4B-it",
 }
 
 
