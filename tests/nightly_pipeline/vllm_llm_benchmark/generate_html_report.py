@@ -198,6 +198,14 @@ def _backfill_server_errors(rows: list[dict], csv_path: Path) -> None:
         status = (row.get("status") or "").strip().lower()
         if status in {"dry_run", "pass"}:
             continue
+        if str(row.get("error") or "").strip() not in {"", "N/A", "-"}:
+            continue
+        validation_status = (row.get("validation_status") or "").strip().lower()
+        if validation_status in {"failed", "error"}:
+            validation_error = str(row.get("validation_error") or "").strip()
+            if validation_error not in {"", "N/A", "-"}:
+                row["error"] = validation_error
+            continue
         server_log = _server_log_for_row(row, csv_path)
         if server_log is None:
             continue

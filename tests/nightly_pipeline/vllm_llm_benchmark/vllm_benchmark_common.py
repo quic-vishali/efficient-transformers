@@ -179,6 +179,12 @@ PUBLISHED_FIELDS = [
     "config_summary",
     "status",
     "error",
+    "validation_method",
+    "validation_status",
+    "validation_score",
+    "validation_error",
+    "golden_status",
+    "golden_output_file",
     "qpc_count",
     "previous_qpc_size_mb",
     "qpc_size_mb",
@@ -1411,6 +1417,10 @@ def extract_server_error(log_path: Path) -> str:
         message_lower = message.lower()
         if "resource_tracker" in message_lower:
             return
+        if "enginedeaderror" in message_lower:
+            nearby_lines = cleaned_lines[max(0, index - 20) : index + 1]
+            if any("[shutdown]" in line.lower() or "shutdown" in line.lower() for line in nearby_lines):
+                return
         if priority < 130 and any(error in message_lower for error in _GENERIC_SERVER_ERRORS):
             priority = min(priority, 20)
         if message_lower.startswith("runtimeerror: engine core"):
