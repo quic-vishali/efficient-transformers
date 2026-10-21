@@ -43,6 +43,7 @@ PUBLISHED_FIELDS = [
     "validation_method",
     "validation_status",
     "validation_score",
+    "validation_error",
     "golden_status",
     "golden_output_file",
     "qpc_count",
@@ -104,6 +105,14 @@ def _resolve_server_log(raw_path: str, results_dir: Path) -> Path | None:
 def _backfill_server_error(row: dict, results_dir: Path) -> None:
     status = (row.get("status") or "").strip().lower()
     if status in {"dry_run", "pass"}:
+        return
+    if str(row.get("error") or "").strip() not in {"", "N/A", "-"}:
+        return
+    validation_status = (row.get("validation_status") or "").strip().lower()
+    if validation_status in {"failed", "error"}:
+        validation_error = str(row.get("validation_error") or "").strip()
+        if validation_error not in {"", "N/A", "-"}:
+            row["error"] = validation_error
         return
     server_log = _resolve_server_log(row.get("server_log", ""), results_dir)
     if server_log is None:
