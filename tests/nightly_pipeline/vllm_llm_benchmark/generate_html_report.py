@@ -773,7 +773,7 @@ def generate_html_report(
                             <th style="text-align: right;">ITL (s)</th>
                             <th style="text-align: right;">Decode TPS</th>
                             <th style="text-align: right;">Throughput (req/s)</th>
-                            <th style="text-align: right;">vLLM execution time (s)</th>
+                            <th style="text-align: right;">QAIC vLLM execution time (s)</th>
                             <th style="text-align: left;">Validation</th>
                             <th style="text-align: right;" title="Validation passes when cosine similarity is at least {COSINE_SIMILARITY_THRESHOLD:.2f}">Cosine Similarity Score</th>
                             <th style="text-align: left;">Note</th>

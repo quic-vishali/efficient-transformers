@@ -15,6 +15,37 @@ import json
 from pathlib import Path
 
 
+def _load_vlm_model(model_id: str, trust_remote_code: bool):
+    """Load image-text models across Transformers auto-class generations."""
+    from transformers import AutoModelForCausalLM
+
+    model_classes = []
+    try:
+        from transformers import AutoModelForImageTextToText
+
+        model_classes.append(AutoModelForImageTextToText)
+    except ImportError:
+        pass
+    try:
+        from transformers import AutoModelForVision2Seq
+
+        model_classes.append(AutoModelForVision2Seq)
+    except ImportError:
+        pass
+    model_classes.append(AutoModelForCausalLM)
+
+    errors = []
+    for model_class in model_classes:
+        try:
+            return model_class.from_pretrained(
+                model_id,
+                trust_remote_code=trust_remote_code,
+            )
+        except (OSError, ValueError, TypeError) as exc:
+            errors.append(f"{model_class.__name__}: {exc}")
+    raise RuntimeError("Unable to load VLM reference model. Tried: " + " | ".join(errors))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True)
@@ -28,18 +59,10 @@ def main() -> int:
     from PIL import Image
     from transformers import AutoProcessor
 
-    try:
-        from transformers import AutoModelForVision2Seq
-    except ImportError:
-        from transformers import AutoModelForCausalLM as AutoModelForVision2Seq
-
     dataset = Path(args.dataset)
     rows = [json.loads(line) for line in dataset.read_text(encoding="utf-8").splitlines() if line.strip()]
     processor = AutoProcessor.from_pretrained(args.model, trust_remote_code=args.trust_remote_code)
-    model = AutoModelForVision2Seq.from_pretrained(
-        args.model,
-        trust_remote_code=args.trust_remote_code,
-    ).to("cpu")
+    model = _load_vlm_model(args.model, args.trust_remote_code).to("cpu")
     model.eval()
     model_dtype = next(model.parameters()).dtype
 
