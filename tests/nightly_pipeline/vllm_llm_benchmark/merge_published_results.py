@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 from pathlib import Path
 
 try:
@@ -44,6 +45,8 @@ PUBLISHED_FIELDS = [
     "validation_status",
     "validation_score",
     "validation_error",
+    "validation_actual_text",
+    "validation_reference_text",
     "golden_status",
     "golden_output_file",
     "qpc_count",
@@ -80,6 +83,17 @@ def _normalize_published_row(row: dict) -> dict:
     return normalized
 
 
+def _safe_str(raw: object) -> str:
+    return "" if raw is None else str(raw)
+
+
+def _format_validation_text(value: object, max_chars: int = 2000) -> str:
+    rendered = json.dumps(value, ensure_ascii=False)
+    if len(rendered) <= max_chars:
+        return rendered
+    return rendered[:max_chars] + "... [truncated]"
+
+
 def _milliseconds_to_seconds(value: object) -> str:
     try:
         return str(round(float(value) / 1000, 4))
@@ -100,6 +114,38 @@ def _resolve_server_log(raw_path: str, results_dir: Path) -> Path | None:
             return candidate
     candidate = results_dir / raw_path
     return candidate if candidate.exists() else None
+
+
+def _resolve_result_artifact(raw_path: str, results_dir: Path) -> Path | None:
+    if not raw_path or raw_path in {"N/A", "-"}:
+        return None
+    path = Path(raw_path)
+    if path.exists():
+        return path
+    marker = "/logs/"
+    if marker in raw_path:
+        candidate = results_dir / "logs" / raw_path.split(marker, 1)[1]
+        if candidate.exists():
+            return candidate
+    candidate = results_dir / raw_path
+    return candidate if candidate.exists() else None
+
+
+def _backfill_validation_text(row: dict, results_dir: Path) -> None:
+    if _safe_str(row.get("validation_actual_text")).strip() not in {"", "N/A", "-"}:
+        return
+    response_file = _resolve_result_artifact(_safe_str(row.get("response_file")), results_dir)
+    if response_file is None:
+        return
+    try:
+        response = json.loads(response_file.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return
+    for key in ("generated_texts", "transcriptions", "embeddings"):
+        values = response.get(key)
+        if values:
+            row["validation_actual_text"] = _format_validation_text(values)
+            return
 
 
 def _backfill_server_error(row: dict, results_dir: Path) -> None:
@@ -135,7 +181,7 @@ def _model_category_from_filename(filename: str) -> str | None:
 
 
 def _assign_model_category(row: dict, source_filename: str) -> None:
-    pooling_method = row.get("pooling_method", "").lower()
+    pooling_method = _safe_str(row.get("pooling_method")).lower()
     if pooling_method in ("mean", "avg", "cls", "max"):
         row["model_category"] = "Embedding"
         return
@@ -155,6 +201,7 @@ def generate_published_csv(input_csv: Path, output_csv: Path) -> None:
     # Convert milliseconds to seconds for latency metrics and add model_category
     for row in rows:
         _backfill_server_error(row, input_csv.parent)
+        _backfill_validation_text(row, input_csv.parent)
         if row.get("mean_TTFT_ms"):
             row["mean_ttft_s"] = _milliseconds_to_seconds(row["mean_TTFT_ms"])
         if row.get("mean_TPOT_ms"):
@@ -163,8 +210,8 @@ def generate_published_csv(input_csv: Path, output_csv: Path) -> None:
             row["mean_itl_s"] = _milliseconds_to_seconds(row["mean_ITL_ms"])
 
         # Concatenate config_summary and mode_type
-        config_summary = row.get("config_summary", "").strip()
-        mode_type = row.get("mode_type", "").strip()
+        config_summary = _safe_str(row.get("config_summary")).strip()
+        mode_type = _safe_str(row.get("mode_type")).strip()
         if mode_type:
             row["config_summary"] = f"{config_summary} | {mode_type}" if config_summary else mode_type
 
@@ -215,6 +262,7 @@ def merge_results_to_published_csv(results_dir: Path, output_csv: Path) -> int:
     # Convert milliseconds to seconds for latency metrics and add model_category
     for row in all_rows:
         _backfill_server_error(row, results_dir)
+        _backfill_validation_text(row, results_dir)
         if row.get("mean_TTFT_ms"):
             row["mean_ttft_s"] = _milliseconds_to_seconds(row["mean_TTFT_ms"])
         if row.get("mean_TPOT_ms"):
@@ -223,8 +271,8 @@ def merge_results_to_published_csv(results_dir: Path, output_csv: Path) -> int:
             row["mean_itl_s"] = _milliseconds_to_seconds(row["mean_ITL_ms"])
 
         # Concatenate config_summary and mode_type
-        config_summary = row.get("config_summary", "").strip()
-        mode_type = row.get("mode_type", "").strip()
+        config_summary = _safe_str(row.get("config_summary")).strip()
+        mode_type = _safe_str(row.get("mode_type")).strip()
         if mode_type:
             row["config_summary"] = f"{config_summary} | {mode_type}" if config_summary else mode_type
 

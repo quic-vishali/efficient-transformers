@@ -158,6 +158,8 @@ OUTPUT_FIELDS = [
     "response_text_file",
     "reference_file",
     "reference_text_file",
+    "validation_actual_text",
+    "validation_reference_text",
     "golden_output_file",
     "golden_status",
     "validation_method",
@@ -183,6 +185,8 @@ PUBLISHED_FIELDS = [
     "validation_status",
     "validation_score",
     "validation_error",
+    "validation_actual_text",
+    "validation_reference_text",
     "golden_status",
     "golden_output_file",
     "qpc_count",
@@ -773,7 +777,7 @@ def build_client_command(row: dict, args, result_dir: Path | None = None) -> lis
             add_custom_dataset_path_arg(cmd, row, args.base_dir)
         else:
             add_hf_random_dataset_args(cmd, row, args.base_dir)
-            add_bool_arg(cmd, "--ignore-eos", row, "ignore_eos")
+        add_bool_arg(cmd, "--ignore-eos", row, "ignore_eos")
         add_bool_arg(cmd, "--trust-remote-code", row, "trust_remote_code")
         add_bool_arg(cmd, "--save-result", row, "save_result")
     elif client_type == "vllm_bench":
@@ -845,8 +849,7 @@ def build_client_command(row: dict, args, result_dir: Path | None = None) -> lis
             cmd.append("--skip-chat-template")
         else:
             add_bool_arg(cmd, "--skip-chat-template", row, "skip_chat_template")
-        if not is_custom_image:
-            add_bool_arg(cmd, "--ignore-eos", row, "ignore_eos")
+        add_bool_arg(cmd, "--ignore-eos", row, "ignore_eos")
         add_bool_arg(cmd, "--trust-remote-code", row, "trust_remote_code")
         temperature = value(row, "temperature")
         if temperature:
@@ -1359,9 +1362,9 @@ _SERVER_LOG_PREFIX_RE = re.compile(
     r"(?:(?:INFO|WARNING|ERROR|DEBUG)\s+\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+)?",
     re.IGNORECASE,
 )
-_QPC_PATH_MARKER_RE = re.compile(r"\bUsing\s+qpc\s*:-\s*", re.IGNORECASE)
+_QPC_PATH_MARKER_RE = re.compile(r"(?:\bUsing\s+)?\bqpc\s*:-\s*", re.IGNORECASE)
 _QPC_PATH_RE = re.compile(
-    r"(?P<path>[A-Za-z0-9_./+:-]+(?:\s*\n\s*[A-Za-z0-9_./+:-]+)*?/q\s*p\s*c)"
+    r"(?P<path>[A-Za-z0-9_./+:-]+(?:\s*\n\s*[A-Za-z0-9_./+:-]+)*?/\s*q\s*p\s*c)"
     r"(?![A-Za-z0-9_./+:-])"
 )
 _LOG_TIME_PREFIX_RE = re.compile(r"^\s*\d{2}:\d{2}:\d{2}(?:\.\d+)?\s+")
@@ -1601,6 +1604,9 @@ def _clear_directory_contents(path: Path, label: str) -> None:
     # Guard against a malformed env var causing a broad delete.
     if str(resolved) in {"/", "/root", "/home", "/tmp", "/efficient-transformers"}:
         print(f"  Skipping {label} cleanup for unsafe path: {resolved}")
+        return
+    if label == "TMPDIR" and not str(resolved).endswith("/vllm_llm_workspace/tmp"):
+        print(f"  Skipping {label} cleanup for non-pipeline path: {resolved}")
         return
     if not resolved.exists():
         return
@@ -2104,6 +2110,8 @@ def validate_saved_benchmark_output(row: dict, log_dir: Path, base_dir: str) -> 
         "validation_status": "not_run",
         "validation_score": "",
         "validation_error": "",
+        "validation_actual_text": "",
+        "validation_reference_text": "",
         "golden_output_file": "",
         "golden_status": "",
     }
@@ -2126,6 +2134,7 @@ def validate_saved_benchmark_output(row: dict, log_dir: Path, base_dir: str) -> 
             generated = _response_values(response, response_kind)
         if not generated:
             raise ValueError(f"benchmark_result.json does not contain {response_kind}; use --save-detailed")
+        result["validation_actual_text"] = _format_validation_text(generated, max_chars=2000)
         expected = _expected_value(row, base_dir)
         if method in {"", "none", "off"}:
             result["validation_status"] = "not_run"
@@ -2134,6 +2143,7 @@ def validate_saved_benchmark_output(row: dict, log_dir: Path, base_dir: str) -> 
             result["reference_file"] = str(reference_file)
             result["golden_output_file"] = str(reference_file)
             result["golden_status"] = golden_status
+            result["validation_reference_text"] = _format_validation_text(reference_generated, max_chars=2000)
             actual = generated if response_kind == "embeddings" else [str(item) for item in generated]
             # Whether the golden was reused or created above, the QAIC result
             # must be checked against the PyTorch reference on this run.
@@ -2187,6 +2197,7 @@ def validate_saved_benchmark_output(row: dict, log_dir: Path, base_dir: str) -> 
                 raise ValueError("expected_output or expected_output_file is required for validation")
             actual = "\n".join(str(item) for item in generated)
             expected_text = str(expected)
+            result["validation_reference_text"] = _format_validation_text(expected_text, max_chars=2000)
             match_mode = value(row, "string_match_mode", default=method).lower()
             if match_mode == "regex":
                 matched = re.search(expected_text, actual, flags=re.DOTALL) is not None
@@ -2199,6 +2210,7 @@ def validate_saved_benchmark_output(row: dict, log_dir: Path, base_dir: str) -> 
         elif method == "cosine":
             if expected is None:
                 raise ValueError("expected_output or expected_output_file is required for validation")
+            result["validation_reference_text"] = _format_validation_text(expected, max_chars=2000)
             score = cosine_similarity(generated[0], expected)
             threshold = float(value(row, "cosine_threshold", default=str(DEFAULT_COSINE_THRESHOLD)))
             result["validation_score"] = str(round(score, 6))
@@ -2303,6 +2315,8 @@ def make_output_row(
         "response_text_file": (validation or {}).get("response_text_file", ""),
         "reference_file": (validation or {}).get("reference_file", ""),
         "reference_text_file": (validation or {}).get("reference_text_file", ""),
+        "validation_actual_text": (validation or {}).get("validation_actual_text", ""),
+        "validation_reference_text": (validation or {}).get("validation_reference_text", ""),
         "golden_output_file": (validation or {}).get("golden_output_file", ""),
         "golden_status": (validation or {}).get("golden_status", ""),
         "validation_method": (validation or {}).get("validation_method", "none"),
