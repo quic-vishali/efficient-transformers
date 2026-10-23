@@ -44,9 +44,19 @@ from pathlib import Path
 
 if __package__:
     from .pytorch_references import reference_for
+    from .qaic_device_cleanup import (
+        DeviceCleanupError,
+        extract_device_groups,
+        release_owned_busy_processes,
+    )
     from .validation_utils import cosine_similarity, normalize_transcription, text_cosine_fallback
 else:
     from pytorch_references import reference_for
+    from qaic_device_cleanup import (
+        DeviceCleanupError,
+        extract_device_groups,
+        release_owned_busy_processes,
+    )
     from validation_utils import cosine_similarity, normalize_transcription, text_cosine_fallback
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -1110,6 +1120,61 @@ def server_ports_from_command(command: list[str]) -> list[int]:
                 ports.extend(iter_ports(command[cursor]))
                 cursor += 1
     return sorted(set(ports))
+
+
+def cleanup_busy_qaic_processes(server_command: list[str]) -> None:
+    """Release matching stale QAIC servers before starting a benchmark row."""
+    device_groups = extract_device_groups(server_command, os.environ)
+    if not device_groups:
+        return
+
+    force_kill = parse_bool(os.environ.get("QAIC_FORCE_KILL"), default=False)
+    print(f"  QAIC force kill enabled: {force_kill}")
+    try:
+        cleanup = release_owned_busy_processes(
+            device_groups,
+            terminate_timeout_s=30.0,
+            force_kill=force_kill,
+        )
+    except DeviceCleanupError as exc:
+        raise BenchmarkError(f"QAIC device cleanup failed: {exc}") from exc
+
+    print(
+        "  QAIC device cleanup: "
+        f"groups={device_groups}, busy_qids={cleanup.busy_qids}, "
+        f"killed_process_groups={cleanup.killed_process_groups}"
+    )
+    print(
+        "  QAIC cleanup details: "
+        f"force_kill={force_kill}, ownership_scope={cleanup.ownership_scope}, "
+        f"matched_processes={len(cleanup.matched_processes)}, "
+        f"other_matching_processes={len(cleanup.other_matching_processes)}"
+    )
+    for process in cleanup.matched_processes:
+        print(
+            "  QAIC matched process: "
+            f"pid={process.pid}, pgid={process.pgid}, "
+            f"process_groups={process.matched_groups}, command={shlex.join(process.command)}"
+        )
+    for process in cleanup.other_matching_processes:
+        print(
+            "  QAIC ownership-filtered process: "
+            f"pid={process.pid}, pgid={process.pgid}, "
+            f"process_groups={process.matched_groups}, command={shlex.join(process.command)}"
+        )
+    if cleanup.busy_qids and not cleanup.killed_process_groups:
+        if cleanup.other_matching_processes:
+            reason = "matching process found but excluded by Jenkins/UID ownership checks"
+        else:
+            reason = (
+                "no visible process exposed any requested busy QID in its command "
+                "line or QAIC device-group environment variables"
+            )
+        raise BenchmarkError(
+            "requested QAIC devices are busy and no matching server process was killed: "
+            + ",".join(map(str, cleanup.busy_qids))
+            + f" ({reason})"
+        )
 
 
 def terminate_server(server: ServerProcess, timeout_s: int) -> None:
@@ -2481,7 +2546,9 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
     server_cmd = build_server_command(row, args)
     client_cmd = build_client_command(row, args, result_dir=log_dir)
 
-    # Pre-check and cleanup ports before starting server
+    # Clean up configured ports before starting the server. Port cleanup uses
+    # the port-based termination behavior; QAIC device cleanup happens
+    # inside the row-level try block below.
     ports_to_use = server_ports_from_command(server_cmd)
     if ports_to_use:
         print()
@@ -2535,6 +2602,10 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
     execution_start_time: float | None = None
 
     try:
+        # Remove only a matching stale QAIC server process group from this
+        # Jenkins run before launching the server. Cleanup errors become a
+        # failed result row instead of aborting the entire pipeline.
+        cleanup_busy_qaic_processes(server_cmd)
         execution_start_time = time.monotonic()
         server = launch_server(
             server_cmd,
