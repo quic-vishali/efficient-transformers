@@ -251,6 +251,7 @@ pipeline {
         booleanParam(name: 'RUN_VLM', defaultValue: true, description: 'Run VLM model configs')
         booleanParam(name: 'SKIP_INSTALL', defaultValue: false, description: 'Reuse an already installed venv/repos in BENCH_ROOT')
         booleanParam(name: 'DRY_RUN', defaultValue: false, description: 'Only build commands/log stubs/output CSV rows')
+        booleanParam(name: 'FORCE_KILL_QAIC', defaultValue: false, description: 'Force-kill matching QAIC server process groups even when owned by another Jenkins run')
         booleanParam(name: 'FAIL_FAST', defaultValue: false, description: 'Stop within a config after the first failing row')
         booleanParam(name: 'LATEST_MODELS_ONLY', defaultValue: true, description: 'Restrict runs to the curated LATEST_MODELS list (models >70B are always skipped regardless of this flag)')
         booleanParam(name: 'CLEAN_WORKSPACE_AFTER_RUN', defaultValue: false, description: 'Delete the Jenkins workspace after the build finishes (does not affect the persistent HF/results caches under ${HOME}/.cache)')
@@ -330,7 +331,9 @@ pipeline {
                     # HF_TOKEN_PARAM comes from the HF_TOKEN Jenkins param (may be empty). When
                     # empty, fall back to HF_TOKEN already exported in this agent's host shell env.
                     RESOLVED_HF_TOKEN="${HF_TOKEN_PARAM:-${HF_TOKEN:-}}"
-                    sudo docker run --privileged -dit --name ${BUILD_TAG} \
+                    sudo docker run --privileged --pid=host -dit --name ${BUILD_TAG} \
+                        -e JENKINS_RUN_ID="${BUILD_TAG}" \
+                        -e QAIC_FORCE_KILL="${FORCE_KILL_QAIC:-false}" \
                         -e HF_TOKEN="${RESOLVED_HF_TOKEN}" \
                         -e HF_HUB_ENABLE_HF_TRANSFER="${HF_HUB_ENABLE_HF_TRANSFER}" \
                         -e TMPDIR="${TMPDIR}" \
