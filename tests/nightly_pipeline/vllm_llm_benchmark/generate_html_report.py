@@ -27,9 +27,13 @@ from datetime import datetime
 from pathlib import Path
 
 try:
-    from .vllm_benchmark_common import extract_server_error
+    from .vllm_benchmark_common import (
+        NO_ERROR_MESSAGE_AVAILABLE,
+        extract_server_error,
+        is_generic_server_error,
+    )
 except ImportError:
-    from vllm_benchmark_common import extract_server_error
+    from vllm_benchmark_common import NO_ERROR_MESSAGE_AVAILABLE, extract_server_error, is_generic_server_error
 
 
 COMPARISON_THRESHOLD_PERCENT = 5.0
@@ -198,20 +202,25 @@ def _backfill_server_errors(rows: list[dict], csv_path: Path) -> None:
         status = (row.get("status") or "").strip().lower()
         if status in {"dry_run", "pass"}:
             continue
-        if str(row.get("error") or "").strip() not in {"", "N/A", "-"}:
-            continue
+        existing_error = str(row.get("error") or "").strip()
         validation_status = (row.get("validation_status") or "").strip().lower()
         if validation_status in {"failed", "error"}:
             validation_error = str(row.get("validation_error") or "").strip()
             if validation_error not in {"", "N/A", "-"}:
                 row["error"] = validation_error
+                continue
+        if existing_error not in {"", "N/A", "-"} and not is_generic_server_error(existing_error):
             continue
         server_log = _server_log_for_row(row, csv_path)
         if server_log is None:
+            if existing_error in {"", "N/A", "-"} or is_generic_server_error(existing_error):
+                row["error"] = NO_ERROR_MESSAGE_AVAILABLE
             continue
         error = extract_server_error(server_log)
         if error:
             row["error"] = error
+        elif existing_error in {"", "N/A", "-"} or is_generic_server_error(existing_error):
+            row["error"] = NO_ERROR_MESSAGE_AVAILABLE
 
 
 def _row_key(row: dict) -> tuple[str, ...]:
