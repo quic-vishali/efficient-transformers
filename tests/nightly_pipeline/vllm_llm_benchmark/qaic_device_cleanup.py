@@ -409,15 +409,10 @@ def _wait_for_devices_ready(
 
 
 def _validate_device_states(states: dict[int, DeviceState]) -> None:
-    invalid = {
-        qid: state
-        for qid, state in states.items()
-        if not state.parseable
-    }
+    invalid = {qid: state for qid, state in states.items() if not state.parseable}
     if invalid:
         details = "; ".join(
-            f"{qid}: status={state.status!r}, "
-            f"nsp_free={state.nsp_free!r}, nsp_total={state.nsp_total!r}"
+            f"{qid}: status={state.status!r}, nsp_free={state.nsp_free!r}, nsp_total={state.nsp_total!r}"
             for qid, state in sorted(invalid.items())
         )
         raise DeviceCleanupError(f"could not determine QAIC state: {details}")
@@ -461,11 +456,7 @@ def release_owned_busy_processes(
             same_user_only=False,
         )
         owned_keys = {(process.pid, process.pgid) for process in owned}
-        other_matching = tuple(
-            process
-            for process in all_matching
-            if (process.pid, process.pgid) not in owned_keys
-        )
+        other_matching = tuple(process for process in all_matching if (process.pid, process.pgid) not in owned_keys)
     pgids = tuple(process.pgid for process in owned)
     killed = () if dry_run else _terminate_groups(pgids, terminate_timeout_s)
     if killed:
@@ -492,10 +483,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--force-kill",
         action="store_true",
-        help=(
-            "Bypass Jenkins/UID ownership checks when a process uses any "
-            "requested QID; OS permission is required"
-        ),
+        help=("Bypass Jenkins/UID ownership checks when a process uses any requested QID; OS permission is required"),
     )
     return parser
 
