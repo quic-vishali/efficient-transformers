@@ -212,7 +212,7 @@ pipeline {
         string(name: 'NODE_LABEL', defaultValue: 'qeff_nightly', description: 'Jenkins agent/node label')
         string(name: 'PYTHON_BIN', defaultValue: 'python3.12', description: 'Python used to create the benchmark venv')
         string(name: 'VLLM_QAIC_REPO', defaultValue: 'https://github.com/qualcomm/vllm-qaic.git', description: 'vllm-qaic git clone URL')
-        string(name: 'VLLM_QAIC_BRANCH', defaultValue: 'main', description: 'vllm-qaic branch/tag/commit SHA/ref to clone. scripts/install.sh from this repository installs vLLM, QEfficient, and related packages.')
+        string(name: 'VLLM_QAIC_BRANCH', defaultValue: '3e546f579aee55a0250b139806dbce71acbc7dad', description: 'vllm-qaic branch/tag/commit SHA/ref to clone. scripts/install.sh from this repository installs vLLM, QEfficient, and related packages.')
         string(name: 'QAIC_DISAGG_REPO', defaultValue: 'ssh://vishsent@review.qualcomm.com:29418/qranium/qaic-disagg', description: 'qaic-disagg Gerrit SSH clone URL. Uses the Jenkins node SSH setup mounted from ${HOME}/.ssh.')
         string(name: 'QAIC_DISAGG_BRANCH', defaultValue: 'master', description: 'qaic-disagg branch/tag/commit SHA/ref to install')
         string(name: 'QSERVE_REPO', defaultValue: 'ssh://git@github.qualcomm.com/vishsent/qserve.git', description: 'qserve git clone URL. Uses the Jenkins node SSH setup mounted from ${HOME}/.ssh; qserve remains optional.')
