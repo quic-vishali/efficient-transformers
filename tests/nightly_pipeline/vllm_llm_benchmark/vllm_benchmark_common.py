@@ -1124,20 +1124,21 @@ def server_ports_from_command(command: list[str]) -> list[int]:
 
 def cleanup_busy_qaic_processes(server_command: list[str]) -> None:
     """Release matching stale QAIC servers before starting a benchmark row."""
-    device_groups = extract_device_groups(server_command, os.environ)
-    if not device_groups:
-        return
-
-    force_kill = parse_bool(os.environ.get("QAIC_FORCE_KILL"), default=False)
-    print(f"  QAIC force kill enabled: {force_kill}")
     try:
+        device_groups = extract_device_groups(server_command, os.environ)
+        if not device_groups:
+            return
+
+        force_kill = parse_bool(os.environ.get("QAIC_FORCE_KILL"), default=False)
+        print(f"  QAIC force kill enabled: {force_kill}")
         cleanup = release_owned_busy_processes(
             device_groups,
             terminate_timeout_s=30.0,
             force_kill=force_kill,
         )
-    except DeviceCleanupError as exc:
-        raise BenchmarkError(f"QAIC device cleanup failed: {exc}") from exc
+    except (DeviceCleanupError, OSError, ValueError) as exc:
+        print(f"  ERROR: QAIC device cleanup failed: {exc}; continuing inference")
+        return
 
     print(
         "  QAIC device cleanup: "
@@ -1170,10 +1171,10 @@ def cleanup_busy_qaic_processes(server_command: list[str]) -> None:
                 "no visible process exposed any requested busy QID in its command "
                 "line or QAIC device-group environment variables"
             )
-        raise BenchmarkError(
-            "requested QAIC devices are busy and no matching server process was killed: "
+        print(
+            "  ERROR: requested QAIC devices are busy and no matching server process was killed: "
             + ",".join(map(str, cleanup.busy_qids))
-            + f" ({reason})"
+            + f" ({reason}); continuing inference"
         )
 
 
@@ -1434,12 +1435,12 @@ _QPC_PATH_RE = re.compile(
 )
 _LOG_TIME_PREFIX_RE = re.compile(r"^\s*\d{2}:\d{2}:\d{2}(?:\.\d+)?\s+")
 
+NO_ERROR_MESSAGE_AVAILABLE = "No error message available; may be due to space issue. Check the logs."
+
 _GENERIC_SERVER_ERRORS = (
     "calledprocesserror",
     "engine core initialization failed",
     "enginecore encountered an issue",
-    "compilation failed for",
-    "compilation failed",
     "engine core",
     "output_handler failed",
     "failed to start",
@@ -1450,6 +1451,17 @@ _GENERIC_SERVER_ERRORS = (
     "occurred in disagg proxy server",
 )
 DEFAULT_COSINE_THRESHOLD = 0.98
+
+
+def is_generic_server_error(error: object) -> bool:
+    """Return whether *error* is an outer server/compiler wrapper.
+
+    These messages are useful when no deeper diagnostic is available, but
+    should be replaced when the server log contains the actual compiler or
+    runtime cause.
+    """
+    normalized = str(error or "").strip().lower()
+    return not normalized or any(marker in normalized for marker in _GENERIC_SERVER_ERRORS)
 
 
 def extract_server_error(log_path: Path) -> str:
@@ -1499,14 +1511,6 @@ def extract_server_error(log_path: Path) -> str:
     # diagnostics and Python exception messages are commonly wrapped.
     root_cause_patterns = (
         (
-            140,
-            re.compile(
-                r"(?P<exception>ValueError):\s*(?P<message>Compilation failed for\s+"
-                r"[^\n]+)",
-                re.IGNORECASE,
-            ),
-        ),
-        (
             120,
             re.compile(
                 r"Error message:\s*(?P<message>.+?)(?=\n(?:Unable to Compile|"
@@ -1537,6 +1541,14 @@ def extract_server_error(log_path: Path) -> str:
             105,
             re.compile(
                 r"(?P<message>Invalid option\s+[^\n]+)",
+                re.IGNORECASE,
+            ),
+        ),
+        (
+            70,
+            re.compile(
+                r"(?P<exception>ValueError):\s*(?P<message>Compilation failed for\s+"
+                r"[^\n]+)",
                 re.IGNORECASE,
             ),
         ),
@@ -2602,9 +2614,6 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
     execution_start_time: float | None = None
 
     try:
-        # Remove only a matching stale QAIC server process group from this
-        # Jenkins run before launching the server. Cleanup errors become a
-        # failed result row instead of aborting the entire pipeline.
         cleanup_busy_qaic_processes(server_cmd)
         execution_start_time = time.monotonic()
         server = launch_server(
@@ -2637,7 +2646,11 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
             # unrelated compiler warnings/errors from startup, which otherwise
             # overwrite the actual validation failure in the CSV.
             if status not in {"success", "dry_run", "validation_failed"}:
-                error = extract_server_error(server_log) or error
+                server_error = extract_server_error(server_log)
+                if server_error:
+                    error = server_error
+                elif not error or is_generic_server_error(error):
+                    error = NO_ERROR_MESSAGE_AVAILABLE
             if server is not None:
                 terminate_server(server, timeout_s=args.server_stop_timeout_s)
 

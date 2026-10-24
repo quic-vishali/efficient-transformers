@@ -25,9 +25,13 @@ import json
 from pathlib import Path
 
 try:
-    from .vllm_benchmark_common import extract_server_error
+    from .vllm_benchmark_common import (
+        NO_ERROR_MESSAGE_AVAILABLE,
+        extract_server_error,
+        is_generic_server_error,
+    )
 except ImportError:
-    from vllm_benchmark_common import extract_server_error
+    from vllm_benchmark_common import NO_ERROR_MESSAGE_AVAILABLE, extract_server_error, is_generic_server_error
 
 PUBLISHED_FIELDS = [
     "vllm_qaic_branch",
@@ -152,20 +156,25 @@ def _backfill_server_error(row: dict, results_dir: Path) -> None:
     status = (row.get("status") or "").strip().lower()
     if status in {"dry_run", "pass"}:
         return
-    if str(row.get("error") or "").strip() not in {"", "N/A", "-"}:
-        return
+    existing_error = str(row.get("error") or "").strip()
     validation_status = (row.get("validation_status") or "").strip().lower()
     if validation_status in {"failed", "error"}:
         validation_error = str(row.get("validation_error") or "").strip()
         if validation_error not in {"", "N/A", "-"}:
             row["error"] = validation_error
+            return
+    if existing_error not in {"", "N/A", "-"} and not is_generic_server_error(existing_error):
         return
     server_log = _resolve_server_log(row.get("server_log", ""), results_dir)
     if server_log is None:
+        if existing_error in {"", "N/A", "-"} or is_generic_server_error(existing_error):
+            row["error"] = NO_ERROR_MESSAGE_AVAILABLE
         return
     server_error = extract_server_error(server_log)
     if server_error:
         row["error"] = server_error
+    elif existing_error in {"", "N/A", "-"} or is_generic_server_error(existing_error):
+        row["error"] = NO_ERROR_MESSAGE_AVAILABLE
 
 
 def _model_category_from_filename(filename: str) -> str | None:
