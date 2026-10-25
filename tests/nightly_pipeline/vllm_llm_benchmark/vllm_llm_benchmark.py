@@ -39,7 +39,7 @@ LATEST_MODELS = {
     "meta-llama/Llama-3.1-8B",
     "meta-llama/Llama-3.2-1B",
     # "meta-llama/Llama-3.2-3B",
-    "meta-llama/Llama-3.3-70B-Instruct",
+    # "meta-llama/Llama-3.3-70B-Instruct", commented out due to space issue
     # "meta-llama/Meta-Llama-3-70B",
     "meta-llama/Meta-Llama-3-8B",
 }
