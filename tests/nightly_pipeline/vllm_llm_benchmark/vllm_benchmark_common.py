@@ -2295,7 +2295,7 @@ def validate_saved_benchmark_output(row: dict, log_dir: Path, base_dir: str) -> 
         else:
             raise ValueError(f"unsupported validation_method: {method}")
         _remove_reference_log_artifacts(log_dir)
-    except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+    except (OSError, ValueError, TypeError, json.JSONDecodeError, subprocess.TimeoutExpired) as exc:
         result["validation_status"] = "error"
         result["validation_error"] = str(exc)
         # Preserve benchmark_result.json, including generated_texts, so the
