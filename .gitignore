@@ -63,6 +63,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+weightfree-venv/
 qeff_env/
 
 # Spyder project settings
@@ -107,8 +108,3 @@ dbg.log
 
 # Golden-store write-lock dir (runtime artifact; see tests/.../golden_utils.py)
 tests/golden_outputs/.locks/
-
-*.log
-*.csv
-*.html
-*.environment.json

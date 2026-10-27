@@ -2539,7 +2539,7 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
     elif config_name == "embedding":
         # Embedding: use pooling_method
         effective_config_name = value(row, "pooling_method", default="unknown")
-    elif config_name == "vlm":
+    elif config_name == "vlm" or config_name.startswith("vlm_"):
         # VLM: specs/blocking/ccl/disagg_mode
         specs = value(row, "specialization_mode", default="single")
         blocking = "blocking" if parse_bool(row.get("enable_blocking"), default=False) else "non_blocking"
