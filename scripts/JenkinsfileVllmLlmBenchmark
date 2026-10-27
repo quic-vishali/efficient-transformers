@@ -2,7 +2,7 @@ def configCsv(String configName) {
     return "tests/nightly_pipeline/vllm_llm_benchmark/configs/llm_${configName}_configs.csv"
 }
 
-def runLlmConfig(String configName, String rowSpec, String deviceGroup = '') {
+def runLlmConfig(String configName, String rowSpec, String deviceGroup = '', String venvDir = '') {
     def dryRunArg = params.DRY_RUN ? '--dry-run' : ''
     def failFastArg = params.FAIL_FAST ? '--fail-fast' : ''
     def latestModelsOnlyArg = params.LATEST_MODELS_ONLY ? 'true' : 'false'
@@ -18,6 +18,7 @@ def runLlmConfig(String configName, String rowSpec, String deviceGroup = '') {
             "FAIL_FAST_ARG=${failFastArg}",
             "LATEST_MODELS_ONLY_ARG=${latestModelsOnlyArg}",
             "DEVICE_GROUP_OVERRIDE=${deviceGroup ?: ''}",
+            "VENV_DIR_OVERRIDE=${venvDir ?: ''}",
         ]) {
             // BENCHMARK_SCRIPT/VENV_DIR/etc are already set inside the container via
             // `docker run -e` (Start Container stage); only the per-invocation values are
@@ -35,10 +36,11 @@ def runLlmConfig(String configName, String rowSpec, String deviceGroup = '') {
                     -e FAIL_FAST_ARG="${FAIL_FAST_ARG:-}" \
                     -e LATEST_MODELS_ONLY_ARG="${LATEST_MODELS_ONLY_ARG:-true}" \
                     -e DEVICE_GROUP_OVERRIDE="${DEVICE_GROUP_OVERRIDE:-}" \
+                    -e VENV_DIR_OVERRIDE="${VENV_DIR_OVERRIDE:-}" \
                     ${BUILD_TAG} bash -s <<'SCRIPT'
 set -euo pipefail
 cd /efficient-transformers
-. "${VENV_DIR}/bin/activate"
+. "${VENV_DIR_OVERRIDE:-${VENV_DIR}}/bin/activate"
 export PYTHONUNBUFFERED=1
 export TOKENIZERS_PARALLELISM=false
 
@@ -127,16 +129,15 @@ SCRIPT
     }
 }
 
-def runVlmConfig(String rowSpec, String disaggMode, String specializationMode, String blockingMode, String deviceGroupEncode = '', String deviceGroupPrefill = '', String deviceGroupDecode = '') {
+def runVlmConfig(String rowSpec, String disaggMode, String specializationMode, String blockingMode, String deviceGroupEncode = '', String deviceGroupPrefill = '', String deviceGroupDecode = '', String inputCsv = 'tests/nightly_pipeline/vllm_llm_benchmark/configs/vlm_configs.csv', String resultName = 'vlm', String venvDir = '') {
     def dryRunArg = params.DRY_RUN ? '--dry-run' : ''
     def failFastArg = params.FAIL_FAST ? '--fail-fast' : ''
     def latestModelsOnlyArg = params.LATEST_MODELS_ONLY ? 'true' : 'false'
-    def inputCsv = "tests/nightly_pipeline/vllm_llm_benchmark/configs/vlm_configs.csv"
-    def outputCsv = "${env.VLLM_LLM_RESULTS_DIR}/vlm_results.csv"
+    def outputCsv = "${env.VLLM_LLM_RESULTS_DIR}/${resultName}_results.csv"
 
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         withEnv([
-            "CONFIG_NAME=vlm",
+            "CONFIG_NAME=${resultName}",
             "INPUT_CSV=${inputCsv}",
             "OUTPUT_CSV=${outputCsv}",
             "ROWS_TO_RUN=${rowSpec ?: 'ALL'}",
@@ -149,6 +150,7 @@ def runVlmConfig(String rowSpec, String disaggMode, String specializationMode, S
             "DEVICE_GROUP_ENCODE_OVERRIDE=${deviceGroupEncode ?: ''}",
             "DEVICE_GROUP_PREFILL_OVERRIDE=${deviceGroupPrefill ?: ''}",
             "DEVICE_GROUP_DECODE_OVERRIDE=${deviceGroupDecode ?: ''}",
+            "VENV_DIR_OVERRIDE=${venvDir ?: ''}",
         ]) {
             sh '''#!/bin/bash
                 set -euo pipefail
@@ -166,10 +168,11 @@ def runVlmConfig(String rowSpec, String disaggMode, String specializationMode, S
                     -e DEVICE_GROUP_ENCODE_OVERRIDE="${DEVICE_GROUP_ENCODE_OVERRIDE:-}" \
                     -e DEVICE_GROUP_PREFILL_OVERRIDE="${DEVICE_GROUP_PREFILL_OVERRIDE:-}" \
                     -e DEVICE_GROUP_DECODE_OVERRIDE="${DEVICE_GROUP_DECODE_OVERRIDE:-}" \
+                    -e VENV_DIR_OVERRIDE="${VENV_DIR_OVERRIDE:-}" \
                     ${BUILD_TAG} bash -s <<'SCRIPT'
 set -euo pipefail
 cd /efficient-transformers
-. "${VENV_DIR}/bin/activate"
+. "${VENV_DIR_OVERRIDE:-${VENV_DIR}}/bin/activate"
 export PYTHONUNBUFFERED=1
 export TOKENIZERS_PARALLELISM=false
 
@@ -239,6 +242,8 @@ pipeline {
         string(name: 'ROWS_EMBEDDING', defaultValue: 'ALL', description: 'Embedding config data rows')
         string(name: 'ROWS_AUDIO', defaultValue: 'ALL', description: 'Audio config data rows')
         string(name: 'ROWS_VLM', defaultValue: 'ALL', description: 'VLM config data rows')
+        string(name: 'ROWS_WEIGHT_FREE_LLM', defaultValue: 'ALL', description: 'Weight-free LLM config data rows')
+        string(name: 'ROWS_WEIGHT_FREE_VLM', defaultValue: 'ALL', description: 'Weight-free VLM config data rows')
         choice(name: 'VLM_DISAGG_MODE', choices: ['ALL', 'ED', 'PD', 'EPD'], description: 'VLM disagg layout filter: encode-decode, prefill-decode, or encode-prefill-decode')
         choice(name: 'VLM_SPECIALIZATION_MODE', choices: ['ALL', 'single', 'multi'], description: 'VLM specialization filter: single vs multi resolution/image-count buckets')
         choice(name: 'VLM_BLOCKING_MODE', choices: ['ALL', 'blocking', 'non_blocking'], description: 'VLM blocking filter')
@@ -249,6 +254,8 @@ pipeline {
         booleanParam(name: 'RUN_EMBEDDING', defaultValue: true, description: 'Run embedding model configs')
         booleanParam(name: 'RUN_AUDIO', defaultValue: true, description: 'Run audio model configs')
         booleanParam(name: 'RUN_VLM', defaultValue: true, description: 'Run VLM model configs')
+        booleanParam(name: 'RUN_WEIGHT_FREE_LLM', defaultValue: true, description: 'Prepare and run weight-free LLM configs')
+        booleanParam(name: 'RUN_WEIGHT_FREE_VLM', defaultValue: true, description: 'Prepare and run weight-free VLM configs')
         booleanParam(name: 'SKIP_INSTALL', defaultValue: false, description: 'Reuse an already installed venv/repos in BENCH_ROOT')
         booleanParam(name: 'DRY_RUN', defaultValue: false, description: 'Only build commands/log stubs/output CSV rows')
         booleanParam(name: 'FORCE_KILL_QAIC', defaultValue: false, description: 'Force-kill matching QAIC server process groups even when owned by another Jenkins run')
@@ -266,6 +273,7 @@ pipeline {
         REPO_ROOT = "/efficient-transformers"
         BENCH_ROOT = "/efficient-transformers/vllm_llm_workspace"
         VENV_DIR = "/efficient-transformers/vllm_llm_workspace/venv"
+        WEIGHT_FREE_VENV_DIR = "/efficient-transformers/vllm_llm_workspace/weightfree-venv"
         VLLM_QAIC_DIR = "/efficient-transformers/vllm_llm_workspace/vllm-qaic"
         QAIC_DISAGG_DIR = "/efficient-transformers/vllm_llm_workspace/qaic-disagg"
         QSERVE_DIR = "/efficient-transformers/vllm_llm_workspace/qserve"
@@ -286,7 +294,9 @@ pipeline {
         // when the param is left empty.
         HF_TOKEN_PARAM = "${params.HF_TOKEN}"
         HF_HUB_ENABLE_HF_TRANSFER = '1'
-        TMPDIR = "/efficient-transformers/vllm_llm_workspace/tmp"
+        // Use a pipeline-specific name here. Jenkins agents commonly export TMPDIR for
+        // their own shell workspace, and that value must not override the container path.
+        BENCH_TMPDIR = "/efficient-transformers/vllm_llm_workspace/tmp"
         PYTHON_BIN = "${params.PYTHON_BIN}"
         VLLM_QAIC_REPO = "${params.VLLM_QAIC_REPO}"
         VLLM_QAIC_BRANCH = "${params.VLLM_QAIC_BRANCH}"
@@ -336,7 +346,9 @@ pipeline {
                         -e QAIC_FORCE_KILL="${FORCE_KILL_QAIC:-false}" \
                         -e HF_TOKEN="${RESOLVED_HF_TOKEN}" \
                         -e HF_HUB_ENABLE_HF_TRANSFER="${HF_HUB_ENABLE_HF_TRANSFER}" \
-                        -e TMPDIR="${TMPDIR}" \
+                        -e BENCH_TMPDIR="${BENCH_TMPDIR}" \
+                        -e TMPDIR="${BENCH_TMPDIR}" \
+                        -e WEIGHT_FREE_VENV_DIR="${WEIGHT_FREE_VENV_DIR}" \
                         -e VENV_DIR="${VENV_DIR}" \
                         -e REPO_ROOT="${REPO_ROOT}" \
                         -e BENCH_ROOT="${BENCH_ROOT}" \
@@ -380,12 +392,12 @@ pipeline {
                             set -euo pipefail
                             sudo docker exec -i ${BUILD_TAG} bash -s <<'SCRIPT'
 set -euo pipefail
-mkdir -p "${BENCH_ROOT}" "${VLLM_LLM_RESULTS_DIR}" "${QEFF_HOME}" "${HF_HOME}" "${TMPDIR}"
+mkdir -p "${BENCH_ROOT}" "${VLLM_LLM_RESULTS_DIR}" "${QEFF_HOME}" "${HF_HOME}" "${BENCH_TMPDIR}"
 ln -sfn "$(dirname "${VLLM_LLM_RESULTS_DIR}")" "/efficient-transformers/vllm_llm_results"
 echo "Cleaning stale QEFF_HOME contents before benchmark run: ${QEFF_HOME}"
 find "${QEFF_HOME}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
-echo "Cleaning stale TMPDIR contents before benchmark run: ${TMPDIR}"
-find "${TMPDIR}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+echo "Cleaning stale TMPDIR contents before benchmark run: ${BENCH_TMPDIR}"
+find "${BENCH_TMPDIR}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
 
 if [[ "${SKIP_INSTALL}" == "true" ]]; then
     echo "SKIP_INSTALL=true; reusing existing venv and repository installations."
@@ -531,6 +543,50 @@ SCRIPT
             }
         }
 
+        stage('Prepare Weight-Free Environment') {
+            when {
+                expression {
+                    params.RUN_WEIGHT_FREE_LLM || params.RUN_WEIGHT_FREE_VLM
+                }
+            }
+            steps {
+                sh '''#!/bin/bash
+                    set -euo pipefail
+                    sudo docker exec -i ${BUILD_TAG} bash -s <<'SCRIPT'
+set -euo pipefail
+
+mkdir -p "${QEFF_HOME}" "${BENCH_TMPDIR}"
+
+if [[ "${SKIP_INSTALL}" == "true" ]]; then
+    echo "SKIP_INSTALL=true; reusing the weight-free environment."
+    if [[ ! -x "${WEIGHT_FREE_VENV_DIR}/bin/python" ]]; then
+        echo "ERROR: SKIP_INSTALL=true but no weight-free environment was found at ${WEIGHT_FREE_VENV_DIR}." >&2
+        exit 1
+    fi
+else
+    if [[ ! -d "${WEIGHT_FREE_VENV_DIR}" ]]; then
+        "${PYTHON_BIN}" -m venv "${WEIGHT_FREE_VENV_DIR}"
+    fi
+
+    export VENV_DIR="${WEIGHT_FREE_VENV_DIR}"
+    . "${WEIGHT_FREE_VENV_DIR}/bin/activate"
+    python -m pip install --upgrade pip setuptools wheel
+
+    (
+        cd "${VLLM_QAIC_DIR}"
+        QEFF_BRANCH="${QEFF_BRANCH}" scripts/install.sh aot
+    )
+    python -m pip install -e "${QAIC_DISAGG_DIR}"
+    python -m pip install -r "${REPO_ROOT}/examples/dynamo/causal_lm/requirements.txt"
+fi
+
+. "${WEIGHT_FREE_VENV_DIR}/bin/activate"
+python -c 'import torch; version = tuple(int(part) for part in torch.__version__.split("+")[0].split(".")[:2]); assert version >= (2, 13), torch.__version__; print(f"Weight-free environment ready: torch={torch.__version__}")'
+SCRIPT
+                '''
+            }
+        }
+
         stage('Run Default LLM') {
             when { expression { params.RUN_DEFAULT } }
             steps {
@@ -594,6 +650,35 @@ SCRIPT
             }
         }
 
+        stage('Run Weight-Free LLM') {
+            when { expression { params.RUN_WEIGHT_FREE_LLM } }
+            steps {
+                script {
+                    runLlmConfig('weight_free', params.ROWS_WEIGHT_FREE_LLM, '', env.WEIGHT_FREE_VENV_DIR)
+                }
+            }
+        }
+
+        stage('Run Weight-Free VLM') {
+            when { expression { params.RUN_WEIGHT_FREE_VLM } }
+            steps {
+                script {
+                    runVlmConfig(
+                        params.ROWS_WEIGHT_FREE_VLM,
+                        params.VLM_DISAGG_MODE,
+                        params.VLM_SPECIALIZATION_MODE,
+                        params.VLM_BLOCKING_MODE,
+                        params.DEVICE_GROUP_VLM_ENCODE,
+                        params.DEVICE_GROUP_VLM_PREFILL,
+                        params.DEVICE_GROUP_VLM_DECODE,
+                        'tests/nightly_pipeline/vllm_llm_benchmark/configs/vlm_weight_free_configs.csv',
+                        'vlm_weight_free',
+                        env.WEIGHT_FREE_VENV_DIR
+                    )
+                }
+            }
+        }
+
         stage('Generate Report') {
             steps {
                 script {
@@ -629,6 +714,20 @@ if [[ -n "${PREVIOUS_RESULTS_CSV:-}" && -f "${PREVIOUS_RESULTS_CSV}" ]]; then
     echo "Comparing report with build #${COMPARE_BUILD_NUMBER}: ${PREVIOUS_RESULTS_CSV}"
 else
     echo "No consolidated CSV found for build #${COMPARE_BUILD_NUMBER:-N/A}; comparison will be skipped."
+fi
+
+# A build can intentionally select no benchmark stage. Keep that no-op from being
+# reported as a merge failure; any failure in a selected stage is already preserved
+# by its catchError wrapper.
+shopt -s nullglob
+RESULT_CSVS=()
+for result_csv in "${VLLM_LLM_RESULTS_DIR}"/*_results.csv; do
+    [[ "${result_csv}" == *_published_results.csv ]] && continue
+    RESULT_CSVS+=("${result_csv}")
+done
+if (( ${#RESULT_CSVS[@]} == 0 )); then
+    echo "No benchmark result CSV files found in ${VLLM_LLM_RESULTS_DIR}; skipping report generation."
+    exit 0
 fi
 
 # Generate consolidated published CSV
