@@ -7,7 +7,7 @@ This document describes the complete workflow for generating and distributing be
 The vLLM QAIC benchmark pipeline now includes automated report generation and email distribution:
 
 1. **Benchmark Execution**: Run all benchmark categories (LLM, embedding, audio, VLM)
-2. **CSV Consolidation**: Merge standard and weight-free result CSVs into separate consolidated published CSVs
+2. **CSV Consolidation**: Merge standard and weight-free result CSVs into one consolidated published CSV
 3. **HTML Report Generation**: Create a professional HTML report for each available result set
 4. **Email Distribution**: Send the report to specified email recipients
 
@@ -30,9 +30,9 @@ Execute the benchmark pipeline with your desired configurations:
 After all benchmark stages complete, the "Generate Report" stage automatically:
 
 1. **Merges result CSVs** using `merge_published_results.py`:
-   - Standard result CSVs are consolidated into `consolidated_published_results.csv`
-   - `llm_weight_free_results.csv` and `vlm_weight_free_results.csv` are consolidated separately into `weight_free_consolidated_published_results.csv`
-   - The optional `--input-files` argument selects the exact CSVs for a report and prevents standard and weight-free rows from being mixed
+   - Standard and weight-free result CSVs are consolidated into `consolidated_published_results.csv`
+   - The `config_name` field preserves the variant, such as `weight_free` for LLM and `weight_free/<mode>` for VLM
+   - The optional `--input-files` argument can select a subset, but Jenkins passes all result CSVs for the single report
    - Includes the benchmark, comparison, and `vllm_exec_time_s` fields. The common environment fields `vllm_qaic_branch`, `qaic_disagg_branch`, `qserve_branch`, `qeff_branch`, and `qaic_sdk_version` are shown once at the top of the HTML report instead of being repeated in every CSV row.
 
 2. **Generates HTML report** using `generate_html_report.py`:
@@ -51,7 +51,7 @@ After all benchmark stages complete, the "Generate Report" stage automatically:
 
 If `EMAIL_RECIPIENTS` parameter is set:
 
-- **On Success**: Sends the standard report inline when available, with the standard and weight-free HTML/CSV files attached when available
+- **On Success**: Sends the combined standard/weight-free report inline with the single consolidated CSV attached
 - **On Failure**: Sends failure notification with build details link
 
 ## Jenkins Configuration
@@ -81,15 +81,6 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/merge_published_results.py \
   --output /path/to/consolidated_published_results.csv
 ```
 
-For a weight-free-only report, pass the selected files explicitly:
-
-```bash
-python3 tests/nightly_pipeline/vllm_llm_benchmark/merge_published_results.py \
-  --results-dir /path/to/results \
-  --output /path/to/weight_free_consolidated_published_results.csv \
-  --input-files llm_weight_free_results.csv vlm_weight_free_results.csv
-```
-
 ### Generate HTML Report
 
 ```bash
@@ -98,7 +89,7 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/generate_html_report.py \
   --output /path/to/benchmark_report.html
 ```
 
-For a local comparison, add `--previous-csv` with the previous consolidated CSV.
+For a local comparison, add `--previous-csv` with the previous consolidated CSV. Multiple previous CSVs can be supplied by repeating the option when comparing against older separate standard and weight-free reports.
 
 ## Report Contents
 
@@ -144,8 +135,7 @@ The email includes:
 - Subject: `vLLM QAIC Benchmark Report - Build #<BUILD_NUMBER>`
 - Body: Full HTML report rendered directly in the email (not as attachment)
 - Attachments: 
-  - `consolidated_published_results.csv` - Standard consolidated results data
-  - `weight_free_consolidated_published_results.csv` - Weight-free consolidated results data
+  - `consolidated_published_results.csv` - Standard and weight-free consolidated results data
 
 ## Troubleshooting
 

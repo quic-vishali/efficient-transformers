@@ -410,7 +410,7 @@ def generate_html_report(
     csv_path: Path,
     output_path: Path,
     build_url: str = "N/A",
-    previous_csv_path: Path | None = None,
+    previous_csv_path: Path | list[Path] | None = None,
     comparison_build_number: str = "",
 ) -> int:
     """Generate an HTML report from the consolidated published CSV."""
@@ -430,7 +430,15 @@ def generate_html_report(
         environment_metadata = {field: str(rows[0].get(field, "") or "") for field in HTML_ENVIRONMENT_FIELDS}
 
     _backfill_server_errors(rows, csv_path)
-    previous_rows = _read_rows(previous_csv_path) if previous_csv_path else []
+    if previous_csv_path is None:
+        previous_csv_paths = []
+    elif isinstance(previous_csv_path, Path):
+        previous_csv_paths = [previous_csv_path]
+    else:
+        previous_csv_paths = previous_csv_path
+    previous_rows = []
+    for previous_path in previous_csv_paths:
+        previous_rows.extend(_read_rows(previous_path))
     comparison_results = _comparison_results(rows, previous_rows) if previous_rows else {}
     _write_comparison_csv(
         csv_path,
@@ -886,8 +894,9 @@ def main() -> int:
     )
     parser.add_argument(
         "--previous-csv",
-        default="",
-        help="Previous consolidated CSV for >5%% comparison highlighting (optional)",
+        action="append",
+        default=[],
+        help="Previous consolidated CSV for >5%% comparison highlighting; repeat for multiple variants (optional)",
     )
     parser.add_argument(
         "--comparison-build-number",
@@ -896,12 +905,12 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    previous_csv = Path(args.previous_csv) if args.previous_csv else None
+    previous_csv_paths = [Path(path) for path in args.previous_csv]
     return generate_html_report(
         Path(args.csv),
         Path(args.output),
         args.build_url,
-        previous_csv,
+        previous_csv_paths,
         args.comparison_build_number,
     )
 

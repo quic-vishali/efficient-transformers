@@ -198,9 +198,22 @@ def _model_category_from_filename(filename: str) -> str | None:
 def _assign_model_category(row: dict, source_filename: str) -> None:
     pooling_method = _safe_str(row.get("pooling_method")).lower()
     if pooling_method in ("mean", "avg", "cls", "max"):
-        row["model_category"] = "Embedding"
+        category = "Embedding"
+    else:
+        category = _model_category_from_filename(source_filename) or "LLM"
+
+    row["model_category"] = category
+
+    source_is_weight_free = "weight_free" in source_filename.lower()
+    if not source_is_weight_free:
         return
-    row["model_category"] = _model_category_from_filename(source_filename) or "LLM"
+
+    config_name = _safe_str(row.get("config_name")).strip()
+    if category == "VLM":
+        if not config_name.lower().startswith("weight_free/"):
+            row["config_name"] = f"weight_free/{config_name}" if config_name else "weight_free"
+    elif category == "LLM" and "weight_free" not in config_name.lower():
+        row["config_name"] = "weight_free"
 
 
 def generate_published_csv(input_csv: Path, output_csv: Path) -> None:
