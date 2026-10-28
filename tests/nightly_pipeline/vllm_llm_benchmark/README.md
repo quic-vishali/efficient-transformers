@@ -83,8 +83,8 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_vlm_benchmark.py \
 
 After all benchmark categories complete, run `merge_published_results.py` to generate
 a consolidated published CSV with only the key fields for team distribution. Jenkins
-keeps standard and weight-free results separate by passing explicit input files. The
-generic command below merges the files it finds in a local results directory:
+merges standard and weight-free results into one consolidated CSV. The generic
+command below merges the files it finds in a local results directory:
 
 ```bash
 python3 tests/nightly_pipeline/vllm_llm_benchmark/merge_published_results.py \
@@ -109,15 +109,6 @@ row fills the per-stage `prefill_mdp_export_compile_time_s`/
 Fields that do not apply to a row are written as `N/A` in the consolidated CSV
 and displayed as `N/A` in the HTML table. A successful row with no failure or
 comparison reason uses `-` in the `reason` column.
-
-To generate the separate weight-free CSV, select its inputs explicitly:
-
-```bash
-python3 tests/nightly_pipeline/vllm_llm_benchmark/merge_published_results.py \
-  --results-dir vllm_llm_results/ \
-  --output vllm_llm_results/weight_free_consolidated_published_results.csv \
-  --input-files llm_weight_free_results.csv vlm_weight_free_results.csv
-```
 
 ## Response Capture and Validation
 
@@ -203,11 +194,11 @@ The Jenkins pipeline:
 3. Runs `scripts/install.sh aot`, which installs QEfficient internally.
 4. Clones and installs `qaic-disagg`.
 5. Runs the selected LLM/embedding/audio/VLM config CSVs.
-6. Runs `merge_published_results.py` separately for standard and weight-free CSVs.
-7. Runs `generate_html_report.py` to render `benchmark_report.html` and, when weight-free rows exist, `weight_free_benchmark_report.html`.
+6. Runs `merge_published_results.py` once for all standard and weight-free CSVs.
+7. Runs `generate_html_report.py` to render one `benchmark_report.html` containing all rows.
 8. Archives `vllm_llm_results/**/*.csv` and `vllm_llm_results/**/*.log`.
-9. Emails the standard report inline when available and attaches the generated
-   standard/weight-free HTML and CSV files to `EMAIL_RECIPIENTS`, if set — this fires from the pipeline's
+9. Emails the combined report inline when available and attaches the consolidated CSV
+   to `EMAIL_RECIPIENTS`, if set — this fires from the pipeline's
    `post { always { ... } }` block regardless of whether the overall build
    passed or failed, as long as the HTML report file exists (the subject line
    includes the build status). If the report could not be generated at all,
