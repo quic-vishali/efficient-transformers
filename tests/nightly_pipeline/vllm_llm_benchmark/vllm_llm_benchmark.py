@@ -30,7 +30,7 @@ from __future__ import annotations
 from vllm_benchmark_common import build_arg_parser, run_benchmarks
 
 LATEST_MODELS = {
-    "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    # "Qwen/Qwen3-30B-A3B-Instruct-2507", commented out due to space issue
     "allenai/OLMo-2-0425-1B",
     # "google/gemma-2-9b",
     # "google/gemma-2b",
