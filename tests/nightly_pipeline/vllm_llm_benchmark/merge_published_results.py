@@ -158,22 +158,28 @@ def _backfill_server_error(row: dict, results_dir: Path) -> None:
         return
     existing_error = str(row.get("error") or "").strip()
     validation_status = (row.get("validation_status") or "").strip().lower()
-    if validation_status in {"failed", "error"}:
-        validation_error = str(row.get("validation_error") or "").strip()
-        if validation_error not in {"", "N/A", "-"}:
-            row["error"] = validation_error
-            return
+    validation_error = str(row.get("validation_error") or "").strip()
+    validation_error_available = validation_status in {"failed", "error"} and validation_error not in {"", "N/A", "-"}
+    error_is_missing = existing_error in {"", "N/A", "-"} or is_generic_server_error(existing_error)
+
+    if validation_error_available and status in {"success", "validation_failed"} and error_is_missing:
+        row["error"] = validation_error
+        return
     if existing_error not in {"", "N/A", "-"} and not is_generic_server_error(existing_error):
         return
     server_log = _resolve_server_log(row.get("server_log", ""), results_dir)
     if server_log is None:
-        if existing_error in {"", "N/A", "-"} or is_generic_server_error(existing_error):
+        if validation_error_available and error_is_missing:
+            row["error"] = validation_error
+        elif error_is_missing:
             row["error"] = NO_ERROR_MESSAGE_AVAILABLE
         return
     server_error = extract_server_error(server_log)
     if server_error:
         row["error"] = server_error
-    elif existing_error in {"", "N/A", "-"} or is_generic_server_error(existing_error):
+    elif validation_error_available and error_is_missing:
+        row["error"] = validation_error
+    elif error_is_missing:
         row["error"] = NO_ERROR_MESSAGE_AVAILABLE
 
 
@@ -236,15 +242,22 @@ def generate_published_csv(input_csv: Path, output_csv: Path) -> None:
         writer.writerows(_normalize_published_row(row) for row in rows)
 
 
-def merge_results_to_published_csv(results_dir: Path, output_csv: Path) -> int:
-    """Merge all result CSVs in results_dir into a single consolidated published CSV."""
+def merge_results_to_published_csv(
+    results_dir: Path,
+    output_csv: Path,
+    input_files: list[str] | None = None,
+) -> int:
+    """Merge selected result CSVs in results_dir into a consolidated CSV."""
     results_dir = Path(results_dir)
     if not results_dir.exists():
         print(f"Error: results directory does not exist: {results_dir}")
         return 1
 
     all_rows = []
-    result_csvs = sorted(results_dir.glob("*_results.csv"))
+    if input_files:
+        result_csvs = [results_dir / name for name in input_files]
+    else:
+        result_csvs = sorted(results_dir.glob("*_results.csv"))
     # Exclude published CSVs if they exist
     result_csvs = [f for f in result_csvs if "_published" not in f.name]
 
@@ -317,9 +330,15 @@ def main() -> int:
         required=True,
         help="Output consolidated published CSV path",
     )
+    parser.add_argument(
+        "--input-files",
+        nargs="+",
+        default=None,
+        help="Specific result CSV basenames to merge; default is all *_results.csv files.",
+    )
     args = parser.parse_args()
 
-    return merge_results_to_published_csv(Path(args.results_dir), Path(args.output))
+    return merge_results_to_published_csv(Path(args.results_dir), Path(args.output), args.input_files)
 
 
 if __name__ == "__main__":

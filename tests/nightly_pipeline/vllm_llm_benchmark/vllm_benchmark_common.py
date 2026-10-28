@@ -1449,6 +1449,7 @@ _GENERIC_SERVER_ERRORS = (
     "internal server error",
     "error occurred in disagg proxy server",
     "occurred in disagg proxy server",
+    "no error message available",
 )
 DEFAULT_COSINE_THRESHOLD = 0.98
 
@@ -2540,12 +2541,16 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
         # Embedding: use pooling_method
         effective_config_name = value(row, "pooling_method", default="unknown")
     elif config_name == "vlm" or config_name.startswith("vlm_"):
-        # VLM: specs/blocking/ccl/disagg_mode
+        # VLM: keep the run variant in the effective name.  Without this,
+        # vlm_weight_free rows are indistinguishable from regular VLM rows
+        # after consolidation because both used only the mode tuple.
+        variant = config_name.removeprefix("vlm_")
         specs = value(row, "specialization_mode", default="single")
         blocking = "blocking" if parse_bool(row.get("enable_blocking"), default=False) else "non_blocking"
         ccl = "ccl" if parse_bool(row.get("enable_ccl"), default=False) else "non_ccl"
         disagg_mode = value(row, "disagg_mode", default="single")
-        effective_config_name = f"{specs}/{blocking}/{ccl}/{disagg_mode}"
+        mode_name = f"{specs}/{blocking}/{ccl}/{disagg_mode}"
+        effective_config_name = f"{variant}/{mode_name}" if variant else mode_name
     else:
         # LLM: use config_name as-is (default, ccl, blocking, disagg_pd)
         effective_config_name = config_name
@@ -2613,6 +2618,10 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
     vllm_exec_time_s: float | str = ""
     execution_start_time: float | None = None
 
+    # Keep an explicit artifact when server startup fails before the client is
+    # launched.  run_client() overwrites this header on normal runs.
+    write_log_header(client_log, client_cmd, "Client Command (not started)")
+
     try:
         cleanup_busy_qaic_processes(server_cmd)
         execution_start_time = time.monotonic()
@@ -2637,7 +2646,8 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
         try:
             if execution_start_time is not None and vllm_exec_time_s == "":
                 vllm_exec_time_s = time.monotonic() - execution_start_time
-            if _capture_enabled(row):
+            benchmark_result = log_dir / "benchmark_result.json"
+            if _capture_enabled(row) and (status == "success" or benchmark_result.exists()):
                 validation = validate_saved_benchmark_output(row, log_dir, args.base_dir)
                 if validation["validation_status"] in {"failed", "error"} and status == "success":
                     status = "validation_failed"

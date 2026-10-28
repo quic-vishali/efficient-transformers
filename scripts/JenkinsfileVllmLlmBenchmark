@@ -129,7 +129,7 @@ SCRIPT
     }
 }
 
-def runVlmConfig(String rowSpec, String disaggMode, String specializationMode, String blockingMode, String deviceGroupEncode = '', String deviceGroupPrefill = '', String deviceGroupDecode = '', String inputCsv = 'tests/nightly_pipeline/vllm_llm_benchmark/configs/vlm_configs.csv', String resultName = 'vlm', String venvDir = '') {
+def runVlmConfig(String rowSpec, String deviceGroupEncode = '', String deviceGroupPrefill = '', String deviceGroupDecode = '', String inputCsv = 'tests/nightly_pipeline/vllm_llm_benchmark/configs/vlm_configs.csv', String resultName = 'vlm', String venvDir = '') {
     def dryRunArg = params.DRY_RUN ? '--dry-run' : ''
     def failFastArg = params.FAIL_FAST ? '--fail-fast' : ''
     def latestModelsOnlyArg = params.LATEST_MODELS_ONLY ? 'true' : 'false'
@@ -144,9 +144,6 @@ def runVlmConfig(String rowSpec, String disaggMode, String specializationMode, S
             "DRY_RUN_ARG=${dryRunArg}",
             "FAIL_FAST_ARG=${failFastArg}",
             "LATEST_MODELS_ONLY_ARG=${latestModelsOnlyArg}",
-            "DISAGG_MODE_ARG=${disaggMode ?: 'ALL'}",
-            "SPECIALIZATION_MODE_ARG=${specializationMode ?: 'ALL'}",
-            "BLOCKING_MODE_ARG=${blockingMode ?: 'ALL'}",
             "DEVICE_GROUP_ENCODE_OVERRIDE=${deviceGroupEncode ?: ''}",
             "DEVICE_GROUP_PREFILL_OVERRIDE=${deviceGroupPrefill ?: ''}",
             "DEVICE_GROUP_DECODE_OVERRIDE=${deviceGroupDecode ?: ''}",
@@ -162,9 +159,6 @@ def runVlmConfig(String rowSpec, String disaggMode, String specializationMode, S
                     -e DRY_RUN_ARG="${DRY_RUN_ARG:-}" \
                     -e FAIL_FAST_ARG="${FAIL_FAST_ARG:-}" \
                     -e LATEST_MODELS_ONLY_ARG="${LATEST_MODELS_ONLY_ARG:-true}" \
-                    -e DISAGG_MODE_ARG="${DISAGG_MODE_ARG:-ALL}" \
-                    -e SPECIALIZATION_MODE_ARG="${SPECIALIZATION_MODE_ARG:-ALL}" \
-                    -e BLOCKING_MODE_ARG="${BLOCKING_MODE_ARG:-ALL}" \
                     -e DEVICE_GROUP_ENCODE_OVERRIDE="${DEVICE_GROUP_ENCODE_OVERRIDE:-}" \
                     -e DEVICE_GROUP_PREFILL_OVERRIDE="${DEVICE_GROUP_PREFILL_OVERRIDE:-}" \
                     -e DEVICE_GROUP_DECODE_OVERRIDE="${DEVICE_GROUP_DECODE_OVERRIDE:-}" \
@@ -188,9 +182,6 @@ python "${VLM_BENCHMARK_SCRIPT}" \
     --qserve-benchmark-script "${QSERVE_BENCHMARK_SCRIPT:-}" \
     --vllm-qaic-dir "${VLLM_QAIC_DIR}" \
     --server-ready-timeout-s "$((SERVER_READY_TIMEOUT_MINUTES * 60))" \
-    --disagg-mode "${DISAGG_MODE_ARG:-ALL}" \
-    --specialization-mode "${SPECIALIZATION_MODE_ARG:-ALL}" \
-    --blocking-mode "${BLOCKING_MODE_ARG:-ALL}" \
     --device-group-encode-override "${DEVICE_GROUP_ENCODE_OVERRIDE:-}" \
     --device-group-prefill-override "${DEVICE_GROUP_PREFILL_OVERRIDE:-}" \
     --device-group-decode-override "${DEVICE_GROUP_DECODE_OVERRIDE:-}" \
@@ -244,9 +235,6 @@ pipeline {
         string(name: 'ROWS_VLM', defaultValue: 'ALL', description: 'VLM config data rows')
         string(name: 'ROWS_WEIGHT_FREE_LLM', defaultValue: 'ALL', description: 'Weight-free LLM config data rows')
         string(name: 'ROWS_WEIGHT_FREE_VLM', defaultValue: 'ALL', description: 'Weight-free VLM config data rows')
-        choice(name: 'VLM_DISAGG_MODE', choices: ['ALL', 'ED', 'PD', 'EPD'], description: 'VLM disagg layout filter: encode-decode, prefill-decode, or encode-prefill-decode')
-        choice(name: 'VLM_SPECIALIZATION_MODE', choices: ['ALL', 'single', 'multi'], description: 'VLM specialization filter: single vs multi resolution/image-count buckets')
-        choice(name: 'VLM_BLOCKING_MODE', choices: ['ALL', 'blocking', 'non_blocking'], description: 'VLM blocking filter')
         booleanParam(name: 'RUN_DEFAULT', defaultValue: true, description: 'Run default CB + subfunction LLM configs')
         booleanParam(name: 'RUN_CCL', defaultValue: true, description: 'Run CCL-enabled LLM configs')
         booleanParam(name: 'RUN_BLOCKING', defaultValue: true, description: 'Run blocking LLM configs')
@@ -645,7 +633,7 @@ SCRIPT
             when { expression { params.RUN_VLM } }
             steps {
                 script {
-                    runVlmConfig(params.ROWS_VLM, params.VLM_DISAGG_MODE, params.VLM_SPECIALIZATION_MODE, params.VLM_BLOCKING_MODE, params.DEVICE_GROUP_VLM_ENCODE, params.DEVICE_GROUP_VLM_PREFILL, params.DEVICE_GROUP_VLM_DECODE)
+                    runVlmConfig(params.ROWS_VLM, params.DEVICE_GROUP_VLM_ENCODE, params.DEVICE_GROUP_VLM_PREFILL, params.DEVICE_GROUP_VLM_DECODE)
                 }
             }
         }
@@ -665,9 +653,6 @@ SCRIPT
                 script {
                     runVlmConfig(
                         params.ROWS_WEIGHT_FREE_VLM,
-                        params.VLM_DISAGG_MODE,
-                        params.VLM_SPECIALIZATION_MODE,
-                        params.VLM_BLOCKING_MODE,
                         params.DEVICE_GROUP_VLM_ENCODE,
                         params.DEVICE_GROUP_VLM_PREFILL,
                         params.DEVICE_GROUP_VLM_DECODE,
@@ -692,9 +677,13 @@ SCRIPT
                     def previousResultsCsv = compareBuildNumber
                         ? "${env.HOME}/.cache/vllm_llm_results/${compareBuildNumber}/consolidated_published_results.csv"
                         : ''
+                    def previousWeightFreeResultsCsv = compareBuildNumber
+                        ? "${env.HOME}/.cache/vllm_llm_results/${compareBuildNumber}/weight_free_consolidated_published_results.csv"
+                        : ''
                     withEnv([
                         "COMPARE_BUILD_NUMBER=${compareBuildNumber}",
-                        "PREVIOUS_RESULTS_CSV=${previousResultsCsv}"
+                        "PREVIOUS_RESULTS_CSV=${previousResultsCsv}",
+                        "PREVIOUS_WEIGHT_FREE_RESULTS_CSV=${previousWeightFreeResultsCsv}"
                     ]) {
                         sh '''#!/bin/bash
                         set -euo pipefail
@@ -702,6 +691,7 @@ SCRIPT
                             -e BUILD_URL="${BUILD_URL}" \
                             -e COMPARE_BUILD_NUMBER="${COMPARE_BUILD_NUMBER:-}" \
                             -e PREVIOUS_RESULTS_CSV="${PREVIOUS_RESULTS_CSV:-}" \
+                            -e PREVIOUS_WEIGHT_FREE_RESULTS_CSV="${PREVIOUS_WEIGHT_FREE_RESULTS_CSV:-}" \
                             ${BUILD_TAG} bash -s <<'SCRIPT'
 set -euo pipefail
 cd /efficient-transformers
@@ -716,32 +706,78 @@ else
     echo "No consolidated CSV found for build #${COMPARE_BUILD_NUMBER:-N/A}; comparison will be skipped."
 fi
 
-# A build can intentionally select no benchmark stage. Keep that no-op from being
-# reported as a merge failure; any failure in a selected stage is already preserved
-# by its catchError wrapper.
+# Keep standard and weight-free results in separate reports. The raw result CSVs
+# remain in the same build directory, but a report must never compare or display
+# the two variants as if they were the same configuration.
 shopt -s nullglob
-RESULT_CSVS=()
+STANDARD_RESULT_CSVS=()
+WEIGHT_FREE_RESULT_CSVS=()
 for result_csv in "${VLLM_LLM_RESULTS_DIR}"/*_results.csv; do
     [[ "${result_csv}" == *_published_results.csv ]] && continue
-    RESULT_CSVS+=("${result_csv}")
+    case "$(basename "${result_csv}")" in
+        llm_weight_free_results.csv|vlm_weight_free_results.csv)
+            WEIGHT_FREE_RESULT_CSVS+=("${result_csv}")
+            ;;
+        *)
+            STANDARD_RESULT_CSVS+=("${result_csv}")
+            ;;
+    esac
 done
-if (( ${#RESULT_CSVS[@]} == 0 )); then
+
+if (( ${#STANDARD_RESULT_CSVS[@]} == 0 && ${#WEIGHT_FREE_RESULT_CSVS[@]} == 0 )); then
     echo "No benchmark result CSV files found in ${VLLM_LLM_RESULTS_DIR}; skipping report generation."
     exit 0
 fi
 
-# Generate consolidated published CSV
-python tests/nightly_pipeline/vllm_llm_benchmark/merge_published_results.py \
-    --results-dir "${VLLM_LLM_RESULTS_DIR}" \
-    --output "${VLLM_LLM_RESULTS_DIR}/consolidated_published_results.csv"
+if (( ${#STANDARD_RESULT_CSVS[@]} > 0 )); then
+    STANDARD_INPUT_FILES=()
+    for result_csv in "${STANDARD_RESULT_CSVS[@]}"; do
+        STANDARD_INPUT_FILES+=("$(basename "${result_csv}")")
+    done
 
-# Generate HTML report with build URL
-python tests/nightly_pipeline/vllm_llm_benchmark/generate_html_report.py \
-    --csv "${VLLM_LLM_RESULTS_DIR}/consolidated_published_results.csv" \
-    --output "${VLLM_LLM_RESULTS_DIR}/benchmark_report.html" \
-    --build-url "${BUILD_URL}" \
-    --comparison-build-number "${COMPARE_BUILD_NUMBER:-}" \
-    "${PREVIOUS_CSV_ARG[@]}"
+    python tests/nightly_pipeline/vllm_llm_benchmark/merge_published_results.py \
+        --results-dir "${VLLM_LLM_RESULTS_DIR}" \
+        --output "${VLLM_LLM_RESULTS_DIR}/consolidated_published_results.csv" \
+        --input-files "${STANDARD_INPUT_FILES[@]}"
+
+    python tests/nightly_pipeline/vllm_llm_benchmark/generate_html_report.py \
+        --csv "${VLLM_LLM_RESULTS_DIR}/consolidated_published_results.csv" \
+        --output "${VLLM_LLM_RESULTS_DIR}/benchmark_report.html" \
+        --build-url "${BUILD_URL}" \
+        --comparison-build-number "${COMPARE_BUILD_NUMBER:-}" \
+        "${PREVIOUS_CSV_ARG[@]}"
+else
+    echo "No standard benchmark result CSV files found; standard report generation will be skipped."
+fi
+
+if (( ${#WEIGHT_FREE_RESULT_CSVS[@]} > 0 )); then
+    WEIGHT_FREE_INPUT_FILES=()
+    for result_csv in "${WEIGHT_FREE_RESULT_CSVS[@]}"; do
+        WEIGHT_FREE_INPUT_FILES+=("$(basename "${result_csv}")")
+    done
+
+    WEIGHT_FREE_PREVIOUS_CSV_ARG=()
+    if [[ -n "${PREVIOUS_WEIGHT_FREE_RESULTS_CSV:-}" && -f "${PREVIOUS_WEIGHT_FREE_RESULTS_CSV}" ]]; then
+        WEIGHT_FREE_PREVIOUS_CSV_ARG=(--previous-csv "${PREVIOUS_WEIGHT_FREE_RESULTS_CSV}")
+        echo "Comparing weight-free report with build #${COMPARE_BUILD_NUMBER}: ${PREVIOUS_WEIGHT_FREE_RESULTS_CSV}"
+    else
+        echo "No weight-free consolidated CSV found for build #${COMPARE_BUILD_NUMBER:-N/A}; comparison will be skipped."
+    fi
+
+    python tests/nightly_pipeline/vllm_llm_benchmark/merge_published_results.py \
+        --results-dir "${VLLM_LLM_RESULTS_DIR}" \
+        --output "${VLLM_LLM_RESULTS_DIR}/weight_free_consolidated_published_results.csv" \
+        --input-files "${WEIGHT_FREE_INPUT_FILES[@]}"
+
+    python tests/nightly_pipeline/vllm_llm_benchmark/generate_html_report.py \
+        --csv "${VLLM_LLM_RESULTS_DIR}/weight_free_consolidated_published_results.csv" \
+        --output "${VLLM_LLM_RESULTS_DIR}/weight_free_benchmark_report.html" \
+        --build-url "${BUILD_URL}" \
+        --comparison-build-number "${COMPARE_BUILD_NUMBER:-}" \
+        "${WEIGHT_FREE_PREVIOUS_CSV_ARG[@]}"
+else
+    echo "No weight-free benchmark result CSV files found; weight-free report generation will be skipped."
+fi
 
 echo "Report generation completed successfully"
 SCRIPT
@@ -823,19 +859,29 @@ SCRIPT
             script {
                 if (params.EMAIL_RECIPIENTS?.trim()) {
                     def buildStatus = currentBuild.result ?: 'SUCCESS'
-                    def reportPath = "${env.VLLM_LLM_RESULTS_DIR}/benchmark_report.html"
-                    def csvPath = "${env.VLLM_LLM_RESULTS_DIR}/consolidated_published_results.csv"
+                    // emailext attachmentsPattern is an Ant workspace glob, so use
+                    // workspace-relative paths rather than the host cache path.
+                    def reportPath = "vllm_llm_results/${env.BUILD_NUMBER}/benchmark_report.html"
+                    def weightFreeReportPath = "vllm_llm_results/${env.BUILD_NUMBER}/weight_free_benchmark_report.html"
+                    def csvPath = "vllm_llm_results/${env.BUILD_NUMBER}/consolidated_published_results.csv"
+                    def weightFreeCsvPath = "vllm_llm_results/${env.BUILD_NUMBER}/weight_free_consolidated_published_results.csv"
+                    def selectedReportPath = fileExists(reportPath)
+                        ? reportPath
+                        : (fileExists(weightFreeReportPath) ? weightFreeReportPath : '')
+                    def attachmentPaths = [reportPath, weightFreeReportPath, csvPath, weightFreeCsvPath]
+                        .findAll { fileExists(it) }
+                        .join(',')
 
-                    if (fileExists(reportPath)) {
+                    if (selectedReportPath) {
                         // The HTML report was generated regardless of overall build
                         // status, so always email the rendered report rather than
                         // gating on pass/fail.
-                        def htmlContent = readFile(file: reportPath).replaceAll('\\$', '\\\\$')
+                        def htmlContent = readFile(file: selectedReportPath).replaceAll('\\$', '\\\\$')
                         emailext(
                             subject: "vLLM QAIC Benchmark Report - Build #${env.BUILD_NUMBER} [${buildStatus}]",
                             body: htmlContent,
                             to: params.EMAIL_RECIPIENTS,
-                            attachmentsPattern: fileExists(csvPath) ? "${env.VLLM_LLM_RESULTS_DIR}/consolidated_published_results.csv" : '',
+                            attachmentsPattern: attachmentPaths,
                             mimeType: 'text/html'
                         )
                         echo "Report email (status=${buildStatus}) sent to: ${params.EMAIL_RECIPIENTS}"
