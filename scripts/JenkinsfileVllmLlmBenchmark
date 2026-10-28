@@ -740,84 +740,50 @@ export PYTHONUNBUFFERED=1
 
 PREVIOUS_CSV_ARG=()
 if [[ -n "${PREVIOUS_RESULTS_CSV:-}" && -f "${PREVIOUS_RESULTS_CSV}" ]]; then
-    PREVIOUS_CSV_ARG=(--previous-csv "${PREVIOUS_RESULTS_CSV}")
-    echo "Comparing report with build #${COMPARE_BUILD_NUMBER}: ${PREVIOUS_RESULTS_CSV}"
+    PREVIOUS_CSV_ARG+=(--previous-csv "${PREVIOUS_RESULTS_CSV}")
+    echo "Comparing standard rows with build #${COMPARE_BUILD_NUMBER}: ${PREVIOUS_RESULTS_CSV}"
 else
-    echo "No consolidated CSV found for build #${COMPARE_BUILD_NUMBER:-N/A}; comparison will be skipped."
+    echo "No standard consolidated CSV found for build #${COMPARE_BUILD_NUMBER:-N/A}."
 fi
 
-# Keep standard and weight-free results in separate reports. The raw result CSVs
-# remain in the same build directory, but a report must never compare or display
-# the two variants as if they were the same configuration.
+if [[ -n "${PREVIOUS_WEIGHT_FREE_RESULTS_CSV:-}" && -f "${PREVIOUS_WEIGHT_FREE_RESULTS_CSV}" ]]; then
+    PREVIOUS_CSV_ARG+=(--previous-csv "${PREVIOUS_WEIGHT_FREE_RESULTS_CSV}")
+    echo "Comparing weight-free rows with build #${COMPARE_BUILD_NUMBER}: ${PREVIOUS_WEIGHT_FREE_RESULTS_CSV}"
+else
+    echo "No weight-free consolidated CSV found for build #${COMPARE_BUILD_NUMBER:-N/A}."
+fi
+
+# Merge every benchmark variant into one consolidated CSV. The result rows retain
+# their variant in config_name (for example, weight_free/... for VLM), so the
+# report and comparison logic can keep standard and weight-free rows distinct.
 shopt -s nullglob
-STANDARD_RESULT_CSVS=()
-WEIGHT_FREE_RESULT_CSVS=()
+RESULT_CSVS=()
 for result_csv in "${VLLM_LLM_RESULTS_DIR}"/*_results.csv; do
     [[ "${result_csv}" == *_published_results.csv ]] && continue
-    case "$(basename "${result_csv}")" in
-        llm_weight_free_results.csv|vlm_weight_free_results.csv)
-            WEIGHT_FREE_RESULT_CSVS+=("${result_csv}")
-            ;;
-        *)
-            STANDARD_RESULT_CSVS+=("${result_csv}")
-            ;;
-    esac
+    RESULT_CSVS+=("${result_csv}")
 done
 
-if (( ${#STANDARD_RESULT_CSVS[@]} == 0 && ${#WEIGHT_FREE_RESULT_CSVS[@]} == 0 )); then
+if (( ${#RESULT_CSVS[@]} == 0 )); then
     echo "No benchmark result CSV files found in ${VLLM_LLM_RESULTS_DIR}; skipping report generation."
     exit 0
 fi
 
-if (( ${#STANDARD_RESULT_CSVS[@]} > 0 )); then
-    STANDARD_INPUT_FILES=()
-    for result_csv in "${STANDARD_RESULT_CSVS[@]}"; do
-        STANDARD_INPUT_FILES+=("$(basename "${result_csv}")")
-    done
+INPUT_FILES=()
+for result_csv in "${RESULT_CSVS[@]}"; do
+    INPUT_FILES+=("$(basename "${result_csv}")")
+done
 
-    python tests/nightly_pipeline/vllm_llm_benchmark/merge_published_results.py \
-        --results-dir "${VLLM_LLM_RESULTS_DIR}" \
-        --output "${VLLM_LLM_RESULTS_DIR}/consolidated_published_results.csv" \
-        --input-files "${STANDARD_INPUT_FILES[@]}"
+python tests/nightly_pipeline/vllm_llm_benchmark/merge_published_results.py \
+    --results-dir "${VLLM_LLM_RESULTS_DIR}" \
+    --output "${VLLM_LLM_RESULTS_DIR}/consolidated_published_results.csv" \
+    --input-files "${INPUT_FILES[@]}"
 
-    python tests/nightly_pipeline/vllm_llm_benchmark/generate_html_report.py \
-        --csv "${VLLM_LLM_RESULTS_DIR}/consolidated_published_results.csv" \
-        --output "${VLLM_LLM_RESULTS_DIR}/benchmark_report.html" \
-        --build-url "${BUILD_URL}" \
-        --comparison-build-number "${COMPARE_BUILD_NUMBER:-}" \
-        "${PREVIOUS_CSV_ARG[@]}"
-else
-    echo "No standard benchmark result CSV files found; standard report generation will be skipped."
-fi
-
-if (( ${#WEIGHT_FREE_RESULT_CSVS[@]} > 0 )); then
-    WEIGHT_FREE_INPUT_FILES=()
-    for result_csv in "${WEIGHT_FREE_RESULT_CSVS[@]}"; do
-        WEIGHT_FREE_INPUT_FILES+=("$(basename "${result_csv}")")
-    done
-
-    WEIGHT_FREE_PREVIOUS_CSV_ARG=()
-    if [[ -n "${PREVIOUS_WEIGHT_FREE_RESULTS_CSV:-}" && -f "${PREVIOUS_WEIGHT_FREE_RESULTS_CSV}" ]]; then
-        WEIGHT_FREE_PREVIOUS_CSV_ARG=(--previous-csv "${PREVIOUS_WEIGHT_FREE_RESULTS_CSV}")
-        echo "Comparing weight-free report with build #${COMPARE_BUILD_NUMBER}: ${PREVIOUS_WEIGHT_FREE_RESULTS_CSV}"
-    else
-        echo "No weight-free consolidated CSV found for build #${COMPARE_BUILD_NUMBER:-N/A}; comparison will be skipped."
-    fi
-
-    python tests/nightly_pipeline/vllm_llm_benchmark/merge_published_results.py \
-        --results-dir "${VLLM_LLM_RESULTS_DIR}" \
-        --output "${VLLM_LLM_RESULTS_DIR}/weight_free_consolidated_published_results.csv" \
-        --input-files "${WEIGHT_FREE_INPUT_FILES[@]}"
-
-    python tests/nightly_pipeline/vllm_llm_benchmark/generate_html_report.py \
-        --csv "${VLLM_LLM_RESULTS_DIR}/weight_free_consolidated_published_results.csv" \
-        --output "${VLLM_LLM_RESULTS_DIR}/weight_free_benchmark_report.html" \
-        --build-url "${BUILD_URL}" \
-        --comparison-build-number "${COMPARE_BUILD_NUMBER:-}" \
-        "${WEIGHT_FREE_PREVIOUS_CSV_ARG[@]}"
-else
-    echo "No weight-free benchmark result CSV files found; weight-free report generation will be skipped."
-fi
+python tests/nightly_pipeline/vllm_llm_benchmark/generate_html_report.py \
+    --csv "${VLLM_LLM_RESULTS_DIR}/consolidated_published_results.csv" \
+    --output "${VLLM_LLM_RESULTS_DIR}/benchmark_report.html" \
+    --build-url "${BUILD_URL}" \
+    --comparison-build-number "${COMPARE_BUILD_NUMBER:-}" \
+    "${PREVIOUS_CSV_ARG[@]}"
 
 echo "Report generation completed successfully"
 SCRIPT
@@ -902,13 +868,9 @@ SCRIPT
                     // emailext attachmentsPattern is an Ant workspace glob, so use
                     // workspace-relative paths rather than the host cache path.
                     def reportPath = "vllm_llm_results/${env.BUILD_NUMBER}/benchmark_report.html"
-                    def weightFreeReportPath = "vllm_llm_results/${env.BUILD_NUMBER}/weight_free_benchmark_report.html"
                     def csvPath = "vllm_llm_results/${env.BUILD_NUMBER}/consolidated_published_results.csv"
-                    def weightFreeCsvPath = "vllm_llm_results/${env.BUILD_NUMBER}/weight_free_consolidated_published_results.csv"
-                    def selectedReportPath = fileExists(reportPath)
-                        ? reportPath
-                        : (fileExists(weightFreeReportPath) ? weightFreeReportPath : '')
-                    def attachmentPaths = [reportPath, weightFreeReportPath, csvPath, weightFreeCsvPath]
+                    def selectedReportPath = fileExists(reportPath) ? reportPath : ''
+                    def attachmentPaths = [reportPath, csvPath]
                         .findAll { fileExists(it) }
                         .join(',')
 
