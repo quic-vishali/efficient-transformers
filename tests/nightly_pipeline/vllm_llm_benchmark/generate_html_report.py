@@ -55,7 +55,7 @@ HTML_ENVIRONMENT_FIELDS = {
     "qeff_branch",
     "qaic_sdk_version",
 }
-REPORT_INTERNAL_FIELDS = {"error"}
+REPORT_INTERNAL_FIELDS = set()
 REPORT_REASON_MAX_CHARS = 600
 COMPARISON_CURRENT_FIELDS = {field for field, _ in COMPARISON_FIELDS}
 VLLM_EXEC_TIME_FIELD = "vllm_exec_time_s"
@@ -204,22 +204,32 @@ def _backfill_server_errors(rows: list[dict], csv_path: Path) -> None:
             continue
         existing_error = str(row.get("error") or "").strip()
         validation_status = (row.get("validation_status") or "").strip().lower()
-        if validation_status in {"failed", "error"}:
-            validation_error = str(row.get("validation_error") or "").strip()
-            if validation_error not in {"", "N/A", "-"}:
-                row["error"] = validation_error
-                continue
+        validation_error = str(row.get("validation_error") or "").strip()
+        validation_error_available = validation_status in {"failed", "error"} and validation_error not in {
+            "",
+            "N/A",
+            "-",
+        }
+        error_is_missing = existing_error in {"", "N/A", "-"} or is_generic_server_error(existing_error)
+
+        if validation_error_available and status in {"success", "validation_failed"} and error_is_missing:
+            row["error"] = validation_error
+            continue
         if existing_error not in {"", "N/A", "-"} and not is_generic_server_error(existing_error):
             continue
         server_log = _server_log_for_row(row, csv_path)
         if server_log is None:
-            if existing_error in {"", "N/A", "-"} or is_generic_server_error(existing_error):
+            if validation_error_available and error_is_missing:
+                row["error"] = validation_error
+            elif error_is_missing:
                 row["error"] = NO_ERROR_MESSAGE_AVAILABLE
             continue
         error = extract_server_error(server_log)
         if error:
             row["error"] = error
-        elif existing_error in {"", "N/A", "-"} or is_generic_server_error(existing_error):
+        elif validation_error_available and error_is_missing:
+            row["error"] = validation_error
+        elif error_is_missing:
             row["error"] = NO_ERROR_MESSAGE_AVAILABLE
 
 
