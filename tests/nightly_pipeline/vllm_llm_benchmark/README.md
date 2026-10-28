@@ -82,7 +82,9 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_vlm_benchmark.py \
 ## Consolidated Published CSV
 
 After all benchmark categories complete, run `merge_published_results.py` to generate
-a single consolidated published CSV with only the key fields for team distribution:
+a consolidated published CSV with only the key fields for team distribution. Jenkins
+keeps standard and weight-free results separate by passing explicit input files. The
+generic command below merges the files it finds in a local results directory:
 
 ```bash
 python3 tests/nightly_pipeline/vllm_llm_benchmark/merge_published_results.py \
@@ -90,7 +92,7 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/merge_published_results.py \
   --output vllm_llm_results/consolidated_published_results.csv
 ```
 
-This merges all `*_results.csv` files (from LLM, embedding, audio, VLM categories)
+This merges the selected `*_results.csv` files (from LLM, embedding, audio, VLM categories)
 into one file with row-level fields including model, model_category, config_name,
 config_summary, status, previous/current QPC total size, previous/current
 export/compile timings, qpc_count, qpc_sizes_mb, mean_ttft_s, mean_tpot_s,
@@ -107,6 +109,15 @@ row fills the per-stage `prefill_mdp_export_compile_time_s`/
 Fields that do not apply to a row are written as `N/A` in the consolidated CSV
 and displayed as `N/A` in the HTML table. A successful row with no failure or
 comparison reason uses `-` in the `reason` column.
+
+To generate the separate weight-free CSV, select its inputs explicitly:
+
+```bash
+python3 tests/nightly_pipeline/vllm_llm_benchmark/merge_published_results.py \
+  --results-dir vllm_llm_results/ \
+  --output vllm_llm_results/weight_free_consolidated_published_results.csv \
+  --input-files llm_weight_free_results.csv vlm_weight_free_results.csv
+```
 
 ## Response Capture and Validation
 
@@ -192,11 +203,11 @@ The Jenkins pipeline:
 3. Runs `scripts/install.sh aot`, which installs QEfficient internally.
 4. Clones and installs `qaic-disagg`.
 5. Runs the selected LLM/embedding/audio/VLM config CSVs.
-6. Runs `merge_published_results.py` to generate consolidated published CSV.
-7. Runs `generate_html_report.py` to render `benchmark_report.html`.
+6. Runs `merge_published_results.py` separately for standard and weight-free CSVs.
+7. Runs `generate_html_report.py` to render `benchmark_report.html` and, when weight-free rows exist, `weight_free_benchmark_report.html`.
 8. Archives `vllm_llm_results/**/*.csv` and `vllm_llm_results/**/*.log`.
-9. Emails `benchmark_report.html` (rendered inline) plus the consolidated CSV
-   attachment to `EMAIL_RECIPIENTS`, if set — this fires from the pipeline's
+9. Emails the standard report inline when available and attaches the generated
+   standard/weight-free HTML and CSV files to `EMAIL_RECIPIENTS`, if set — this fires from the pipeline's
    `post { always { ... } }` block regardless of whether the overall build
    passed or failed, as long as the HTML report file exists (the subject line
    includes the build status). If the report could not be generated at all,
@@ -208,23 +219,11 @@ embedding, audio, and VLM stages have their own `ROWS_EMBEDDING`/`ROWS_AUDIO`/
 `ROWS_VLM` and `RUN_EMBEDDING`/`RUN_AUDIO`/`RUN_VLM` params for the same
 purpose.
 
-The VLM stage additionally exposes three `choice()` params that filter rows
-within `configs/vlm_configs.csv` (rather than selecting a different CSV/stage
-per combination):
-
-- `VLM_DISAGG_MODE` (`ALL`/`ED`/`PD`/`EPD`) — filters by the `disagg_mode`
-  column: encode-decode, prefill-decode (no vision/encode stage), or
-  encode-prefill-decode.
-- `VLM_SPECIALIZATION_MODE` (`ALL`/`single`/`multi`) — filters by the
-  `specialization_mode` column: single vs multi resolution/image-count
-  buckets on the client's `--random-mm-bucket-config`.
-- `VLM_BLOCKING_MODE` (`ALL`/`blocking`/`non_blocking`) — filters by the
-  `blocking_mode` column.
-
-These map to the runner's own `--disagg-mode`/`--specialization-mode`/
-`--blocking-mode` CLI flags (also `ALL` by default), which no-op for any CSV
-row lacking the corresponding column — so the LLM/embedding/audio CSVs are
-unaffected.
+The Jenkins pipeline has two VLM stages only: `Run VLM` and `Run Weight-Free
+VLM`. Each stage runs all eligible rows from its corresponding CSV; the
+disaggregation, specialization, and blocking columns describe each row's
+runtime configuration and are not separate Jenkins benchmark types. Use
+`ROWS_VLM` or `ROWS_WEIGHT_FREE_VLM` when a specific row subset is needed.
 
 ## HuggingFace Cache Configuration
 
@@ -566,12 +565,6 @@ applied, in order:
 
 `zai-org/GLM-4.5` is in both LLM's `LATEST_MODELS` and `SKIPPED_MODELS` — the
 skip-list always wins, so it is excluded regardless of the latest-only flag.
-
-For the VLM runner specifically, three additional filters apply after the two
-above: `--disagg-mode`, `--specialization-mode`, and `--blocking-mode` (each
-default `ALL`), matching the `disagg_mode`/`specialization_mode`/
-`blocking_mode` CSV columns. They no-op for rows/CSVs lacking the column, so
-they have no effect on the LLM/embedding/audio runners.
 
 Skipped rows are logged to stdout with the reason and do not appear in the
 output CSV, matching how `enabled=false` rows are already excluded silently.
