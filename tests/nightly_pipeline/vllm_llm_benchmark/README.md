@@ -75,7 +75,7 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_vlm_benchmark.py \
   --input-csv tests/nightly_pipeline/vllm_llm_benchmark/configs/vlm_configs.csv \
   --output-csv vllm_vlm_smoke/vlm_results.csv \
   --results-dir vllm_vlm_smoke \
-  --rows 47 \
+  --rows 8 \
   --dry-run
 ```
 
