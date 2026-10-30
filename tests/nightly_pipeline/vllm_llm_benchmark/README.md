@@ -164,9 +164,10 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/generate_html_report.py \
 
 For a local comparison against a previous consolidated CSV, add
 `--previous-csv /path/to/previous/consolidated_published_results.csv`. Rows with
-an absolute change greater than 5% in QPC size or timing metrics are marked
-`FAIL` in the merged status column, highlighted red, and include the previous
-value, current value, percentage change, and failure reason.
+an absolute change greater than 5% in QPC size or export/compile timing, a TTFT
+increase greater than 5%, or a decode TPS decrease greater than 5% are marked
+`WARNING` in the merged status column and include the previous value, current
+value, percentage change, and comparison reason.
 
 The HTML report includes:
 - **Environment Information**: Branch details (vLLM QAIC, QAIC Disagg, QServe, QEff) and QAIC SDK version
@@ -176,7 +177,9 @@ The HTML report includes:
   timing values, and performance metrics
 (TTFT/TPOT/ITL/decode TPS/throughput) with a combined failure-reason column
 CSV comparison metrics are displayed as adjacent previous/current pairs, for
-example `Previous QPC Size` followed by `Current QPC Size`.
+example `Previous QPC Size` followed by `Current QPC Size`. TTFT and decode TPS
+are compared directionally: a TTFT increase or decode TPS decrease greater
+than 5% produces a warning; improvements do not.
 `vllm_exec_time_s` measures elapsed time from server process launch until the
 client process exits, including server startup/load and benchmark execution.
 QPC count and per-QPC size-list fields remain available in the CSV but are not
