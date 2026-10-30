@@ -22,6 +22,7 @@ import argparse
 import csv
 import html
 import json
+import math
 import re
 from datetime import datetime
 from pathlib import Path
@@ -46,7 +47,13 @@ COMPARISON_FIELDS = (
     ("prefill_export_compile_time_s", "Prefill export/compile time (s)"),
     ("decode_export_compile_time_s", "Decode export/compile time (s)"),
     ("encode_export_compile_time_s", "Encode export/compile time (s)"),
+    ("mean_ttft_s", "TTFT (s)"),
+    ("decode_TPS", "Decode TPS (tok/s)"),
 )
+PERFORMANCE_COMPARISON_DIRECTIONS = {
+    "mean_ttft_s": "higher_is_worse",
+    "decode_TPS": "lower_is_worse",
+}
 PREVIOUS_VALUE_FIELDS = tuple(f"previous_{field}" for field, _ in COMPARISON_FIELDS)
 HTML_ENVIRONMENT_FIELDS = {
     "vllm_qaic_branch",
@@ -253,6 +260,21 @@ def _change_percent(current: float, previous: float) -> float:
     return abs(current - previous) / abs(previous) * 100.0
 
 
+def _comparison_change_percent(field: str, current: float, previous: float) -> float:
+    direction = PERFORMANCE_COMPARISON_DIRECTIONS.get(field)
+    if direction is None:
+        return _change_percent(current, previous)
+
+    if previous == 0:
+        if direction == "higher_is_worse":
+            return float("inf") if current > previous else 0.0
+        return float("inf") if current < previous else 0.0
+
+    if direction == "higher_is_worse":
+        return (current - previous) / abs(previous) * 100.0
+    return (previous - current) / abs(previous) * 100.0
+
+
 def _format_value(value: float) -> str:
     return f"{value:.2f}"
 
@@ -265,9 +287,15 @@ def _comparison_reasons(row: dict, previous_row: dict) -> list[str]:
         if current is None or previous is None:
             continue
 
-        change = _change_percent(current, previous)
-        if change > COMPARISON_THRESHOLD_PERCENT:
-            unit = " MB" if field == "qpc_size_mb" else " s"
+        change = _comparison_change_percent(field, current, previous)
+        exceeds_threshold = change > COMPARISON_THRESHOLD_PERCENT and not math.isclose(
+            change,
+            COMPARISON_THRESHOLD_PERCENT,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        )
+        if exceeds_threshold:
+            unit = {"qpc_size_mb": " MB", "decode_TPS": " tok/s"}.get(field, " s")
             reasons.append(f"{label}: {_format_value(previous)} -> {_format_value(current)}{unit} ({change:.1f}%)")
     return reasons
 
@@ -452,9 +480,9 @@ def generate_html_report(
         comparison_message = (
             "Red rows indicate inference failures. "
             "Amber rows indicate performance comparison warnings, "
-            f"where an absolute "
-            f"change greater than {COMPARISON_THRESHOLD_PERCENT:.0f}% in QPC total size "
-            f"or export/compile timing versus the comparison{baseline}."
+            f"where QPC total size or export/compile timing changes by more than {COMPARISON_THRESHOLD_PERCENT:.0f}%, "
+            f"TTFT increases by more than {COMPARISON_THRESHOLD_PERCENT:.0f}%, or decode TPS decreases by more than "
+            f"{COMPARISON_THRESHOLD_PERCENT:.0f}% versus the comparison{baseline}."
         )
     else:
         comparison_message = "No comparison build was available."
@@ -795,10 +823,8 @@ def generate_html_report(
                             <th style="text-align: left;">Summary</th>
                             <th style="text-align: left;">Status</th>
                             {_comparison_headers_html(COMPARISON_FIELDS)}
-                            <th style="text-align: right;">TTFT (s)</th>
                             <th style="text-align: right;">TPOT (s)</th>
                             <th style="text-align: right;">ITL (s)</th>
-                            <th style="text-align: right;">Decode TPS</th>
                             <th style="text-align: right;">Throughput (req/s)</th>
                             <th style="text-align: right;">QAIC vLLM execution time (s)</th>
                             <th style="text-align: left;">Validation</th>
@@ -840,10 +866,8 @@ def generate_html_report(
                             <td style="text-align: left;">{_display_value(row, "config_summary")}</td>
                             <td class="{status_class}" style="text-align: left;">{status_text}</td>
                             {_comparison_cells_html(row, previous_row, COMPARISON_FIELDS)}
-                            <td class="metric">{_display_value(row, "mean_ttft_s")}</td>
                             <td class="metric">{_display_value(row, "mean_tpot_s")}</td>
                             <td class="metric">{_display_value(row, "mean_itl_s")}</td>
-                            <td class="metric">{_display_value(row, "decode_TPS")}</td>
                             <td class="metric">{_display_value(row, "request_throughput_req_s")}</td>
                             <td class="metric">{_display_value(row, "vllm_exec_time_s")}</td>
                             <td style="text-align: left;">{_display_value(row, "validation_status")}</td>
