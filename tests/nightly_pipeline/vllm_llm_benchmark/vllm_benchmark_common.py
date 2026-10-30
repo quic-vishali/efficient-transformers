@@ -1849,6 +1849,104 @@ def _golden_path(row: dict, base_dir: str) -> Path:
     return Path(base_dir) / "tests" / "nightly_pipeline" / "vllm_llm_benchmark" / "golden_outputs" / "goldens.json"
 
 
+def _reference_max_new_tokens(row: dict) -> int:
+    return optional_int(row, "custom_output_len", "GL", default=1) or 1
+
+
+def _reference_generation_parameters(row: dict) -> dict:
+    """Return only options that are actually passed to the PyTorch reference."""
+    reference = reference_for(value(row, "endpoint"), value(row, "dataset_name"))
+    parameters = {"trust_remote_code": _validation_bool(row, "trust_remote_code")}
+    if reference.requires_max_new_tokens:
+        parameters["max_new_tokens"] = _reference_max_new_tokens(row)
+    if reference.script.name == "pytorch_llm_reference.py":
+        parameters["skip_chat_template"] = _validation_bool(row, "skip_chat_template")
+    if reference.output_key == "embeddings":
+        parameters["pooling_method"] = value(row, "pooling_method", default="mean")
+    return parameters
+
+
+def _reference_asset_identity(raw_path: object, dataset: Path, base_dir: str, *, audio: bool = False) -> dict | None:
+    if raw_path in (None, ""):
+        return None
+    asset = Path(str(raw_path))
+    if asset.is_absolute():
+        candidates = [asset]
+    elif audio:
+        candidates = [dataset.parent.parent.parent / asset, Path(base_dir) / asset]
+    else:
+        candidates = [Path(base_dir) / asset]
+    for candidate in candidates:
+        try:
+            if candidate.is_file():
+                return {
+                    "path": str(raw_path),
+                    "sha256": hashlib.sha256(candidate.read_bytes()).hexdigest(),
+                }
+        except OSError:
+            continue
+    return {"path": str(raw_path)}
+
+
+def _reference_dataset_sha256(
+    rows: list[dict], dataset: Path, base_dir: str, endpoint: str, dataset_name: str, fallback: bytes
+) -> tuple[list[str], str]:
+    """Hash the inputs consumed by the PyTorch script, not unused JSONL fields."""
+    reference = reference_for(endpoint, dataset_name)
+    if reference.script.name == "pytorch_audio_reference.py":
+        inputs = [{"audio": _reference_asset_identity(row.get("audio"), dataset, base_dir, audio=True)} for row in rows]
+        prompts: list[str] = []
+    elif reference.script.name == "pytorch_vlm_reference.py":
+        inputs = []
+        prompts = []
+        for row in rows:
+            prompt = str(row.get("prompt", ""))
+            image_files = row.get("image_files") or []
+            image_path = image_files[0] if isinstance(image_files, list) and image_files else None
+            inputs.append(
+                {
+                    "prompt": prompt,
+                    "image": _reference_asset_identity(image_path, dataset, base_dir),
+                }
+            )
+            prompts.append(prompt)
+    else:
+        prompts = [str(row.get("prompt", "")) for row in rows]
+        inputs = [{"prompt": prompt} for prompt in prompts]
+
+    try:
+        encoded_inputs = json.dumps(inputs, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    except (TypeError, ValueError):
+        encoded_inputs = fallback
+    return prompts, hashlib.sha256(encoded_inputs).hexdigest()
+
+
+def _normalize_reference_generation_parameters(identity: dict) -> dict:
+    """Normalize current and legacy golden identities to reference inputs."""
+    raw = identity.get("generation_parameters") or {}
+    endpoint = str(identity.get("endpoint", ""))
+    dataset_name = str(identity.get("dataset_name", ""))
+    reference = reference_for(endpoint, dataset_name)
+    parameters = {"trust_remote_code": parse_bool(raw.get("trust_remote_code"), default=False)}
+
+    if reference.requires_max_new_tokens:
+        if raw.get("max_new_tokens") not in (None, ""):
+            max_new_tokens = int(raw["max_new_tokens"])
+        else:
+            legacy_row = {
+                "custom_output_len": raw.get("custom_output_len"),
+                "GL": raw.get("GL"),
+            }
+            max_new_tokens = optional_int(legacy_row, "custom_output_len", "GL", default=1) or 1
+        parameters["max_new_tokens"] = max_new_tokens
+
+    if reference.script.name == "pytorch_llm_reference.py":
+        parameters["skip_chat_template"] = parse_bool(raw.get("skip_chat_template"), default=False)
+    if reference.output_key == "embeddings":
+        parameters["pooling_method"] = str(raw.get("pooling_method") or "mean")
+    return parameters
+
+
 def _golden_identity(row: dict, base_dir: str) -> dict:
     dataset = Path(value(row, "dataset_path"))
     if not dataset.is_absolute():
@@ -1857,61 +1955,46 @@ def _golden_identity(row: dict, base_dir: str) -> dict:
         dataset_bytes = dataset.read_bytes()
     except OSError:
         dataset_bytes = str(dataset).encode("utf-8")
-    prompts = []
+    dataset_rows = []
     try:
         for line in dataset_bytes.decode("utf-8").splitlines():
             if line.strip():
                 item = json.loads(line)
-                prompts.append(item.get("prompt", item.get("messages", item)))
+                if not isinstance(item, dict):
+                    raise TypeError("JSONL records must be objects")
+                dataset_rows.append(item)
     except (UnicodeDecodeError, json.JSONDecodeError, TypeError):
+        dataset_rows = []
         prompts = []
-    # Include the complete normalized row so changes to any generation-
-    # affecting option create a distinct golden entry. The dataset digest
-    # represents the fixed prompt(s) and any associated request content.
-    generation_parameters = {
-        key: row.get(key, "")
-        for key in (
-            "PL",
-            "GL",
-            "CL",
-            "custom_output_len",
-            "num_prompts",
-            "seed",
-            "dtype",
-            "generation_config",
-            "temperature",
-            "top_p",
-            "top_k",
-            "min_p",
-            "frequency_penalty",
-            "presence_penalty",
-            "repetition_penalty",
-            "skip_chat_template",
-            "trust_remote_code",
-            "tokenizer",
-            "tokenizer_mode",
-            "chat_template_kwargs",
-            "extra_body",
-            "pooling_method",
+        reference_dataset_sha256 = hashlib.sha256(dataset_bytes).hexdigest()
+    else:
+        prompts, reference_dataset_sha256 = _reference_dataset_sha256(
+            dataset_rows,
+            dataset,
+            base_dir,
+            value(row, "endpoint"),
+            value(row, "dataset_name"),
+            dataset_bytes,
         )
-        if key in row
-    }
-    if not generation_parameters.get("temperature") and _validation_method(row).lower() == "pytorch":
-        generation_parameters["temperature"] = "0.0"
     return {
         "model": value(row, "model"),
         "endpoint": value(row, "endpoint"),
         "dataset_name": value(row, "dataset_name"),
         "dataset": str(dataset),
         "dataset_sha256": hashlib.sha256(dataset_bytes).hexdigest(),
+        "reference_inputs_sha256": reference_dataset_sha256,
         "prompts": prompts,
-        "generation_parameters": generation_parameters,
+        "generation_parameters": _reference_generation_parameters(row),
     }
 
 
 def _golden_key(row: dict, base_dir: str) -> tuple[str, str, str, str, dict]:
     identity = _golden_identity(row, base_dir)
-    encoded = json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    key_identity = dict(identity)
+    # Keep the raw file digest for diagnostics and legacy lookup, but key on
+    # the canonical PyTorch inputs so unused JSONL fields do not fork goldens.
+    key_identity.pop("dataset_sha256", None)
+    encoded = json.dumps(key_identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
     digest = hashlib.sha256(encoded).hexdigest()[:16]
     endpoint = value(row, "endpoint").lower()
     family = "image_text_to_text" if "image" in value(row, "dataset_name").lower() else "causal_lm"
@@ -1928,8 +2011,8 @@ def _golden_key(row: dict, base_dir: str) -> tuple[str, str, str, str, dict]:
             separators=(",", ":"),
         ).encode("utf-8")
     ).hexdigest()[:8]
-    generation_len = value(row, "custom_output_len", "GL", default="0")
-    variant = f"{model_slug}_{value(row, 'dtype', default='auto')}_gl{generation_len}_{config_fp}_{digest}"
+    generation_len = identity["generation_parameters"].get("max_new_tokens", 0)
+    variant = f"{model_slug}_gl{generation_len}_{config_fp}_{digest}"
     return family, model, variant, digest, identity
 
 
@@ -1957,13 +2040,31 @@ def _golden_identity_matches(candidate: object, expected: dict) -> bool:
     if not isinstance(candidate_identity, dict):
         return False
 
+    candidate_reference_digest = candidate_identity.get("reference_inputs_sha256")
+    expected_reference_digest = expected.get("reference_inputs_sha256")
+    if candidate_reference_digest is not None and expected_reference_digest is not None:
+        if candidate_reference_digest != expected_reference_digest:
+            return False
+    else:
+        if candidate_reference_digest is None:
+            reference = reference_for(str(expected.get("endpoint", "")), str(expected.get("dataset_name", "")))
+            if reference.script.name in {"pytorch_vlm_reference.py", "pytorch_audio_reference.py"}:
+                # Legacy multimodal entries fingerprinted only the JSONL, not
+                # the referenced media. Their asset contents cannot be
+                # verified, so regenerate instead of reusing a stale golden.
+                return False
+        if candidate_identity.get("dataset_sha256") != expected.get("dataset_sha256"):
+            # Older text stores have only the raw JSONL digest. Reuse them
+            # when the source file is unchanged; new entries use the
+            # reference-input digest.
+            return False
+
     def normalized(identity: dict) -> dict:
         result = dict(identity)
         result.pop("config", None)
-        params = dict(result.get("generation_parameters") or {})
-        if not params.get("temperature"):
-            params["temperature"] = "0.0"
-        result["generation_parameters"] = params
+        result.pop("dataset_sha256", None)
+        result.pop("reference_inputs_sha256", None)
+        result["generation_parameters"] = _normalize_reference_generation_parameters(identity)
         return result
 
     return normalized(candidate_identity) == normalized(expected)
@@ -2093,7 +2194,7 @@ def _run_reference(row: dict, log_dir: Path, base_dir: str) -> tuple[Path, objec
     dataset = Path(value(row, "dataset_path"))
     if not dataset.is_absolute():
         dataset = Path(base_dir) / dataset
-    max_new_tokens = optional_int(row, "custom_output_len", "GL", default=1) or 1
+    max_new_tokens = _reference_max_new_tokens(row)
     # Keep the temporary HF/PyTorch result outside the run logs. Only the
     # golden reference is persisted for later comparisons.
     with tempfile.TemporaryDirectory(prefix="pytorch_llm_reference_") as temp_dir:
@@ -2114,7 +2215,7 @@ def _run_reference(row: dict, log_dir: Path, base_dir: str) -> tuple[Path, objec
             command.extend(["--pooling-method", value(row, "pooling_method", default="mean")])
         if _validation_bool(row, "trust_remote_code"):
             command.append("--trust-remote-code")
-        if _validation_bool(row, "skip_chat_template"):
+        if reference.script.name == "pytorch_llm_reference.py" and _validation_bool(row, "skip_chat_template"):
             command.append("--skip-chat-template")
         completed = subprocess.run(
             command,
