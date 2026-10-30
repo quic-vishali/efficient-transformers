@@ -37,7 +37,7 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_llm_benchmark.py \
   --input-csv tests/nightly_pipeline/vllm_llm_benchmark/configs/llm_default_configs.csv \
   --output-csv /tmp/vllm_llm_smoke/llm_default_results.csv \
   --results-dir /tmp/vllm_llm_smoke \
-  --rows 1 \
+  --rows 47 \
   --dry-run
 ```
 
@@ -63,19 +63,12 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_audio_benchmark.py \
   --rows 1 \
   --dry-run
 
-python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_llm_benchmark.py \
-    --config-name default \
-    --input-csv tmp/test_validation.csv \
-    --output-csv tmp/test_results.csv \
-    --results-dir tmp/test_results \
-    --rows 47
-
 python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_vlm_benchmark.py \
   --config-name vlm \
-  --input-csv tests/nightly_pipeline/vllm_llm_benchmark/configs/vlm_configs.csv \
+  --input-csv tests/nightly_pipeline/vllm_llm_benchmark/configs/vlm_weight_free_configs.csv \
   --output-csv vllm_vlm_smoke/vlm_results.csv \
   --results-dir vllm_vlm_smoke \
-  --rows 8 \
+  --rows 2 \
   --dry-run
 ```
 
