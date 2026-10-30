@@ -29,7 +29,7 @@ LATEST_MODELS = {
     # "Qwen/Qwen3.5-35B-A3B",
     "Qwen/Qwen3.6-27B",
     "Qwen/Qwen3.6-35B-A3B",
-    # "google/gemma-3-4b-it",
+    "google/gemma-3-4b-it",
     "google/gemma-4-26B-A4B-it",
     # "google/gemma-4-31B-it",
     "google/gemma-4-E2B-it",
