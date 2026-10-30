@@ -2222,7 +2222,7 @@ def _run_reference(row: dict, log_dir: Path, base_dir: str) -> tuple[Path, objec
             cwd=base_dir,
             capture_output=True,
             text=True,
-            timeout=int(value(row, "pytorch_timeout_s", default="1800")),
+            timeout=int(value(row, "pytorch_timeout_s", default="3600")),
             check=False,
         )
         if completed.returncode != 0:

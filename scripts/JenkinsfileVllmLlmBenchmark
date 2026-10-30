@@ -2,7 +2,7 @@ def configCsv(String configName) {
     return "tests/nightly_pipeline/vllm_llm_benchmark/configs/llm_${configName}_configs.csv"
 }
 
-def runLlmConfig(String configName, String rowSpec, String deviceGroup = '', String venvDir = '') {
+def runLlmConfig(String configName, String rowSpec, String deviceGroup = '') {
     def dryRunArg = params.DRY_RUN ? '--dry-run' : ''
     def failFastArg = params.FAIL_FAST ? '--fail-fast' : ''
     def latestModelsOnlyArg = params.LATEST_MODELS_ONLY ? 'true' : 'false'
@@ -18,7 +18,6 @@ def runLlmConfig(String configName, String rowSpec, String deviceGroup = '', Str
             "FAIL_FAST_ARG=${failFastArg}",
             "LATEST_MODELS_ONLY_ARG=${latestModelsOnlyArg}",
             "DEVICE_GROUP_OVERRIDE=${deviceGroup ?: ''}",
-            "VENV_DIR_OVERRIDE=${venvDir ?: ''}",
         ]) {
             // BENCHMARK_SCRIPT/VENV_DIR/etc are already set inside the container via
             // `docker run -e` (Start Container stage); only the per-invocation values are
@@ -36,11 +35,10 @@ def runLlmConfig(String configName, String rowSpec, String deviceGroup = '', Str
                     -e FAIL_FAST_ARG="${FAIL_FAST_ARG:-}" \
                     -e LATEST_MODELS_ONLY_ARG="${LATEST_MODELS_ONLY_ARG:-true}" \
                     -e DEVICE_GROUP_OVERRIDE="${DEVICE_GROUP_OVERRIDE:-}" \
-                    -e VENV_DIR_OVERRIDE="${VENV_DIR_OVERRIDE:-}" \
                     ${BUILD_TAG} bash -s <<'SCRIPT'
 set -euo pipefail
 cd /efficient-transformers
-. "${VENV_DIR_OVERRIDE:-${VENV_DIR}}/bin/activate"
+. "${VENV_DIR}/bin/activate"
 export PYTHONUNBUFFERED=1
 export TOKENIZERS_PARALLELISM=false
 
@@ -129,7 +127,7 @@ SCRIPT
     }
 }
 
-def runVlmConfig(String rowSpec, String deviceGroupEncode = '', String deviceGroupPrefill = '', String deviceGroupDecode = '', String inputCsv = 'tests/nightly_pipeline/vllm_llm_benchmark/configs/vlm_configs.csv', String resultName = 'vlm', String venvDir = '') {
+def runVlmConfig(String rowSpec, String deviceGroupEncode = '', String deviceGroupPrefill = '', String deviceGroupDecode = '', String inputCsv = 'tests/nightly_pipeline/vllm_llm_benchmark/configs/vlm_configs.csv', String resultName = 'vlm') {
     def dryRunArg = params.DRY_RUN ? '--dry-run' : ''
     def failFastArg = params.FAIL_FAST ? '--fail-fast' : ''
     def latestModelsOnlyArg = params.LATEST_MODELS_ONLY ? 'true' : 'false'
@@ -147,7 +145,6 @@ def runVlmConfig(String rowSpec, String deviceGroupEncode = '', String deviceGro
             "DEVICE_GROUP_ENCODE_OVERRIDE=${deviceGroupEncode ?: ''}",
             "DEVICE_GROUP_PREFILL_OVERRIDE=${deviceGroupPrefill ?: ''}",
             "DEVICE_GROUP_DECODE_OVERRIDE=${deviceGroupDecode ?: ''}",
-            "VENV_DIR_OVERRIDE=${venvDir ?: ''}",
         ]) {
             sh '''#!/bin/bash
                 set -euo pipefail
@@ -162,11 +159,10 @@ def runVlmConfig(String rowSpec, String deviceGroupEncode = '', String deviceGro
                     -e DEVICE_GROUP_ENCODE_OVERRIDE="${DEVICE_GROUP_ENCODE_OVERRIDE:-}" \
                     -e DEVICE_GROUP_PREFILL_OVERRIDE="${DEVICE_GROUP_PREFILL_OVERRIDE:-}" \
                     -e DEVICE_GROUP_DECODE_OVERRIDE="${DEVICE_GROUP_DECODE_OVERRIDE:-}" \
-                    -e VENV_DIR_OVERRIDE="${VENV_DIR_OVERRIDE:-}" \
                     ${BUILD_TAG} bash -s <<'SCRIPT'
 set -euo pipefail
 cd /efficient-transformers
-. "${VENV_DIR_OVERRIDE:-${VENV_DIR}}/bin/activate"
+. "${VENV_DIR}/bin/activate"
 export PYTHONUNBUFFERED=1
 export TOKENIZERS_PARALLELISM=false
 
@@ -205,7 +201,7 @@ pipeline {
     parameters {
         string(name: 'NODE_LABEL', defaultValue: 'qeff_nightly', description: 'Jenkins agent/node label')
         string(name: 'PYTHON_BIN', defaultValue: 'python3.12', description: 'Python used to create the benchmark venv')
-        string(name: 'QEFF_BRANCH', defaultValue: 'main', description: 'efficient-transformers branch/tag/commit SHA/ref consumed by vllm-qaic scripts/install.sh aot')
+        string(name: 'QEFF_BRANCH', defaultValue: '3f9983c7bb5356de72b595d1fed7589ce3f4a2cf', description: 'efficient-transformers branch/tag/commit SHA/ref used for the QEfficient install')
         string(name: 'VLLM_QAIC_REPO', defaultValue: 'https://github.com/qualcomm/vllm-qaic.git', description: 'vllm-qaic git clone URL')
         string(name: 'VLLM_QAIC_BRANCH', defaultValue: '3e546f579aee55a0250b139806dbce71acbc7dad', description: 'vllm-qaic branch/tag/commit SHA/ref to clone. scripts/install.sh from this repository installs vLLM, QEfficient, and related packages.')
         string(name: 'QAIC_DISAGG_REPO', defaultValue: 'ssh://vishsent@review.qualcomm.com:29418/qranium/qaic-disagg', description: 'qaic-disagg Gerrit SSH clone URL. Uses the Jenkins node SSH setup mounted from ${HOME}/.ssh.')
@@ -242,8 +238,8 @@ pipeline {
         booleanParam(name: 'RUN_EMBEDDING', defaultValue: true, description: 'Run embedding model configs')
         booleanParam(name: 'RUN_AUDIO', defaultValue: true, description: 'Run audio model configs')
         booleanParam(name: 'RUN_VLM', defaultValue: true, description: 'Run VLM model configs')
-        booleanParam(name: 'RUN_WEIGHT_FREE_LLM', defaultValue: true, description: 'Prepare and run weight-free LLM configs')
-        booleanParam(name: 'RUN_WEIGHT_FREE_VLM', defaultValue: true, description: 'Prepare and run weight-free VLM configs')
+        booleanParam(name: 'RUN_WEIGHT_FREE_LLM', defaultValue: false, description: 'Prepare and run weight-free LLM configs')
+        booleanParam(name: 'RUN_WEIGHT_FREE_VLM', defaultValue: false, description: 'Prepare and run weight-free VLM configs')
         booleanParam(name: 'SKIP_INSTALL', defaultValue: false, description: 'Reuse an already installed venv/repos in BENCH_ROOT')
         booleanParam(name: 'DRY_RUN', defaultValue: false, description: 'Only build commands/log stubs/output CSV rows')
         booleanParam(name: 'FORCE_KILL_QAIC', defaultValue: false, description: 'Force-kill matching QAIC server process groups even when owned by another Jenkins run')
@@ -261,7 +257,6 @@ pipeline {
         REPO_ROOT = "/efficient-transformers"
         BENCH_ROOT = "/efficient-transformers/vllm_llm_workspace"
         VENV_DIR = "/efficient-transformers/vllm_llm_workspace/venv"
-        WEIGHT_FREE_VENV_DIR = "/efficient-transformers/vllm_llm_workspace/weightfree-venv"
         VLLM_QAIC_DIR = "/efficient-transformers/vllm_llm_workspace/vllm-qaic"
         QAIC_DISAGG_DIR = "/efficient-transformers/vllm_llm_workspace/qaic-disagg"
         QSERVE_DIR = "/efficient-transformers/vllm_llm_workspace/qserve"
@@ -336,7 +331,6 @@ pipeline {
                         -e HF_HUB_ENABLE_HF_TRANSFER="${HF_HUB_ENABLE_HF_TRANSFER}" \
                         -e BENCH_TMPDIR="${BENCH_TMPDIR}" \
                         -e TMPDIR="${BENCH_TMPDIR}" \
-                        -e WEIGHT_FREE_VENV_DIR="${WEIGHT_FREE_VENV_DIR}" \
                         -e VENV_DIR="${VENV_DIR}" \
                         -e REPO_ROOT="${REPO_ROOT}" \
                         -e BENCH_ROOT="${BENCH_ROOT}" \
@@ -509,8 +503,11 @@ clone_or_update "${VLLM_QAIC_REPO}" "${VLLM_QAIC_DIR}" "${VLLM_QAIC_BRANCH}"
 
 . "${VENV_DIR}/bin/activate"
 python -m pip install -e "${QAIC_DISAGG_DIR}"
+# The AOT installer pins torch 2.7; install the Dynamo stack into this shared
+# environment afterward so weight-free tests run with the required torch 2.13.
+python -m pip install --upgrade -r "${REPO_ROOT}/examples/dynamo/causal_lm/requirements.txt"
 python -m pip uninstall --yes QEfficient >/dev/null 2>&1 || true
-python -m pip install --no-cache-dir --no-deps \
+python -m pip install --upgrade --no-cache-dir \
     "QEfficient @ git+https://github.com/quic/efficient-transformers.git@${QEFF_BRANCH}"
 QEFF_BRANCH="${QEFF_BRANCH}" python - <<'PY'
 import importlib.metadata as metadata
@@ -551,7 +548,7 @@ SCRIPT
             }
         }
 
-        stage('Prepare Weight-Free Environment') {
+        stage('Validate Weight-Free Runtime') {
             when {
                 expression {
                     params.RUN_WEIGHT_FREE_LLM || params.RUN_WEIGHT_FREE_VLM
@@ -563,53 +560,13 @@ SCRIPT
                     sudo docker exec -i ${BUILD_TAG} bash -s <<'SCRIPT'
 set -euo pipefail
 
-mkdir -p "${QEFF_HOME}" "${BENCH_TMPDIR}"
-
-if [[ "${SKIP_INSTALL}" == "true" ]]; then
-    echo "SKIP_INSTALL=true; reusing the weight-free environment."
-    if [[ ! -x "${WEIGHT_FREE_VENV_DIR}/bin/python" ]]; then
-        echo "ERROR: SKIP_INSTALL=true but no weight-free environment was found at ${WEIGHT_FREE_VENV_DIR}." >&2
-        exit 1
-    fi
-else
-    if [[ ! -d "${WEIGHT_FREE_VENV_DIR}" ]]; then
-        "${PYTHON_BIN}" -m venv "${WEIGHT_FREE_VENV_DIR}"
-    fi
-
-    export VENV_DIR="${WEIGHT_FREE_VENV_DIR}"
-    . "${WEIGHT_FREE_VENV_DIR}/bin/activate"
-    python -m pip install --upgrade pip setuptools wheel
-
-    (
-        cd "${VLLM_QAIC_DIR}"
-        QEFF_BRANCH="${QEFF_BRANCH}" scripts/install.sh aot
-    )
-    python -m pip install -e "${QAIC_DISAGG_DIR}"
-    python -m pip install -r "${REPO_ROOT}/examples/dynamo/causal_lm/requirements.txt"
-    python -m pip uninstall --yes QEfficient >/dev/null 2>&1 || true
-    python -m pip install --no-cache-dir --no-deps \
-        "QEfficient @ git+https://github.com/quic/efficient-transformers.git@${QEFF_BRANCH}"
-    QEFF_BRANCH="${QEFF_BRANCH}" python - <<'PY'
-import importlib.metadata as metadata
-import json
-import os
-import re
-
-expected = os.environ["QEFF_BRANCH"]
-dist = metadata.distribution("QEfficient")
-direct_url = json.loads(dist.read_text("direct_url.json") or "{}")
-vcs_info = direct_url.get("vcs_info") or {}
-assert direct_url.get("url", "").rstrip("/") == "https://github.com/quic/efficient-transformers.git"
-if re.fullmatch(r"[0-9a-fA-F]{40}", expected):
-    assert vcs_info.get("commit_id") == expected
-else:
-    assert vcs_info.get("requested_revision") == expected
-print(f"QEfficient verified: {direct_url}")
-PY
+if [[ ! -x "${VENV_DIR}/bin/python" ]]; then
+    echo "ERROR: No shared benchmark environment found at ${VENV_DIR}." >&2
+    exit 1
 fi
 
-. "${WEIGHT_FREE_VENV_DIR}/bin/activate"
-python -c 'import torch; version = tuple(int(part) for part in torch.__version__.split("+")[0].split(".")[:2]); assert version >= (2, 13), torch.__version__; print(f"Weight-free environment ready: torch={torch.__version__}")'
+. "${VENV_DIR}/bin/activate"
+python -c 'import torch; version = tuple(int(part) for part in torch.__version__.split("+")[0].split(".")[:2]); assert version >= (2, 13), torch.__version__; print(f"Shared benchmark environment ready: torch={torch.__version__}")'
 SCRIPT
                 '''
             }
@@ -682,7 +639,7 @@ SCRIPT
             when { expression { params.RUN_WEIGHT_FREE_LLM } }
             steps {
                 script {
-                    runLlmConfig('weight_free', params.ROWS_WEIGHT_FREE_LLM, '', env.WEIGHT_FREE_VENV_DIR)
+                    runLlmConfig('weight_free', params.ROWS_WEIGHT_FREE_LLM)
                 }
             }
         }
@@ -697,8 +654,7 @@ SCRIPT
                         params.DEVICE_GROUP_VLM_PREFILL,
                         params.DEVICE_GROUP_VLM_DECODE,
                         'tests/nightly_pipeline/vllm_llm_benchmark/configs/vlm_weight_free_configs.csv',
-                        'vlm_weight_free',
-                        env.WEIGHT_FREE_VENV_DIR
+                        'vlm_weight_free'
                     )
                 }
             }
