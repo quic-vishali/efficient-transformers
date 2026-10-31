@@ -2270,12 +2270,9 @@ def _remove_reference_log_artifacts(log_dir: Path) -> None:
             pass
 
 
-def _format_validation_text(value: object, max_chars: int = 100) -> str:
-    """Render a short generated-text preview for CSV and HTML reports."""
-    rendered = json.dumps(value, ensure_ascii=False)
-    if len(rendered) <= max_chars:
-        return rendered
-    return rendered[:max_chars] + "... [truncated]"
+def _format_validation_text(value: object) -> str:
+    """Serialize validation text without truncation for complete CSV records."""
+    return json.dumps(value, ensure_ascii=False)
 
 
 def validate_saved_benchmark_output(row: dict, log_dir: Path, base_dir: str) -> dict:
@@ -2313,7 +2310,7 @@ def validate_saved_benchmark_output(row: dict, log_dir: Path, base_dir: str) -> 
             generated = _response_values(response, response_kind)
         if not generated:
             raise ValueError(f"benchmark_result.json does not contain {response_kind}; use --save-detailed")
-        result["validation_actual_text"] = _format_validation_text(generated, max_chars=2000)
+        result["validation_actual_text"] = _format_validation_text(generated)
         expected = _expected_value(row, base_dir)
         if method in {"", "none", "off"}:
             result["validation_status"] = "not_run"
@@ -2322,7 +2319,7 @@ def validate_saved_benchmark_output(row: dict, log_dir: Path, base_dir: str) -> 
             result["reference_file"] = str(reference_file)
             result["golden_output_file"] = str(reference_file)
             result["golden_status"] = golden_status
-            result["validation_reference_text"] = _format_validation_text(reference_generated, max_chars=2000)
+            result["validation_reference_text"] = _format_validation_text(reference_generated)
             actual = generated if response_kind == "embeddings" else [str(item) for item in generated]
             # Whether the golden was reused or created above, the QAIC result
             # must be checked against the PyTorch reference on this run.
@@ -2376,7 +2373,7 @@ def validate_saved_benchmark_output(row: dict, log_dir: Path, base_dir: str) -> 
                 raise ValueError("expected_output or expected_output_file is required for validation")
             actual = "\n".join(str(item) for item in generated)
             expected_text = str(expected)
-            result["validation_reference_text"] = _format_validation_text(expected_text, max_chars=2000)
+            result["validation_reference_text"] = _format_validation_text(expected_text)
             match_mode = value(row, "string_match_mode", default=method).lower()
             if match_mode == "regex":
                 matched = re.search(expected_text, actual, flags=re.DOTALL) is not None
@@ -2389,7 +2386,7 @@ def validate_saved_benchmark_output(row: dict, log_dir: Path, base_dir: str) -> 
         elif method == "cosine":
             if expected is None:
                 raise ValueError("expected_output or expected_output_file is required for validation")
-            result["validation_reference_text"] = _format_validation_text(expected, max_chars=2000)
+            result["validation_reference_text"] = _format_validation_text(expected)
             score = cosine_similarity(generated[0], expected)
             threshold = float(value(row, "cosine_threshold", default=str(DEFAULT_COSINE_THRESHOLD)))
             result["validation_score"] = str(round(score, 6))
@@ -2791,7 +2788,6 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
                 cleanup_runtime_artifacts()
             except Exception as exc:
                 print(f"  Warning: runtime artifact cleanup failed: {exc}")
-
     return status == "success"
 
 

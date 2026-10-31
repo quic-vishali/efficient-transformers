@@ -91,11 +91,9 @@ def _safe_str(raw: object) -> str:
     return "" if raw is None else str(raw)
 
 
-def _format_validation_text(value: object, max_chars: int = 2000) -> str:
-    rendered = json.dumps(value, ensure_ascii=False)
-    if len(rendered) <= max_chars:
-        return rendered
-    return rendered[:max_chars] + "... [truncated]"
+def _format_validation_text(value: object) -> str:
+    """Serialize the complete benchmark output for published CSV artifacts."""
+    return json.dumps(value, ensure_ascii=False)
 
 
 def _milliseconds_to_seconds(value: object) -> str:
