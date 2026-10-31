@@ -75,6 +75,7 @@ SKIPPED_MODELS = {
     "hpcai-tech/grok-1",
 }
 CUSTOM_DATASET_NAMES = frozenset({"custom", "custom_image", "custom_audio"})
+LARGE_HF_MODEL_CACHE_LIMIT_BYTES = 50_000_000_000
 
 BENCH_BLOCK_RE = re.compile(r"=+\s*Serving Benchmark Result\s*=+(.*?)=+", re.DOTALL)
 BENCH_KV_RE = re.compile(
@@ -1705,6 +1706,92 @@ def _clear_directory_contents(path: Path, label: str) -> None:
     print(f"  Cleaned {label}: removed {removed} entries from {resolved}")
 
 
+def _huggingface_hub_cache_dir() -> Path:
+    """Resolve the Hugging Face Hub cache using standard environment overrides."""
+    for variable in ("HF_HUB_CACHE", "HUGGINGFACE_HUB_CACHE"):
+        configured_path = os.environ.get(variable, "").strip()
+        if configured_path:
+            expanded_path = os.path.expandvars(os.path.expanduser(configured_path))
+            return Path(expanded_path)
+
+    hf_home = os.environ.get("HF_HOME", "").strip()
+    if not hf_home:
+        xdg_cache_home = os.environ.get("XDG_CACHE_HOME", "").strip()
+        cache_home = Path(xdg_cache_home) if xdg_cache_home else Path.home() / ".cache"
+        hf_home = str(cache_home / "huggingface")
+
+    expanded_path = os.path.expandvars(os.path.expanduser(str(Path(hf_home) / "hub")))
+    return Path(expanded_path)
+
+
+def _directory_file_size_bytes(directory: Path) -> int | None:
+    """Count unique regular-file bytes without following Hub snapshot symlinks."""
+    total_bytes = 0
+    seen_files = set()
+    pending_directories = [directory]
+    try:
+        while pending_directories:
+            current = pending_directories.pop()
+            with os.scandir(current) as entries:
+                for entry in entries:
+                    if entry.is_symlink():
+                        continue
+                    if entry.is_dir(follow_symlinks=False):
+                        pending_directories.append(Path(entry.path))
+                    elif entry.is_file(follow_symlinks=False):
+                        file_stat = entry.stat(follow_symlinks=False)
+                        file_identity = (file_stat.st_dev, file_stat.st_ino)
+                        if file_identity not in seen_files:
+                            total_bytes += file_stat.st_size
+                            seen_files.add(file_identity)
+    except OSError as exc:
+        print(f"  Warning: cannot measure Hugging Face model cache {directory}: {exc}; preserving it")
+        return None
+    return total_bytes
+
+
+def cleanup_large_hf_model_caches() -> None:
+    """Remove individual Hugging Face model caches larger than 50 GB."""
+    cache_root = _huggingface_hub_cache_dir()
+    try:
+        resolved_root = cache_root.resolve(strict=False)
+        if resolved_root in {Path("/"), Path("/home"), Path("/root"), Path("/tmp")}:
+            print(f"  Skipping Hugging Face cache cleanup for unsafe path: {resolved_root}")
+            return
+        if not resolved_root.is_dir():
+            return
+        entries = list(os.scandir(resolved_root))
+    except OSError as exc:
+        print(f"  Warning: cannot inspect Hugging Face cache {cache_root}: {exc}; preserving it")
+        return
+
+    for entry in entries:
+        if not entry.name.startswith("models--") or entry.is_symlink():
+            continue
+        try:
+            if not entry.is_dir(follow_symlinks=False):
+                continue
+            model_cache = Path(entry.path)
+            resolved_model_cache = model_cache.resolve(strict=False)
+            if resolved_model_cache.parent != resolved_root:
+                print(f"  Skipping Hugging Face cache cleanup for unsafe path: {resolved_model_cache}")
+                continue
+
+            size_bytes = _directory_file_size_bytes(resolved_model_cache)
+            if size_bytes is None or size_bytes <= LARGE_HF_MODEL_CACHE_LIMIT_BYTES:
+                continue
+
+            # Recheck the direct-child invariant immediately before removal.
+            if model_cache.is_symlink() or model_cache.resolve(strict=False).parent != resolved_root:
+                print(f"  Skipping Hugging Face cache cleanup for changed path: {model_cache}")
+                continue
+            size_gb = size_bytes / 1_000_000_000
+            print(f"  Removing Hugging Face model cache ({size_gb:.2f} GB): {resolved_model_cache}")
+            shutil.rmtree(resolved_model_cache)
+        except OSError as exc:
+            print(f"  Warning: failed to clean Hugging Face model cache {entry.path}: {exc}")
+
+
 def cleanup_runtime_artifacts() -> None:
     """Free per-row compiled artifacts so large model rows do not accumulate on disk."""
     qeff_home = os.environ.get("QEFF_HOME", "").strip()
@@ -2705,6 +2792,11 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
         )
         return True
 
+    try:
+        cleanup_large_hf_model_caches()
+    except Exception as exc:
+        print(f"  Warning: pre-run Hugging Face cache cleanup failed: {exc}")
+
     server = None
     client_returncode = None
     parsed_runs: list[dict] = []
@@ -2788,6 +2880,10 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
                 cleanup_runtime_artifacts()
             except Exception as exc:
                 print(f"  Warning: runtime artifact cleanup failed: {exc}")
+            try:
+                cleanup_large_hf_model_caches()
+            except Exception as exc:
+                print(f"  Warning: post-run Hugging Face cache cleanup failed: {exc}")
     return status == "success"
 
 
