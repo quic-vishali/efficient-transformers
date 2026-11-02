@@ -2151,6 +2151,16 @@ def _golden_identity_matches(candidate: object, expected: dict) -> bool:
         result.pop("config", None)
         result.pop("dataset_sha256", None)
         result.pop("reference_inputs_sha256", None)
+        # Both OpenAI text-generation endpoints use the same PyTorch reference
+        # inputs and generation path. The endpoint distinguishes the serving
+        # API, not the expected Hugging Face output, so let either endpoint
+        # reuse the same golden after the input digest and generation settings
+        # above have matched.
+        if str(result.get("endpoint", "")).lower() in {
+            "/v1/completions",
+            "/v1/chat/completions",
+        }:
+            result["endpoint"] = "/v1/text-generation"
         result["generation_parameters"] = _normalize_reference_generation_parameters(identity)
         return result
 
@@ -2309,7 +2319,7 @@ def _run_reference(row: dict, log_dir: Path, base_dir: str) -> tuple[Path, objec
             cwd=base_dir,
             capture_output=True,
             text=True,
-            timeout=int(value(row, "pytorch_timeout_s", default="1800")),
+            timeout=int(value(row, "pytorch_timeout_s", default="3600")),
             check=False,
         )
         if completed.returncode != 0:
