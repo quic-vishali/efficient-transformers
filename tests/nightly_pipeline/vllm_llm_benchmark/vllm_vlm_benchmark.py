@@ -23,7 +23,7 @@ from vllm_benchmark_common import build_arg_parser, run_benchmarks
 LATEST_MODELS = {
     "Qwen/Qwen2.5-VL-3B-Instruct",
     "Qwen/Qwen3-VL-2B-Instruct",
-    "Qwen/Qwen3-VL-30B-A3B-Instruct",
+    # "Qwen/Qwen3-VL-30B-A3B-Instruct",
     "Qwen/Qwen3.5-0.8B",
     # "Qwen/Qwen3.5-27B",
     # "Qwen/Qwen3.5-35B-A3B",

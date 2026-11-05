@@ -38,7 +38,7 @@ After all benchmark stages complete, the "Generate Report" stage automatically:
 2. **Generates HTML report** using `generate_html_report.py`:
    - Creates a professional HTML report with styling
    - Includes environment information section (branch details, SDK version)
-   - Includes test results summary (total, passed, failed counts)
+   - Includes test results summary with separate inference-failure, validation-failure, and performance-warning counts
    - Includes detailed test results table with timing and performance metrics
    - Compares each matching row with the selected comparison build; rows with an absolute change greater than 5% in QPC total size or export/compile timing, a TTFT increase greater than 5%, or a decode TPS decrease greater than 5% are marked `WARNING` in amber with the comparison reason shown
    - Writes `N/A` for metrics that are not applicable to a model, and `-` for a successful row with no failure or comparison reason, in both the consolidated CSV and HTML table
@@ -104,10 +104,7 @@ Displays:
 
 ### Test Results Summary
 
-Shows:
-- Total number of tests
-- Number of passed tests
-- Number of failed tests
+Shows total tests, passed tests, inference failures, validation failures, and performance-comparison warnings separately. Inference/runtime failures are red, validation failures are amber, and performance regressions use a yellow highlight.
 
 ### Detailed Test Results Table
 
@@ -116,7 +113,7 @@ Columns:
 - Category (LLM, Embedding, Audio, VLM)
 - Config (config_name)
 - Config Summary
-- Status (✓ PASS / ✗ FAIL)
+- Status (✓ PASS / ✗ INFERENCE FAIL / ✗ VALIDATION FAIL / ⚠ WARNING)
 - Mean TTFT (s)
 - Mean TPOT (s)
 - Mean ITL (s)

@@ -510,7 +510,7 @@ clone_or_update "${VLLM_QAIC_REPO}" "${VLLM_QAIC_DIR}" "${VLLM_QAIC_BRANCH}"
 . "${VENV_DIR}/bin/activate"
 python -m pip install -e "${QAIC_DISAGG_DIR}"
 python -m pip uninstall --yes QEfficient >/dev/null 2>&1 || true
-python -m pip install --no-cache-dir --no-deps \
+python -m pip install --upgrade --no-cache-dir \
     "QEfficient @ git+https://github.com/quic/efficient-transformers.git@${QEFF_BRANCH}"
 QEFF_BRANCH="${QEFF_BRANCH}" python - <<'PY'
 import importlib.metadata as metadata
@@ -585,9 +585,8 @@ else
         QEFF_BRANCH="${QEFF_BRANCH}" scripts/install.sh aot
     )
     python -m pip install -e "${QAIC_DISAGG_DIR}"
-    python -m pip install -r "${REPO_ROOT}/examples/dynamo/causal_lm/requirements.txt"
     python -m pip uninstall --yes QEfficient >/dev/null 2>&1 || true
-    python -m pip install --no-cache-dir --no-deps \
+    python -m pip install --upgrade --no-cache-dir \
         "QEfficient @ git+https://github.com/quic/efficient-transformers.git@${QEFF_BRANCH}"
     QEFF_BRANCH="${QEFF_BRANCH}" python - <<'PY'
 import importlib.metadata as metadata
@@ -606,6 +605,9 @@ else:
     assert vcs_info.get("requested_revision") == expected
 print(f"QEfficient verified: {direct_url}")
 PY
+    # QEfficient's metadata pins older torch/torchvision and dynamo packages;
+    # restore the versions required by the weight-free export environment last.
+    python -m pip install -r "${REPO_ROOT}/examples/dynamo/causal_lm/requirements.txt"
 fi
 
 . "${WEIGHT_FREE_VENV_DIR}/bin/activate"
