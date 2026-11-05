@@ -164,11 +164,11 @@ value, percentage change, and comparison reason.
 
 The HTML report includes:
 - **Environment Information**: Branch details (vLLM QAIC, QAIC Disagg, QServe, QEff) and QAIC SDK version
-- **Test Results Summary**: Total tests, passed, and failed counts
+- **Test Results Summary**: Total tests, passed tests, inference failures, validation failures, and performance-comparison warnings counted separately
 - **Detailed Test Results**: Table with model name, category, config, status, per-stage
   export/compile times (export/compile, prefill MDP, prefill, decode, encode), previous
   timing values, and performance metrics
-(TTFT/TPOT/ITL/decode TPS/throughput) with a combined failure-reason column
+(TTFT/TPOT/ITL/decode TPS/throughput) with a combined failure-reason column. Inference failures are shown in red, validation failures in amber, and performance-comparison warnings with a yellow highlight.
 CSV comparison metrics are displayed as adjacent previous/current pairs, for
 example `Previous QPC Size` followed by `Current QPC Size`. TTFT and decode TPS
 are compared directionally: a TTFT increase or decode TPS decrease greater
