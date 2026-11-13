@@ -454,19 +454,30 @@ def blockwise_dequantize(
     scales: torch.Tensor,
     block_size: List[int] = None,
     **kwargs,
-) -> dict[str, torch.Tensor]:
+) -> torch.Tensor:
     rows, cols = quantized.shape[-2:]
     if block_size is None:
         block_size = (quantized.shape[-2], quantized.shape[-1])
 
     block_m, block_n = block_size
+    if block_m <= 0 or block_n <= 0:
+        raise ValueError(f"Block sizes must be positive, got ({block_m}, {block_n}).")
 
-    if rows % block_m != 0 or cols % block_n != 0:
-        raise ValueError(f"Matrix dimensions ({rows}, {cols}) must be divisible by block sizes ({block_m}, {block_n}).")
+    num_block_rows = (rows + block_m - 1) // block_m
+    num_block_cols = (cols + block_n - 1) // block_n
+    padded_rows = num_block_rows * block_m
+    padded_cols = num_block_cols * block_n
+
     quantized = quantized.to(scales.dtype)
-    reshaped = quantized.reshape(-1, rows // block_m, block_m, cols // block_n, block_n)
-    expanded_scales = scales.reshape(-1, rows // block_m, cols // block_n)
+    if padded_rows != rows or padded_cols != cols:
+        padded_quantized = quantized.new_zeros((*quantized.shape[:-2], padded_rows, padded_cols))
+        padded_quantized[..., :rows, :cols] = quantized
+        quantized = padded_quantized
+
+    reshaped = quantized.reshape(-1, num_block_rows, block_m, num_block_cols, block_n)
+    expanded_scales = scales.reshape(-1, num_block_rows, num_block_cols)
     expanded_scales = expanded_scales.unsqueeze(-1).unsqueeze(2)
     dequantized = reshaped * expanded_scales
+    dequantized = dequantized.reshape(*quantized.shape[:-2], padded_rows, padded_cols)
 
-    return dequantized.reshape(quantized.shape)
+    return dequantized[..., :rows, :cols]

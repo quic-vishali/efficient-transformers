@@ -184,9 +184,9 @@ class FP8BlockWiseDequantLinear(torch.nn.Module):
     """
     Linear layer with 2-D blocked FP8 weight quantization.
 
-    The weight tensor is stored in FP8.  During the forward pass the compact
-    scale (out_features//row_bs, in_features//col_bs) is expanded to the full
-    weight shape (out_features, in_features) via repeat_interleave, then
+    The weight tensor is stored in FP8. During the forward pass the compact
+    scale (ceil(out_features/row_bs), ceil(in_features/col_bs)) is expanded to
+    the full weight shape (out_features, in_features) via repeat_interleave, then
     ``torch.ops.qefficient.fp8_dequantize_blocked`` is called.
 
     During ONNX export the custom op is translated to a standard
@@ -230,15 +230,13 @@ class FP8BlockWiseDequantLinear(torch.nn.Module):
         if scale_dtype not in _SUPPORTED_SCALE_DTYPES:
             raise ValueError(f"scale_dtype must be one of {_SUPPORTED_SCALE_DTYPES}, got {scale_dtype}")
         row_bs, col_bs = weight_block_size
-        if out_features % row_bs != 0 or in_features % col_bs != 0:
-            raise ValueError(
-                f"Weight shape ({out_features}, {in_features}) is not divisible by "
-                f"weight_block_size ({row_bs}, {col_bs})"
-            )
         fp8_dequant_layer = cls(in_features, out_features, weight_block_size, bias, scale_dtype)
         fp8_dequant_layer.register_buffer(
             "weight_scale_inv",
-            torch.empty((out_features // row_bs, in_features // col_bs), dtype=scale_dtype),
+            torch.empty(
+                ((out_features + row_bs - 1) // row_bs, (in_features + col_bs - 1) // col_bs),
+                dtype=scale_dtype,
+            ),
         )
         return fp8_dequant_layer
 
@@ -374,6 +372,98 @@ class QEffFP8Config(QuantizationConfigMixin):
         self.weight_block_size = weight_block_size
 
 
+def _update_fp8_expert_weight_conversions(
+    hf_quantizer,
+    weight_conversions,
+    scale_suffix,
+    weight_block_size=None,
+):
+    """Fold QEff FP8 expert scales into weights before expert merge operations."""
+    from transformers.core_model_loading import ConversionOps, WeightConverter, _IdentityOp
+
+    class DequantizeFP8Experts(ConversionOps):
+        def __init__(self, weight_scale_pairs):
+            self.weight_scale_pairs = weight_scale_pairs
+
+        def convert(self, input_dict, **kwargs):
+            converted = {}
+            for weight_pattern, scale_pattern in self.weight_scale_pairs:
+                quantized = input_dict.pop(weight_pattern, None)
+                scales = input_dict.pop(scale_pattern, None)
+                if quantized is None:
+                    continue
+
+                quantized_items = quantized if isinstance(quantized, (list, tuple)) else [quantized]
+                if scales is None:
+                    if any(weight.dtype == FP8_DTYPE for weight in quantized_items):
+                        raise ValueError(f"Missing FP8 expert scales for {weight_pattern}")
+                    converted[weight_pattern] = quantized
+                    continue
+
+                scale_items = scales if isinstance(scales, (list, tuple)) else [scales]
+                if len(quantized_items) != len(scale_items):
+                    raise ValueError(
+                        f"Mismatched FP8 expert weights and scales for {weight_pattern}: "
+                        f"{len(quantized_items)} weights, {len(scale_items)} scales"
+                    )
+
+                dequantized = None
+                for index, (weight, scale) in enumerate(zip(quantized_items, scale_items)):
+                    if weight_block_size is not None:
+                        dense_weight = blockwise_dequantize(weight, scale, weight_block_size)
+                    else:
+                        if scale.ndim == 1 and weight.ndim == 2 and scale.shape[0] == weight.shape[0]:
+                            scale = scale.unsqueeze(-1)
+                        dense_weight = weight.to(torch.float32) * scale.to(torch.float32)
+                    dense_weight = dense_weight.to(hf_quantizer.scale_dtype)
+                    if dequantized is None:
+                        dequantized = torch.empty(
+                            (len(quantized_items), *dense_weight.shape),
+                            dtype=dense_weight.dtype,
+                            device=dense_weight.device,
+                        )
+                    dequantized[index].copy_(dense_weight)
+
+                converted[weight_pattern] = dequantized if isinstance(quantized, (list, tuple)) else dequantized[0]
+
+            converted.update(input_dict)
+            return converted
+
+        @property
+        def reverse_op(self):
+            return _IdentityOp()
+
+    updated = []
+    for conversion in weight_conversions:
+        if not isinstance(conversion, WeightConverter) or any(
+            "experts" not in pattern for pattern in conversion.source_patterns
+        ):
+            updated.append(conversion)
+            continue
+
+        weight_sources = [
+            pattern for pattern in conversion.source_patterns if pattern.removesuffix("$").endswith(".weight")
+        ]
+        if not weight_sources:
+            updated.append(conversion)
+            continue
+
+        anchored_weights = [pattern if pattern.endswith("$") else pattern + "$" for pattern in weight_sources]
+        scale_sources = [pattern.removesuffix("$") + scale_suffix + "$" for pattern in weight_sources]
+        other_sources = [pattern for pattern in conversion.source_patterns if pattern not in weight_sources]
+        updated.append(
+            WeightConverter(
+                source_patterns=anchored_weights + scale_sources + other_sources,
+                target_patterns=conversion._original_target_patterns,
+                operations=[DequantizeFP8Experts(list(zip(anchored_weights, scale_sources)))]
+                + list(conversion.operations),
+            )
+        )
+
+    updated.extend(hf_quantizer.get_weight_conversions())
+    return updated
+
+
 def _replace_with_fp8_dequant_linear_and_experts(
     model,
     modules_to_not_convert=None,
@@ -498,6 +588,15 @@ class QEffFP8Quantizer(CompressedTensorsHfQuantizer):
                 f" You explicitly passed `pre_quantized=False` meaning your model weights are not quantized. Make sure to "
                 f"pass `pre_quantized=True` while knowing what you are doing."
             )
+
+    def update_weight_conversions(self, weight_conversions):
+        scale_suffix = "_scale_inv" if self.quantization_config.weight_block_size is not None else "_scale"
+        return _update_fp8_expert_weight_conversions(
+            self,
+            weight_conversions,
+            scale_suffix=scale_suffix,
+            weight_block_size=self.quantization_config.weight_block_size,
+        )
 
     def validate_environment(self, *args, **kwargs):
         return True
@@ -804,6 +903,15 @@ class QEffCompressedTensorsFP8Quantizer(CompressedTensorsHfQuantizer):
                     f" You explicitly passed `pre_quantized=False` meaning your model weights are not quantized. Make sure to "
                     f"pass `pre_quantized=True` while knowing what you are doing."
                 )
+
+    def update_weight_conversions(self, weight_conversions):
+        if self.is_pack_quantized(self.quantization_config):
+            return super().update_weight_conversions(weight_conversions)
+        return _update_fp8_expert_weight_conversions(
+            self,
+            weight_conversions,
+            scale_suffix="_scale",
+        )
 
     def validate_environment(self, *args, **kwargs):
         if self.is_pack_quantized(self.quantization_config):

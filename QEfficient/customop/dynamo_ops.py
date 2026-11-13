@@ -451,12 +451,13 @@ def fp8_dequantize_blocked_op(
     weight: torch.Tensor, scale: torch.Tensor, row_block_size: int, col_block_size: int
 ) -> torch.Tensor:
     """Blocked FP8 dequantize.
-    scale: compact (out_features // row_block_size, in_features // col_block_size).
-    Expands scale along both axes via repeat_interleave for eager correctness.
+    scale: compact (ceil(out_features / row_block_size), ceil(in_features / col_block_size)).
+    Expands scale along both axes via repeat_interleave and crops to the weight shape.
     The ONNX symbolic emits Tile(scale,[row_bs,1]) + DequantizeLinear(axis=-1, block_size=col_bs).
     """
     scale_row = scale.repeat_interleave(row_block_size, dim=0)
     scale_full = scale_row.repeat_interleave(col_block_size, dim=-1)
+    scale_full = scale_full[: weight.shape[-2], : weight.shape[-1]]
     return weight.to(scale_full.dtype) * scale_full
 
 

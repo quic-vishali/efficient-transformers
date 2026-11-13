@@ -17,9 +17,9 @@ Three granularities:
 
 * ``FP8DequantizePerTensorFunc``  — scalar scale, DequantizeLinear (no axis).
 * ``FP8DequantizePerAxisFunc``    — (out_features,) scale, DequantizeLinear(axis=0).
-* ``FP8DequantizeBlockedFunc``    — compact (out//R, in//C) scale.
-                                    Emits: Unsqueeze + Tile([1,R,1]) + Flatten +
-                                    DequantizeLinear(axis=-1, block_size=C).
+* ``FP8DequantizeBlockedFunc``    — compact (ceil(out/R), ceil(in/C)) scale.
+                                    Aligned weights use blocked DequantizeLinear;
+                                    partial edge blocks use a cropped expanded scale.
 """
 
 import onnxscript
@@ -70,6 +70,8 @@ def FP8DequantizeBlocked128x128Dynamo(
     scale = _DYNAMO_OPS.Unsqueeze(scale, [1])
     scale = _DYNAMO_OPS.Tile(scale, [1, 128, 1])
     scale = _DYNAMO_OPS.Flatten(scale, axis=2)
+    weight_rows = _DYNAMO_OPS.Slice(_DYNAMO_OPS.Shape(weight), starts=[0], ends=[1], axes=[0])
+    scale = _DYNAMO_OPS.Slice(scale, starts=[0], ends=weight_rows, axes=[0])
     return _DYNAMO_OPS.DequantizeLinear(weight, scale, axis=-1, block_size=128)
 
 
@@ -132,6 +134,7 @@ class FP8DequantizeBlockedFunc(torch.autograd.Function):
     def forward(weight: torch.Tensor, scale: torch.Tensor, row_block_size: int, col_block_size: int) -> torch.Tensor:
         scale_row = scale.repeat_interleave(row_block_size, dim=0)
         scale_full = scale_row.repeat_interleave(col_block_size, dim=-1)
+        scale_full = scale_full[: weight.shape[-2], : weight.shape[-1]]
         return weight.to(scale_full.dtype) * scale_full
 
     @staticmethod
@@ -152,6 +155,23 @@ class FP8DequantizeBlockedFunc(torch.autograd.Function):
         col_bs = sym_help._maybe_get_const(col_block_size, "i")
         axes = g.op("Constant", value_t=torch.tensor([1], dtype=torch.int64))
         scale_unsq = g.op("Unsqueeze", scale, axes)
+
+        weight_rows = sym_help._get_tensor_dim_size(weight, 0)
+        weight_cols = sym_help._get_tensor_dim_size(weight, 1)
+        if (
+            weight_rows is not None
+            and weight_cols is not None
+            and (weight_rows % row_bs != 0 or weight_cols % col_bs != 0)
+        ):
+            repeats = g.op("Constant", value_t=torch.tensor([1, row_bs, col_bs], dtype=torch.int64))
+            tiled = g.op("Tile", scale_unsq, repeats)
+            scale_full = g.op("Flatten", tiled, axis_i=2)
+            starts = g.op("Constant", value_t=torch.tensor([0, 0], dtype=torch.int64))
+            ends = g.op("Constant", value_t=torch.tensor([weight_rows, weight_cols], dtype=torch.int64))
+            slice_axes = g.op("Constant", value_t=torch.tensor([0, 1], dtype=torch.int64))
+            scale_full = g.op("Slice", scale_full, starts, ends, slice_axes)
+            return g.op("Mul", g.op("CastLike", weight, scale), scale_full)
+
         repeats = g.op("Constant", value_t=torch.tensor([1, row_bs, 1], dtype=torch.int64))
         tiled = g.op("Tile", scale_unsq, repeats)
         scale_row = g.op("Flatten", tiled, axis_i=2)

@@ -550,3 +550,76 @@ class TestQEFFAutoModelQuantizationIntegration:
             initializer for initializer in onnx_model.graph.initializer if initializer.name == dequantize_node.input[1]
         )
         assert list(scale.dims) == []
+
+
+class TestFP8ExpertWeightConversions:
+    def test_qeff_fp8_quantizer_dequantizes_experts_with_inverse_block_scales(self):
+        import torch
+        from transformers.core_model_loading import Concatenate, MergeModulelist, WeightConverter, rename_source_key
+
+        from QEfficient.transformers.quantizers.quantizer_compressed_tensors import (
+            FP8_DTYPE,
+            QEffFP8Config,
+            QEffFP8Quantizer,
+        )
+
+        quantizer = QEffFP8Quantizer(
+            QEffFP8Config(quant_method="fp8", activation_scheme="dynamic", fmt="e4m3", weight_block_size=[2, 2])
+        )
+        base_conversion = WeightConverter(
+            source_patterns=[
+                "layer.mlp.experts.*.gate_proj.weight",
+                "layer.mlp.experts.*.up_proj.weight",
+            ],
+            target_patterns="layer.mlp.experts.gate_up_proj",
+            operations=[MergeModulelist(dim=0), Concatenate(dim=1)],
+        )
+
+        conversion = quantizer.update_weight_conversions([base_conversion])[0]
+        patterns = conversion.source_patterns
+        _, weight_pattern = rename_source_key(
+            "layer.mlp.experts.0.gate_proj.weight", [], [conversion], meta_state_dict=None
+        )
+        _, scale_pattern = rename_source_key(
+            "layer.mlp.experts.0.gate_proj.weight_scale_inv", [], [conversion], meta_state_dict=None
+        )
+        assert weight_pattern == patterns[0]
+        assert scale_pattern == patterns[2]
+
+        fp8_weight = torch.ones((4, 4), dtype=FP8_DTYPE)
+        inverse_scales = torch.tensor([[2.0, 3.0], [4.0, 5.0]])
+        tensors = {
+            patterns[0]: [fp8_weight, fp8_weight],
+            patterns[1]: [fp8_weight, fp8_weight],
+            patterns[2]: [inverse_scales, inverse_scales],
+            patterns[3]: [inverse_scales * 2, inverse_scales * 2],
+        }
+
+        for operation in conversion.operations:
+            tensors = operation.convert(
+                tensors,
+                source_patterns=patterns,
+                target_patterns=conversion.target_patterns,
+            )
+
+        merged = tensors["layer.mlp.experts.gate_up_proj"]
+        assert tuple(merged.shape) == (2, 8, 4)
+        assert merged.dtype == torch.bfloat16
+        expected_gate = torch.tensor([[2.0, 2.0, 3.0, 3.0], [4.0, 4.0, 5.0, 5.0]]).repeat_interleave(2, dim=0)
+        torch.testing.assert_close(merged[0, :4].float(), expected_gate)
+        torch.testing.assert_close(merged[0, 4:].float(), expected_gate * 2)
+
+
+class TestBlockwiseDequantize:
+    def test_partial_blocks(self):
+        import torch
+
+        from QEfficient.transformers.quantizers.quantizer_utils import blockwise_dequantize
+
+        quantized = torch.full((3, 5), 2, dtype=torch.float8_e4m3fn)
+        scales = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
+
+        dequantized = blockwise_dequantize(quantized, scales, block_size=[2, 3])
+
+        expected = 2 * scales.repeat_interleave(2, dim=0).repeat_interleave(3, dim=1)[:3, :5]
+        torch.testing.assert_close(dequantized, expected)
