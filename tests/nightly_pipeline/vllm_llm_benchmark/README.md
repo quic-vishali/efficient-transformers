@@ -163,7 +163,7 @@ increase greater than 5%, or a decode TPS decrease greater than 5% are marked
 value, percentage change, and comparison reason.
 
 The HTML report includes:
-- **Environment Information**: Branch details (vLLM QAIC, QAIC Disagg, QEff) and QAIC SDK version
+- **Environment Information**: Branch and QAIC SDK details, plus the Jenkins node
 - **Test Results Summary**: Total tests, passed tests, inference failures, validation failures, and performance-comparison warnings counted separately
 - **Detailed Test Results**: Table with model name, category, config, status, per-stage
   export/compile times (export/compile, prefill MDP, prefill, decode, encode), previous

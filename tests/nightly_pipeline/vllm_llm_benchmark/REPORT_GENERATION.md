@@ -37,7 +37,7 @@ After all benchmark stages complete, the "Generate Report" stage automatically:
 
 2. **Generates HTML report** using `generate_html_report.py`:
    - Creates a professional HTML report with styling
-   - Includes environment information section (branch details, SDK version)
+   - Includes environment information (branch details, SDK version, and Jenkins node)
    - Includes test results summary with separate inference-failure, validation-failure, and performance-warning counts
    - Includes detailed test results table with timing and performance metrics
    - Compares each matching row with the selected comparison build; rows with an absolute change greater than 5% in QPC total size or export/compile timing, a TTFT increase greater than 5%, or a decode TPS decrease greater than 5% are marked `WARNING` in amber with the comparison reason shown
@@ -45,7 +45,7 @@ After all benchmark stages complete, the "Generate Report" stage automatically:
    - Displays comparable metrics as adjacent previous/current columns, such as `Previous QPC Size` and `Current QPC Size`
    - Reports `vllm_exec_time_s` immediately before the failure reason; it measures from server launch until client completion
    - Keeps QPC count and per-QPC size-list fields in the CSV, while showing only the previous/current QPC total size pair in the HTML table
-   - Stores the five common environment values in a sidecar `<csv>.environment.json` file so rerunning report generation does not lose the values after they are removed from the CSV rows
+   - Stores shared environment values, including the Jenkins node, in a sidecar `<csv>.environment.json` file and archives it with the report artifacts so report regeneration retains them
 
 ### Step 3: Email Distribution (Automatic)
 
@@ -100,6 +100,7 @@ Displays:
 - QAIC Disagg Branch / Commit
 - QEff Branch / Commit
 - QAIC SDK Version
+- Jenkins node
 
 ### Test Results Summary
 

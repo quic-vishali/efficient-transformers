@@ -698,7 +698,8 @@ SCRIPT
                     withEnv([
                         "COMPARE_BUILD_NUMBER=${compareBuildNumber}",
                         "PREVIOUS_RESULTS_CSV=${previousResultsCsv}",
-                        "PREVIOUS_WEIGHT_FREE_RESULTS_CSV=${previousWeightFreeResultsCsv}"
+                        "PREVIOUS_WEIGHT_FREE_RESULTS_CSV=${previousWeightFreeResultsCsv}",
+                        "JENKINS_NODE_NAME=${env.NODE_NAME ?: 'N/A'}"
                     ]) {
                         sh '''#!/bin/bash
                         set -euo pipefail
@@ -707,6 +708,7 @@ SCRIPT
                             -e COMPARE_BUILD_NUMBER="${COMPARE_BUILD_NUMBER:-}" \
                             -e PREVIOUS_RESULTS_CSV="${PREVIOUS_RESULTS_CSV:-}" \
                             -e PREVIOUS_WEIGHT_FREE_RESULTS_CSV="${PREVIOUS_WEIGHT_FREE_RESULTS_CSV:-}" \
+                            -e JENKINS_NODE_NAME="${JENKINS_NODE_NAME}" \
                             ${BUILD_TAG} bash -s <<'SCRIPT'
 set -euo pipefail
 cd /efficient-transformers
@@ -758,6 +760,7 @@ python tests/nightly_pipeline/vllm_llm_benchmark/generate_html_report.py \
     --output "${VLLM_LLM_RESULTS_DIR}/benchmark_report.html" \
     --build-url "${BUILD_URL}" \
     --comparison-build-number "${COMPARE_BUILD_NUMBER:-}" \
+    --jenkins-node "${JENKINS_NODE_NAME}" \
     "${PREVIOUS_CSV_ARG[@]}"
 
 echo "Report generation completed successfully"
@@ -834,7 +837,7 @@ SCRIPT
                 }
             }
             archiveArtifacts(
-                artifacts: "vllm_llm_results/${env.BUILD_NUMBER}/*.csv,vllm_llm_results/${env.BUILD_NUMBER}/*.html",
+                artifacts: "vllm_llm_results/${env.BUILD_NUMBER}/*.csv,vllm_llm_results/${env.BUILD_NUMBER}/*.html,vllm_llm_results/${env.BUILD_NUMBER}/*.environment.json",
                 allowEmptyArchive: true
             )
             script {

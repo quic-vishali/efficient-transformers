@@ -60,6 +60,7 @@ HTML_ENVIRONMENT_FIELDS = {
     "qaic_disagg_branch",
     "qeff_branch",
     "qaic_sdk_version",
+    "jenkins_node",
 }
 REPORT_INTERNAL_FIELDS = set()
 REPORT_REASON_MAX_CHARS = 600
@@ -477,6 +478,7 @@ def generate_html_report(
     build_url: str = "N/A",
     previous_csv_path: Path | list[Path] | None = None,
     comparison_build_number: str = "",
+    jenkins_node: str = "",
 ) -> int:
     """Generate an HTML report from the consolidated published CSV."""
     if not csv_path.exists():
@@ -491,8 +493,10 @@ def generate_html_report(
 
     environment_metadata = _read_environment_metadata(csv_path)
     if not environment_metadata:
-        _write_environment_metadata(csv_path, rows[0])
         environment_metadata = {field: str(rows[0].get(field, "") or "") for field in HTML_ENVIRONMENT_FIELDS}
+    if jenkins_node:
+        environment_metadata["jenkins_node"] = str(jenkins_node)
+    _write_environment_metadata(csv_path, environment_metadata)
 
     _backfill_server_errors(rows, csv_path)
     if previous_csv_path is None:
@@ -531,6 +535,7 @@ def generate_html_report(
         "qaic_disagg_branch": _display_value(environment_metadata, "qaic_disagg_branch"),
         "qeff_branch": _display_value(environment_metadata, "qeff_branch"),
         "qaic_sdk_version": _display_value(environment_metadata, "qaic_sdk_version"),
+        "jenkins_node": html.escape(_display_value(environment_metadata, "jenkins_node")),
         "build_url": build_url,
     }
 
@@ -814,6 +819,10 @@ def generate_html_report(
                     </tr>
                     <tr>
                         <td style="width: 50%; padding: 10px; background-color: #f9f9f9; border-left: 4px solid #667eea; border-bottom: 1px solid #eee;">
+                            <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600;">Jenkins Node</div>
+                            <div style="font-size: 13px; font-weight: 500; color: #333; font-family: 'Courier New', monospace; word-break: break-all;">{env_info["jenkins_node"]}</div>
+                        </td>
+                        <td style="width: 50%; padding: 10px; background-color: #f9f9f9; border-left: 4px solid #667eea; border-bottom: 1px solid #eee;">
                             <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600;">Build URL</div>
                             <div style="font-size: 13px; font-weight: 500; color: #0066cc; font-family: 'Courier New', monospace; word-break: break-all;">
                                 <a href="{env_info["build_url"]}" style="color: #0066cc; text-decoration: none;">{env_info["build_url"]}</a>
@@ -981,6 +990,7 @@ def main() -> int:
         default="",
         help="Build number represented by --previous-csv (optional)",
     )
+    parser.add_argument("--jenkins-node", default="", help="Jenkins agent node name")
     args = parser.parse_args()
 
     previous_csv_paths = [Path(path) for path in args.previous_csv]
@@ -990,6 +1000,7 @@ def main() -> int:
         args.build_url,
         previous_csv_paths,
         args.comparison_build_number,
+        args.jenkins_node,
     )
 
 
