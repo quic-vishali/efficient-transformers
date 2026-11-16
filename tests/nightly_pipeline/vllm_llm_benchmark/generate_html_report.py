@@ -126,7 +126,7 @@ def _is_validation_failure(row: dict, model_status: str, model_error: str) -> bo
     validation_error = str(row.get("validation_error") or "").strip()
     if _is_missing(model_error) or not model_error:
         return True
-    # Report generation rewrites statuses to FAIL. The matching error fields
+    # Report generation rewrites statuses to WARNING. The matching error fields
     # let a regenerated consolidated CSV retain its validation classification.
     return bool(validation_error) and model_error == validation_error
 
@@ -419,7 +419,7 @@ def _write_comparison_csv(
             model_failed = True
         validation_failed = model_failed and _is_validation_failure(row, model_status, model_error)
         if model_failed:
-            row["status"] = "FAIL"
+            row["status"] = "WARNING" if validation_failed else "FAIL"
             validation_error = str(row.get("validation_error") or "").strip()
             row["reason"] = (
                 (validation_error if validation_failed else "")
@@ -517,8 +517,8 @@ def generate_html_report(
         baseline = f" build #{comparison_build_number}" if comparison_build_number else ""
         comparison_message = (
             "Red rows indicate inference failures. "
-            "Amber rows indicate validation failures. "
-            "Yellow-highlighted rows indicate performance comparison warnings, "
+            "Amber rows indicate validation warnings. "
+            "Yellow-highlighted rows indicate performance warnings, "
             f"where QPC total size or export/compile timing changes by more than {COMPARISON_THRESHOLD_PERCENT:.0f}%, "
             f"TTFT increases by more than {COMPARISON_THRESHOLD_PERCENT:.0f}%, or decode TPS decreases by more than "
             f"{COMPARISON_THRESHOLD_PERCENT:.0f}% versus the comparison{baseline}."
@@ -844,15 +844,15 @@ def generate_html_report(
                         </td>
                         <td class="summary-cell">
                             <div class="summary-card-value">{sum(1 for r in rows if r.get("_failure_type") == "inference")}</div>
-                            <div class="summary-card-label">Inference failures</div>
+                            <div class="summary-card-label">Inference Failures</div>
                         </td>
                         <td class="summary-cell">
                             <div class="summary-card-value">{sum(1 for r in rows if r.get("_failure_type") == "validation")}</div>
-                            <div class="summary-card-label">Validation failures</div>
+                            <div class="summary-card-label">Validation Warnings</div>
                         </td>
                         <td class="summary-cell">
-                            <div class="summary-card-value">{sum(1 for r in rows if (r.get("status") or "").upper() == "WARNING")}</div>
-                            <div class="summary-card-label">Warnings</div>
+                            <div class="summary-card-value">{sum(1 for r in rows if r.get("_failure_type") == "comparison")}</div>
+                            <div class="summary-card-label">Performance Warnings</div>
                         </td>
                     </tr>
                 </table>
@@ -864,8 +864,8 @@ def generate_html_report(
                 <div class="comparison-note">{html.escape(comparison_message)}</div>
                 <div class="failure-legend">
                     <span class="model-failure-legend">Inference failure</span>
-                    <span class="validation-failure-legend">Validation failure</span>
-                    <span class="comparison-failure-legend">Perf comparison warning</span>
+                    <span class="validation-failure-legend">Validation warning</span>
+                    <span class="comparison-failure-legend">Performance warning</span>
                 </div>
                 <div class="results-table-wrapper">
                 <table>
@@ -910,10 +910,11 @@ def generate_html_report(
         elif failure_type == "validation":
             reason_class = "validation-failure-reason"
             row_class = ' class="validation-failed"'
-            status_text = "✗ VALIDATION FAIL"
+            status_text = "⚠ VALIDATION WARNING"
         elif failure_type == "comparison":
             reason_class = "comparison-failure-reason"
             row_class = ' class="comparison-failed"'
+            status_text = "⚠ PERFORMANCE WARNING"
         else:
             reason_class = "comparison-reason"
             row_class = ""
