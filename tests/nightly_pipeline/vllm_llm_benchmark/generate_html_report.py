@@ -58,7 +58,6 @@ PREVIOUS_VALUE_FIELDS = tuple(f"previous_{field}" for field, _ in COMPARISON_FIE
 HTML_ENVIRONMENT_FIELDS = {
     "vllm_qaic_branch",
     "qaic_disagg_branch",
-    "qserve_branch",
     "qeff_branch",
     "qaic_sdk_version",
 }
@@ -530,7 +529,6 @@ def generate_html_report(
     env_info = {
         "vllm_qaic_branch": _display_value(environment_metadata, "vllm_qaic_branch"),
         "qaic_disagg_branch": _display_value(environment_metadata, "qaic_disagg_branch"),
-        "qserve_branch": _display_value(environment_metadata, "qserve_branch"),
         "qeff_branch": _display_value(environment_metadata, "qeff_branch"),
         "qaic_sdk_version": _display_value(environment_metadata, "qaic_sdk_version"),
         "build_url": build_url,
@@ -806,19 +804,15 @@ def generate_html_report(
                     </tr>
                     <tr>
                         <td style="width: 50%; padding: 10px; background-color: #f9f9f9; border-left: 4px solid #667eea; border-bottom: 1px solid #eee;">
-                            <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600;">QServe Branch / Commit</div>
-                            <div style="font-size: 13px; font-weight: 500; color: #333; font-family: 'Courier New', monospace; word-break: break-all;">{env_info["qserve_branch"]}</div>
-                        </td>
-                        <td style="width: 50%; padding: 10px; background-color: #f9f9f9; border-left: 4px solid #667eea; border-bottom: 1px solid #eee;">
                             <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600;">QEff Branch / Commit</div>
                             <div style="font-size: 13px; font-weight: 500; color: #333; font-family: 'Courier New', monospace; word-break: break-all;">{env_info["qeff_branch"]}</div>
                         </td>
-                    </tr>
-                    <tr>
                         <td style="width: 50%; padding: 10px; background-color: #f9f9f9; border-left: 4px solid #667eea; border-bottom: 1px solid #eee;">
                             <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600;">QAIC SDK Version</div>
                             <div style="font-size: 13px; font-weight: 500; color: #333; font-family: 'Courier New', monospace; word-break: break-all;">{env_info["qaic_sdk_version"]}</div>
                         </td>
+                    </tr>
+                    <tr>
                         <td style="width: 50%; padding: 10px; background-color: #f9f9f9; border-left: 4px solid #667eea; border-bottom: 1px solid #eee;">
                             <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600;">Build URL</div>
                             <div style="font-size: 13px; font-weight: 500; color: #0066cc; font-family: 'Courier New', monospace; word-break: break-all;">

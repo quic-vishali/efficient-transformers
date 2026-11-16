@@ -116,7 +116,6 @@ OUTPUT_FIELDS = [
     "run_timestamp_utc",
     "vllm_qaic_branch",
     "qaic_disagg_branch",
-    "qserve_branch",
     "qeff_branch",
     "qaic_sdk_version",
     "config_name",
@@ -182,7 +181,6 @@ OUTPUT_FIELDS = [
 PUBLISHED_FIELDS = [
     "vllm_qaic_branch",
     "qaic_disagg_branch",
-    "qserve_branch",
     "qeff_branch",
     "qaic_sdk_version",
     "model",
@@ -621,55 +619,6 @@ def build_disagg_server_command(row: dict, args) -> list[str]:
     return cmd
 
 
-def resolve_client_type(row: dict, args) -> str:
-    requested = value(row, "client_type", default="auto").lower()
-    if requested == "auto":
-        has_qserve_script = resolve_qserve_script(row, args, require_exists=False)
-        return "qserve" if has_qserve_script else "vllm_bench"
-    # If qserve is explicitly requested but not available, fallback to vllm_bench
-    if requested == "qserve":
-        has_qserve_script = resolve_qserve_script(row, args, require_exists=False)
-        if not has_qserve_script:
-            return "vllm_bench"
-    return requested
-
-
-def resolve_qserve_script(row: dict, args, require_exists: bool = True) -> str:
-    candidates = [
-        value(row, "client_script"),
-        args.qserve_benchmark_script,
-        os.environ.get("QSERVE_BENCHMARK_SCRIPT", ""),
-    ]
-    # Check dedicated QSERVE_DIR first (Jenkins clones qserve to a separate directory)
-    qserve_dir = os.environ.get("QSERVE_DIR", "")
-    if qserve_dir:
-        candidates.append(str(Path(qserve_dir) / "qserve/benchmarks/benchmark_serving.py"))
-    # Also check inside vllm-qaic (legacy fallback)
-    vllm_dir = Path(args.vllm_qaic_dir) if args.vllm_qaic_dir else None
-    if vllm_dir:
-        candidates.append(str(vllm_dir / "qserve/qserve/benchmarks/benchmark_serving.py"))
-    candidates.append("/home/qraniumtest/qserve/qserve/benchmarks/benchmark_serving.py")
-
-    for candidate in candidates:
-        if not candidate:
-            continue
-        try:
-            if Path(candidate).is_file():
-                return candidate
-        except OSError:
-            continue
-
-    explicit = value(row, "client_script") or args.qserve_benchmark_script
-    if explicit and not require_exists:
-        return explicit
-    if require_exists:
-        raise BenchmarkError(
-            "qserve benchmark_serving.py was requested but not found. "
-            "Set --qserve-benchmark-script or use client_type=vllm_bench."
-        )
-    return ""
-
-
 def resolve_dataset_path(raw_path: str, base_dir: str = ".") -> str:
     """Resolve a config dataset path before passing it to an external client."""
     path = Path(raw_path).expanduser()
@@ -734,7 +683,9 @@ def add_random_mm_args(cmd: list[str], row: dict) -> None:
 
 
 def build_client_command(row: dict, args, result_dir: Path | None = None) -> list[str]:
-    client_type = resolve_client_type(row, args)
+    client_type = value(row, "client_type", default="vllm_bench").lower()
+    if client_type == "auto":
+        client_type = "vllm_bench"
     host = value(row, "host", default="127.0.0.1")
     port = value(row, "port", "server_port", default="8080")
     endpoint = value(row, "endpoint")
@@ -749,52 +700,9 @@ def build_client_command(row: dict, args, result_dir: Path | None = None) -> lis
     is_custom_image = dataset_name == "custom_image"
     is_custom_dataset = dataset_name in CUSTOM_DATASET_NAMES
 
-    if client_type == "qserve":
-        script_path = resolve_qserve_script(row, args)
-        python_bin = value(
-            row,
-            "client_python_bin",
-            "python_bin",
-            default=args.python_bin,
-        )
-        cmd = [
-            python_bin,
-            script_path,
-            "--backend",
-            backend,
-            "--dataset-name",
-            dataset_name,
-            "--model",
-            value(row, "model"),
-            "--num-prompts",
-            num_prompts,
-            "--host",
-            host,
-            "--port",
-            port,
-        ]
-        if max_concurrency:
-            cmd.extend(["--max-concurrency", max_concurrency])
-        if input_len:
-            cmd.extend(["--random-input-len", input_len])
-        if output_len:
-            cmd.extend(["--random-output-len", output_len])
-        if endpoint:
-            cmd.extend(["--endpoint", endpoint])
-        if seed:
-            cmd.extend(["--seed", seed])
-        if is_custom_image:
-            add_custom_dataset_path_arg(cmd, row, args.base_dir)
-        else:
-            add_hf_random_dataset_args(cmd, row, args.base_dir)
-        add_bool_arg(cmd, "--ignore-eos", row, "ignore_eos")
-        add_bool_arg(cmd, "--trust-remote-code", row, "trust_remote_code")
-        add_bool_arg(cmd, "--save-result", row, "save_result")
-    elif client_type == "vllm_bench":
+    if client_type == "vllm_bench":
         base_url = value(row, "base_url") or f"http://{host}:{port}"
-        # ``vllm-embed`` is the legacy backend name used by the QServe
-        # benchmark script.  ``vllm bench serve`` uses the upstream backend
-        # name ``openai-embeddings`` for the same /v1/embeddings API.
+        # ``vllm-embed`` is the legacy config name for vLLM's embeddings backend.
         vllm_bench_backend = "openai-embeddings" if backend == "vllm-embed" else backend
         cmd = [
             "vllm",
@@ -2490,7 +2398,6 @@ def make_output_row(
         "vllm_exec_time_s": rounded(vllm_exec_time_s),
         "vllm_qaic_branch": os.environ.get("VLLM_QAIC_BRANCH", ""),
         "qaic_disagg_branch": os.environ.get("QAIC_DISAGG_BRANCH", ""),
-        "qserve_branch": os.environ.get("QSERVE_BRANCH", ""),
         "qeff_branch": os.environ.get("QEFF_BRANCH", ""),
         "qaic_sdk_version": get_qaic_sdk_version(),
         "server_command": command_to_shell_string(server_cmd) if server_cmd else "",
@@ -2834,16 +2741,6 @@ def build_arg_parser(description: str) -> argparse.ArgumentParser:
         "--python-bin",
         default="python3",
         help="Python binary for server/client modules.",
-    )
-    parser.add_argument(
-        "--qserve-benchmark-script",
-        default="",
-        help="Path to qserve/qserve/benchmarks/benchmark_serving.py.",
-    )
-    parser.add_argument(
-        "--vllm-qaic-dir",
-        default=os.environ.get("VLLM_QAIC_DIR", ""),
-        help="vllm-qaic checkout path used to auto-resolve qserve benchmark_serving.py.",
     )
     parser.add_argument(
         "--server-ready-timeout-s",

@@ -36,7 +36,6 @@ except ImportError:
 PUBLISHED_FIELDS = [
     "vllm_qaic_branch",
     "qaic_disagg_branch",
-    "qserve_branch",
     "qeff_branch",
     "qaic_sdk_version",
     "model",

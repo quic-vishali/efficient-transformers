@@ -163,7 +163,7 @@ increase greater than 5%, or a decode TPS decrease greater than 5% are marked
 value, percentage change, and comparison reason.
 
 The HTML report includes:
-- **Environment Information**: Branch details (vLLM QAIC, QAIC Disagg, QServe, QEff) and QAIC SDK version
+- **Environment Information**: Branch details (vLLM QAIC, QAIC Disagg, QEff) and QAIC SDK version
 - **Test Results Summary**: Total tests, passed tests, inference failures, validation failures, and performance-comparison warnings counted separately
 - **Detailed Test Results**: Table with model name, category, config, status, per-stage
   export/compile times (export/compile, prefill MDP, prefill, decode, encode), previous
@@ -376,7 +376,6 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_llm_benchmark.py \
   --results-dir test \
   --base-dir . \
   --python-bin python3 \
-  --vllm-qaic-dir . \
   --server-ready-timeout-s 3600 \
   --device-group-override "0,1" \
   --dry-run
@@ -393,7 +392,6 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_llm_benchmark.py \
   --results-dir /tmp \
   --base-dir . \
   --python-bin python3 \
-  --vllm-qaic-dir . \
   --server-ready-timeout-s 3600 \
   --device-group-override "0,1" \
   --dry-run
@@ -410,7 +408,6 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_llm_benchmark.py \
   --results-dir /tmp \
   --base-dir . \
   --python-bin python3 \
-  --vllm-qaic-dir . \
   --server-ready-timeout-s 3600 \
   --device-group-override "2,3" \
   --dry-run
@@ -427,7 +424,6 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_llm_benchmark.py \
   --results-dir /tmp \
   --base-dir . \
   --python-bin python3 \
-  --vllm-qaic-dir . \
   --server-ready-timeout-s 3600 \
   --device-group-prefill-override "0,1" \
   --device-group-decode-override "2,3" \
@@ -445,7 +441,6 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_embedding_benchmark.py \
   --results-dir /tmp \
   --base-dir . \
   --python-bin python3 \
-  --vllm-qaic-dir . \
   --server-ready-timeout-s 3600 \
   --device-group-override "0" \
   --dry-run
@@ -462,7 +457,6 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_audio_benchmark.py \
   --results-dir /tmp \
   --base-dir . \
   --python-bin python3 \
-  --vllm-qaic-dir . \
   --server-ready-timeout-s 3600 \
   --device-group-override "0" \
   --dry-run
@@ -479,7 +473,6 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_vlm_benchmark.py \
   --results-dir /tmp \
   --base-dir . \
   --python-bin python3 \
-  --vllm-qaic-dir . \
   --server-ready-timeout-s 3600 \
   --device-group-encode-override "0" \
   --device-group-prefill-override "1" \
@@ -515,11 +508,12 @@ simply not passed.
 The embedding CSV (`configs/embedding_configs.csv`) has four rows per model,
 one per `pooling_method` (`mean`, `avg`, `cls`, `max`), passed through the
 `additional_config` column's `override_qaic_config.pooling_method` key, along
-with the qserve-only client columns `tokenizer` and `random_range_ratio`.
+with the client columns `tokenizer` and `random_range_ratio` used for
+Hugging Face dataset benchmarks.
 
 The audio CSV (`configs/audio_configs.csv`) has one row per whisper model and
-uses the qserve-only client columns `dataset_path`, `hf_subset`, `hf_split`,
-and `hf_output_len` for the `hf` dataset backend.
+uses the client columns `dataset_path`, `hf_subset`, `hf_split`, and
+`hf_output_len` for the `hf` dataset backend.
 
 The VLM CSV (`configs/vlm_configs.csv`) has one row per (model, disagg_mode,
 specialization_mode, blocking_mode) combination. Rows tagged

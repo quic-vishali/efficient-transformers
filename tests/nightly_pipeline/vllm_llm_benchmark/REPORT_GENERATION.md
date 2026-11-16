@@ -33,7 +33,7 @@ After all benchmark stages complete, the "Generate Report" stage automatically:
    - Standard and weight-free result CSVs are consolidated into `consolidated_published_results.csv`
    - The `config_name` field preserves the variant, such as `weight_free` for LLM and `weight_free/<mode>` for VLM
    - The optional `--input-files` argument can select a subset, but Jenkins passes all result CSVs for the single report
-   - Includes the benchmark, comparison, and `vllm_exec_time_s` fields. The common environment fields `vllm_qaic_branch`, `qaic_disagg_branch`, `qserve_branch`, `qeff_branch`, and `qaic_sdk_version` are shown once at the top of the HTML report instead of being repeated in every CSV row.
+   - Includes the benchmark, comparison, and `vllm_exec_time_s` fields. The common environment fields `vllm_qaic_branch`, `qaic_disagg_branch`, `qeff_branch`, and `qaic_sdk_version` are shown once at the top of the HTML report instead of being repeated in every CSV row.
 
 2. **Generates HTML report** using `generate_html_report.py`:
    - Creates a professional HTML report with styling
@@ -98,7 +98,6 @@ For a local comparison, add `--previous-csv` with the previous consolidated CSV.
 Displays:
 - vLLM QAIC Branch / Commit
 - QAIC Disagg Branch / Commit
-- QServe Branch / Commit
 - QEff Branch / Commit
 - QAIC SDK Version
 

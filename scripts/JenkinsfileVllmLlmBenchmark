@@ -53,8 +53,6 @@ python "${BENCHMARK_SCRIPT}" \
     --results-dir "${VLLM_LLM_RESULTS_DIR}" \
     --base-dir "${REPO_ROOT}" \
     --python-bin python \
-    --qserve-benchmark-script "${QSERVE_BENCHMARK_SCRIPT:-}" \
-    --vllm-qaic-dir "${VLLM_QAIC_DIR}" \
     --server-ready-timeout-s "$((SERVER_READY_TIMEOUT_MINUTES * 60))" \
     --device-group-override "${DEVICE_GROUP_OVERRIDE:-}" \
     ${DRY_RUN_ARG:-} \
@@ -117,8 +115,6 @@ python "${BENCH_SCRIPT}" \
     --results-dir "${VLLM_LLM_RESULTS_DIR}" \
     --base-dir "${REPO_ROOT}" \
     --python-bin python \
-    --qserve-benchmark-script "${QSERVE_BENCHMARK_SCRIPT:-}" \
-    --vllm-qaic-dir "${VLLM_QAIC_DIR}" \
     --server-ready-timeout-s "$((SERVER_READY_TIMEOUT_MINUTES * 60))" \
     --device-group-override "${DEVICE_GROUP_OVERRIDE:-}" \
     ${DRY_RUN_ARG:-} \
@@ -179,8 +175,6 @@ python "${VLM_BENCHMARK_SCRIPT}" \
     --results-dir "${VLLM_LLM_RESULTS_DIR}" \
     --base-dir "${REPO_ROOT}" \
     --python-bin python \
-    --qserve-benchmark-script "${QSERVE_BENCHMARK_SCRIPT:-}" \
-    --vllm-qaic-dir "${VLLM_QAIC_DIR}" \
     --server-ready-timeout-s "$((SERVER_READY_TIMEOUT_MINUTES * 60))" \
     --device-group-encode-override "${DEVICE_GROUP_ENCODE_OVERRIDE:-}" \
     --device-group-prefill-override "${DEVICE_GROUP_PREFILL_OVERRIDE:-}" \
@@ -210,8 +204,6 @@ pipeline {
         string(name: 'VLLM_QAIC_BRANCH', defaultValue: 'dev/v0.30.0', description: 'vllm-qaic branch/tag/commit SHA/ref to clone. scripts/install.sh from this repository installs vLLM, QEfficient, and related packages.')
         string(name: 'QAIC_DISAGG_REPO', defaultValue: 'ssh://vishsent@review.qualcomm.com:29418/qranium/qaic-disagg', description: 'qaic-disagg Gerrit SSH clone URL. Uses the Jenkins node SSH setup mounted from ${HOME}/.ssh.')
         string(name: 'QAIC_DISAGG_BRANCH', defaultValue: 'master', description: 'qaic-disagg branch/tag/commit SHA/ref to install')
-        string(name: 'QSERVE_REPO', defaultValue: 'ssh://git@github.qualcomm.com/vishsent/qserve.git', description: 'qserve git clone URL. Uses the Jenkins node SSH setup mounted from ${HOME}/.ssh; qserve remains optional.')
-        string(name: 'QSERVE_BRANCH', defaultValue: 'main', description: 'qserve branch/tag/commit SHA/ref to install')
         password(name: 'HF_TOKEN', defaultValue: '', description: 'HuggingFace token for gated models. Optional - leave empty to reuse the HF_TOKEN already exported in the Jenkins agent host environment.')
         string(name: 'HF_HOME', defaultValue: '', description: 'Host HuggingFace cache directory. Empty = ${HOME}/.cache/huggingface')
         string(name: 'DEVICE_GROUP_DEFAULT', defaultValue: '', description: 'Device group for default LLM configs (e.g., "0,1,2,3"). Empty = use CSV values.')
@@ -224,7 +216,6 @@ pipeline {
         string(name: 'DEVICE_GROUP_VLM_ENCODE', defaultValue: '', description: 'Device group for VLM encode stage. Empty = use CSV values.')
         string(name: 'DEVICE_GROUP_VLM_PREFILL', defaultValue: '', description: 'Device group for VLM prefill stage. Empty = use CSV values.')
         string(name: 'DEVICE_GROUP_VLM_DECODE', defaultValue: '', description: 'Device group for VLM decode stage. Empty = use CSV values.')
-        string(name: 'QSERVE_BENCHMARK_SCRIPT', defaultValue: '', description: 'Optional benchmark_serving.py path. Empty uses auto/fallback.')
         string(name: 'SERVER_READY_TIMEOUT_MINUTES', defaultValue: '360', description: 'Server compile/load timeout per row')
         string(name: 'ROWS_DEFAULT', defaultValue: 'ALL', description: 'Default config data rows: ALL, 1, 1:4, or 1,3. Row 1 is gpt2 smoke.')
         string(name: 'ROWS_CCL', defaultValue: 'ALL', description: 'CCL config data rows')
@@ -264,7 +255,6 @@ pipeline {
         WEIGHT_FREE_VENV_DIR = "/efficient-transformers/vllm_llm_workspace/weightfree-venv"
         VLLM_QAIC_DIR = "/efficient-transformers/vllm_llm_workspace/vllm-qaic"
         QAIC_DISAGG_DIR = "/efficient-transformers/vllm_llm_workspace/qaic-disagg"
-        QSERVE_DIR = "/efficient-transformers/vllm_llm_workspace/qserve"
         VLLM_LLM_RESULTS_DIR = "${HOME}/.cache/vllm_llm_results/${BUILD_NUMBER}"
         BENCHMARK_SCRIPT = "/efficient-transformers/tests/nightly_pipeline/vllm_llm_benchmark/vllm_llm_benchmark.py"
         EMBEDDING_BENCHMARK_SCRIPT = "/efficient-transformers/tests/nightly_pipeline/vllm_llm_benchmark/vllm_embedding_benchmark.py"
@@ -293,7 +283,6 @@ pipeline {
         QEFF_BRANCH = "${params.QEFF_BRANCH}"
         SKIP_INSTALL = "${params.SKIP_INSTALL}"
         SERVER_READY_TIMEOUT_MINUTES = "${params.SERVER_READY_TIMEOUT_MINUTES}"
-        QSERVE_BENCHMARK_SCRIPT = "${params.QSERVE_BENCHMARK_SCRIPT}"
         DEVICE_GROUP_DEFAULT = "${params.DEVICE_GROUP_DEFAULT}"
         DEVICE_GROUP_CCL = "${params.DEVICE_GROUP_CCL}"
         DEVICE_GROUP_BLOCKING = "${params.DEVICE_GROUP_BLOCKING}"
@@ -354,13 +343,9 @@ pipeline {
                         -e VLLM_QAIC_BRANCH="${VLLM_QAIC_BRANCH}" \
                         -e QAIC_DISAGG_REPO="${QAIC_DISAGG_REPO}" \
                         -e QAIC_DISAGG_BRANCH="${QAIC_DISAGG_BRANCH}" \
-                        -e QSERVE_DIR="${QSERVE_DIR}" \
-                        -e QSERVE_REPO="${QSERVE_REPO}" \
-                        -e QSERVE_BRANCH="${QSERVE_BRANCH}" \
                         -e QEFF_BRANCH="${QEFF_BRANCH}" \
                         -e SKIP_INSTALL="${SKIP_INSTALL}" \
                         -e SERVER_READY_TIMEOUT_MINUTES="${SERVER_READY_TIMEOUT_MINUTES}" \
-                        -e QSERVE_BENCHMARK_SCRIPT="${QSERVE_BENCHMARK_SCRIPT:-}" \
                         -e HOST_SSH_DIR="${HOME}/.ssh" \
                         -v ./:/efficient-transformers \
                         -v "${HOME}/.cache:${HOME}/.cache" \
@@ -490,13 +475,6 @@ setup_node_ssh
 
 clone_or_update "${QAIC_DISAGG_REPO}" "${QAIC_DISAGG_DIR}" "${QAIC_DISAGG_BRANCH}"
 
-# qserve is optional; embedding/audio clients fall back to vllm_bench when absent.
-if clone_or_update "${QSERVE_REPO}" "${QSERVE_DIR}" "${QSERVE_BRANCH}" 2>&1; then
-    echo "qserve cloned successfully"
-else
-    echo "Warning: qserve clone failed; embedding/audio clients will fall back to vllm_bench"
-fi
-
 clone_or_update "${VLLM_QAIC_REPO}" "${VLLM_QAIC_DIR}" "${VLLM_QAIC_BRANCH}"
 (
     cd "${VLLM_QAIC_DIR}"
@@ -534,11 +512,6 @@ python "${EMBEDDING_BENCHMARK_SCRIPT}" --help >/dev/null
 python "${AUDIO_BENCHMARK_SCRIPT}" --help >/dev/null
 python "${VLM_BENCHMARK_SCRIPT}" --help >/dev/null
 
-if [[ -f "${QSERVE_DIR}/qserve/benchmarks/benchmark_serving.py" ]]; then
-    echo "qserve detected at: ${QSERVE_DIR}/qserve/benchmarks/benchmark_serving.py"
-else
-    echo "qserve not found; embedding/audio clients will fall back to vllm_bench"
-fi
 SCRIPT
                         '''
                     }
