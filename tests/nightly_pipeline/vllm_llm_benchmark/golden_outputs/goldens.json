@@ -23,14 +23,14 @@
           "Explain TCP in one short sentence."
         ],
         "generated_texts": [
-          "analysisThe user asks: \"Explain TCP in one short sentence.\" They want a concise explanation. So answer: \"TCP is a reliable, connection-oriented protocol that ensures ordered, error-checked delivery of data between applications.\" That is short. Maybe even shorter: \"TCP is a reliable, connection-oriented transport protocol that guarantees ordered, error-free data delivery.\" That is one sentence. Let's produce that.assistantfinalTCP is a reliable, connection\u2011oriented transport protocol that guarantees ordered, error\u2011checked delivery of data between applications."
+          "analysisThe user asks: \"Explain TCP in one short sentence.\" They want a concise explanation. So answer: \"TCP is a reliable, connection-oriented protocol that ensures ordered, error-checked delivery of data between applications.\" That is short. Maybe: \"TCP is a reliable, connection-oriented transport protocol that guarantees ordered, error-free data delivery.\" That is short. Let's produce that.assistantfinalTCP is a reliable, connection\u2011oriented transport protocol that guarantees ordered, error\u2011checked delivery of data between applications."
         ],
         "is_encoder_decoder": false,
         "device": "cpu",
         "dtype": "torch.bfloat16",
         "config_fp": "15ed96ac",
         "gen_len": 1024,
-        "timestamp": "2026-11-02T18:49:14.258971+00:00"
+        "timestamp": "2026-11-13T15:27:29.312106+00:00"
       },
       "openai_gpt-oss-20b_gl1024_2a69b7a5_74eae5d187f32023": {
         "identity": {
@@ -54,14 +54,14 @@
           "Explain TCP in one short sentence."
         ],
         "generated_texts": [
-          "analysisThe user asks: \"Explain TCP in one short sentence.\" They want a concise explanation. So answer: \"TCP is a reliable, connection-oriented protocol that ensures ordered, error-checked delivery of data between applications.\" That is short. Maybe even shorter: \"TCP is a reliable, connection-oriented transport protocol that guarantees ordered, error-free data delivery.\" That is one sentence. Let's produce that.assistantfinalTCP is a reliable, connection\u2011oriented transport protocol that guarantees ordered, error\u2011checked delivery of data between applications."
+          "analysisThe user asks: \"Explain TCP in one short sentence.\" They want a concise explanation. So answer: \"TCP is a reliable, connection-oriented protocol that ensures ordered, error-checked delivery of data between applications.\" That is short. Maybe: \"TCP is a reliable, connection-oriented transport protocol that guarantees ordered, error-free data delivery.\" That is short. Let's produce that.assistantfinalTCP is a reliable, connection\u2011oriented transport protocol that guarantees ordered, error\u2011checked delivery of data between applications."
         ],
         "is_encoder_decoder": false,
         "device": "cpu",
         "dtype": "torch.bfloat16",
         "config_fp": "2a69b7a5",
         "gen_len": 1024,
-        "timestamp": "2026-11-02T20:58:30.721178+00:00"
+        "timestamp": "2026-11-13T18:29:45.496371+00:00"
       }
     },
     "Qwen/Qwen3-30B-A3B-Instruct-2507": {
@@ -87,14 +87,14 @@
           "Explain TCP in one short sentence."
         ],
         "generated_texts": [
-          "TCP (Transmission Control Protocol) is a reliable, connection-oriented protocol that ensures accurate and ordered delivery of data over a network."
+          "TCP (Transmission Control Protocol) is a reliable, connection-oriented protocol that ensures data is delivered accurately and in order across a network."
         ],
         "is_encoder_decoder": false,
         "device": "cpu",
         "dtype": "torch.bfloat16",
         "config_fp": "1dbfec44",
         "gen_len": 1024,
-        "timestamp": "2026-11-02T19:10:41.558061+00:00"
+        "timestamp": "2026-11-13T15:39:49.156399+00:00"
       },
       "Qwen_Qwen3-30B-A3B-Instruct-2507_gl1024_44a2c838_31162b657863e98f": {
         "identity": {
@@ -118,14 +118,14 @@
           "Explain TCP in one short sentence."
         ],
         "generated_texts": [
-          "TCP (Transmission Control Protocol) is a reliable, connection-oriented protocol that ensures accurate and ordered delivery of data over a network."
+          "TCP (Transmission Control Protocol) is a reliable, connection-oriented protocol that ensures data is delivered accurately and in order across a network."
         ],
         "is_encoder_decoder": false,
         "device": "cpu",
         "dtype": "torch.bfloat16",
         "config_fp": "44a2c838",
         "gen_len": 1024,
-        "timestamp": "2026-11-02T21:20:03.352406+00:00"
+        "timestamp": "2026-11-13T18:43:09.963025+00:00"
       }
     },
     "allenai/OLMo-2-0425-1B": {
@@ -158,7 +158,7 @@
         "dtype": "torch.float32",
         "config_fp": "884dda70",
         "gen_len": 1024,
-        "timestamp": "2026-11-02T19:22:45.026031+00:00"
+        "timestamp": "2026-11-13T15:52:36.051427+00:00"
       },
       "allenai_OLMo-2-0425-1B_gl1024_47f9df21_71a66a7213d1cfea": {
         "identity": {
@@ -189,7 +189,71 @@
         "dtype": "torch.float32",
         "config_fp": "47f9df21",
         "gen_len": 1024,
-        "timestamp": "2026-11-02T21:31:17.885221+00:00"
+        "timestamp": "2026-11-13T18:55:35.756759+00:00"
+      }
+    },
+    "meta-llama/Llama-3.3-70B-Instruct": {
+      "meta-llama_Llama-3.3-70B-Instruct_gl1024_181892a3_f6b4a38e137bf298": {
+        "identity": {
+          "model": "meta-llama/Llama-3.3-70B-Instruct",
+          "endpoint": "/v1/completions",
+          "dataset_name": "custom",
+          "dataset": "/efficient-transformers/tests/nightly_pipeline/vllm_llm_benchmark/inputs/llm_inputs.jsonl",
+          "dataset_sha256": "8022bbce365a9330ed5a7c4cabc567c46b6486c3d7d231af35bd662b6c117e8a",
+          "reference_inputs_sha256": "271d4bd5f4fe5b497d2366a8759fb29f451f5496cb96247f01cc7df00907f8f7",
+          "prompts": [
+            "Explain TCP in one short sentence."
+          ],
+          "generation_parameters": {
+            "trust_remote_code": true,
+            "max_new_tokens": 1024,
+            "skip_chat_template": false
+          }
+        },
+        "model": "meta-llama/Llama-3.3-70B-Instruct",
+        "prompts": [
+          "Explain TCP in one short sentence."
+        ],
+        "generated_texts": [
+          "TCP (Transmission Control Protocol) is a reliable, connection-oriented protocol that ensures accurate and sequential delivery of data packets over the internet."
+        ],
+        "is_encoder_decoder": false,
+        "device": "cpu",
+        "dtype": "torch.bfloat16",
+        "config_fp": "181892a3",
+        "gen_len": 1024,
+        "timestamp": "2026-11-13T17:32:10.499430+00:00"
+      },
+      "meta-llama_Llama-3.3-70B-Instruct_gl1024_58d6ff50_f33b2b5bcf29ad8c": {
+        "identity": {
+          "model": "meta-llama/Llama-3.3-70B-Instruct",
+          "endpoint": "/v1/completions",
+          "dataset_name": "custom",
+          "dataset": "/efficient-transformers/tests/nightly_pipeline/vllm_llm_benchmark/inputs/llm_inputs.jsonl",
+          "dataset_sha256": "8022bbce365a9330ed5a7c4cabc567c46b6486c3d7d231af35bd662b6c117e8a",
+          "reference_inputs_sha256": "271d4bd5f4fe5b497d2366a8759fb29f451f5496cb96247f01cc7df00907f8f7",
+          "prompts": [
+            "Explain TCP in one short sentence."
+          ],
+          "generation_parameters": {
+            "trust_remote_code": false,
+            "max_new_tokens": 1024,
+            "skip_chat_template": false
+          }
+        },
+        "model": "meta-llama/Llama-3.3-70B-Instruct",
+        "prompts": [
+          "Explain TCP in one short sentence."
+        ],
+        "generated_texts": [
+          "TCP (Transmission Control Protocol) is a reliable, connection-oriented protocol that ensures accurate and sequential delivery of data packets over the internet."
+        ],
+        "is_encoder_decoder": false,
+        "device": "cpu",
+        "dtype": "torch.bfloat16",
+        "config_fp": "58d6ff50",
+        "gen_len": 1024,
+        "timestamp": "2026-11-13T19:22:06.401222+00:00"
       }
     },
     "meta-llama/Llama-3.2-1B": {
@@ -222,7 +286,7 @@
         "dtype": "torch.bfloat16",
         "config_fp": "9ef99715",
         "gen_len": 1024,
-        "timestamp": "2026-11-02T20:04:51.214885+00:00"
+        "timestamp": "2026-11-13T17:38:22.191938+00:00"
       },
       "meta-llama_Llama-3.2-1B_gl1024_476f0eba_39ee6d783c659617": {
         "identity": {
@@ -253,7 +317,7 @@
         "dtype": "torch.bfloat16",
         "config_fp": "476f0eba",
         "gen_len": 1024,
-        "timestamp": "2026-11-02T22:12:29.931521+00:00"
+        "timestamp": "2026-11-13T19:28:19.973234+00:00"
       }
     },
     "meta-llama/Llama-3.1-8B": {
@@ -286,7 +350,7 @@
         "dtype": "torch.bfloat16",
         "config_fp": "a7a386bb",
         "gen_len": 1024,
-        "timestamp": "2026-11-02T20:13:31.554808+00:00"
+        "timestamp": "2026-11-13T17:46:40.163380+00:00"
       },
       "meta-llama_Llama-3.1-8B_gl1024_e7f4e408_05ddbda8e680d285": {
         "identity": {
@@ -317,7 +381,7 @@
         "dtype": "torch.bfloat16",
         "config_fp": "e7f4e408",
         "gen_len": 1024,
-        "timestamp": "2026-11-02T22:20:36.513089+00:00"
+        "timestamp": "2026-11-13T19:36:48.971093+00:00"
       }
     },
     "meta-llama/Meta-Llama-3-8B": {
@@ -350,7 +414,7 @@
         "dtype": "torch.bfloat16",
         "config_fp": "be8ddb34",
         "gen_len": 1024,
-        "timestamp": "2026-11-02T20:21:48.381200+00:00"
+        "timestamp": "2026-11-13T17:54:33.611961+00:00"
       },
       "meta-llama_Meta-Llama-3-8B_gl1024_115973ea_466b329a7ea0fcbe": {
         "identity": {
@@ -381,7 +445,7 @@
         "dtype": "torch.bfloat16",
         "config_fp": "115973ea",
         "gen_len": 1024,
-        "timestamp": "2026-11-02T22:28:40.188501+00:00"
+        "timestamp": "2026-11-13T19:44:52.392323+00:00"
       }
     }
   },
@@ -1184,7 +1248,7 @@
         "dtype": "torch.float32",
         "config_fp": "ce0deb50",
         "gen_len": 1,
-        "timestamp": "2026-11-03T01:09:00.275568+00:00"
+        "timestamp": "2026-11-13T21:57:35.580969+00:00"
       },
       "BAAI_bge-base-en-v1.5_gl0_998c5c60_c3c313ccecefb2ea": {
         "identity": {
@@ -1983,7 +2047,7 @@
         "dtype": "torch.float32",
         "config_fp": "998c5c60",
         "gen_len": 1,
-        "timestamp": "2026-11-03T01:10:33.423640+00:00"
+        "timestamp": "2026-11-13T21:59:17.153529+00:00"
       },
       "BAAI_bge-base-en-v1.5_gl0_55af2743_a42db3711799c092": {
         "identity": {
@@ -2782,7 +2846,7 @@
         "dtype": "torch.float32",
         "config_fp": "55af2743",
         "gen_len": 1,
-        "timestamp": "2026-11-03T01:12:07.375474+00:00"
+        "timestamp": "2026-11-13T22:00:58.860237+00:00"
       },
       "BAAI_bge-base-en-v1.5_gl0_2bff5699_45a43e97afc45eb7": {
         "identity": {
@@ -3581,7 +3645,7 @@
         "dtype": "torch.float32",
         "config_fp": "2bff5699",
         "gen_len": 1,
-        "timestamp": "2026-11-03T01:13:41.509811+00:00"
+        "timestamp": "2026-11-13T22:02:40.662768+00:00"
       }
     }
   },
@@ -3610,116 +3674,22 @@
         "dtype": "torch.float32",
         "config_fp": "6cc2131b",
         "gen_len": 1,
-        "timestamp": "2026-11-03T01:16:26.354143+00:00"
+        "timestamp": "2026-11-13T22:05:12.855424+00:00"
       }
     }
   },
   "image_text_to_text": {
-    "google/gemma-4-26B-A4B-it": {
-      "google_gemma-4-26B-A4B-it_gl65536_bdeda749_c116486d9d285916": {
-        "identity": {
-          "model": "google/gemma-4-26B-A4B-it",
-          "endpoint": "/v1/chat/completions",
-          "dataset_name": "custom_image",
-          "dataset": "/efficient-transformers/tests/nightly_pipeline/vllm_llm_benchmark/inputs/vlm_inputs.jsonl",
-          "dataset_sha256": "7b0b3e22a0bb6ea0ffa071200bf41e44772d95031b91539eec8a31a17126e8de",
-          "reference_inputs_sha256": "9ad55f10410380f3820651092a428c18e7b829d873eeb8f59aa9f9842b63edd0",
-          "prompts": [
-            "Describe this image."
-          ],
-          "generation_parameters": {
-            "trust_remote_code": false,
-            "max_new_tokens": 65536
-          }
-        },
-        "model": "google/gemma-4-26B-A4B-it",
-        "prompts": [
-          "Describe this image."
-        ],
-        "generated_texts": [
-          "A side profile shot shows a vintage, light teal Volkswagen Beetle parked on a paved street in front of a tan building with two wooden doors. The car is the main focus of the image, and it is positioned in the center of the frame. The car is a light teal color, and it has a rounded shape. The car's wheels are silver, and they have a classic design. The car's windows are tinted, and they reflect the light. The building in the background is a tan color, and it has two wooden doors. The door on the left is smaller than the door on the right. The door on the right is a dark brown color, and it has a simple design. The street is made of gray paving stones. The lighting in the image is bright and even, and it creates a sense of warmth and nostalgia."
-        ],
-        "is_encoder_decoder": false,
-        "device": "cpu",
-        "dtype": "torch.float32",
-        "config_fp": "bdeda749",
-        "gen_len": 65536,
-        "timestamp": "2026-11-03T13:03:16.621266+00:00"
-      },
-      "google_gemma-4-26B-A4B-it_gl256_0c164980_e203bb9098e89290": {
-        "identity": {
-          "model": "google/gemma-4-26B-A4B-it",
-          "endpoint": "/v1/chat/completions",
-          "dataset_name": "custom_image",
-          "dataset": "/efficient-transformers/tests/nightly_pipeline/vllm_llm_benchmark/inputs/vlm_inputs.jsonl",
-          "dataset_sha256": "7b0b3e22a0bb6ea0ffa071200bf41e44772d95031b91539eec8a31a17126e8de",
-          "reference_inputs_sha256": "9ad55f10410380f3820651092a428c18e7b829d873eeb8f59aa9f9842b63edd0",
-          "prompts": [
-            "Describe this image."
-          ],
-          "generation_parameters": {
-            "trust_remote_code": false,
-            "max_new_tokens": 256
-          }
-        },
-        "model": "google/gemma-4-26B-A4B-it",
-        "prompts": [
-          "Describe this image."
-        ],
-        "generated_texts": [
-          "A side profile shot shows a vintage, light teal Volkswagen Beetle parked on a paved street in front of a tan-colored building with two wooden doors. The car is the central focus of the image, positioned horizontally across the frame. The car's body is a smooth, light teal color, and its rounded shape is characteristic of the classic Beetle design. The wheels are silver with chrome hubcaps, and the tires are black. The building in the background is a simple, tan-colored structure with two dark wooden doors. The door on the left is smaller and has two arched panels, while the door on the right is larger and has a more traditional rectangular design. The ground is a light gray, paved surface. The lighting is bright and even, suggesting it was taken during the day. The overall mood of the image is nostalgic and peaceful."
-        ],
-        "is_encoder_decoder": false,
-        "device": "cpu",
-        "dtype": "torch.float32",
-        "config_fp": "0c164980",
-        "gen_len": 256,
-        "timestamp": "2026-11-04T10:45:28.692130+00:00"
-      }
-    },
-    "google/gemma-4-E2B-it": {
-      "google_gemma-4-E2B-it_gl256_577b564f_367afa5accf3220c": {
-        "identity": {
-          "model": "google/gemma-4-E2B-it",
-          "endpoint": "/v1/chat/completions",
-          "dataset_name": "custom_image",
-          "dataset": "/efficient-transformers/tests/nightly_pipeline/vllm_llm_benchmark/inputs/vlm_inputs.jsonl",
-          "dataset_sha256": "7b0b3e22a0bb6ea0ffa071200bf41e44772d95031b91539eec8a31a17126e8de",
-          "reference_inputs_sha256": "9ad55f10410380f3820651092a428c18e7b829d873eeb8f59aa9f9842b63edd0",
-          "prompts": [
-            "Describe this image."
-          ],
-          "generation_parameters": {
-            "trust_remote_code": false,
-            "max_new_tokens": 256
-          }
-        },
-        "model": "google/gemma-4-E2B-it",
-        "prompts": [
-          "Describe this image."
-        ],
-        "generated_texts": [
-          "This image features a vintage, light blue or mint green classic car parked on a paved street in front of a textured, yellow-toned wall.\n\nHere's a breakdown of the elements:\n\n*   **The Car:** The central focus is a small, classic car, likely from the mid-20th century. It has a rounded body shape, a relatively small profile, and appears to be well-maintained. The paint is a soft, pale blue or mint green. It has chrome accents, including bumpers and hubcaps.\n*   **The Background (Wall):** The car is parked against a wall that is painted a warm, pale yellow or ochre color. The texture of the wall suggests stucco or rough plaster.\n*   **The Background (Doorway):** In the center background, there is a wooden double door set into the wall. The wood appears dark brown.\n*   **The Background (Window/Door Frame):** To the right of the wooden door, there is a rectangular frame, possibly a window or another door, which is painted white or a very light color.\n*   **The Foreground (Ground):** The car is sitting on a paved surface, likely concrete or stone paving, which appears relatively smooth"
-        ],
-        "is_encoder_decoder": false,
-        "device": "cpu",
-        "dtype": "torch.float32",
-        "config_fp": "577b564f",
-        "gen_len": 256,
-        "timestamp": "2026-11-03T13:49:33.219474+00:00"
-      }
-    },
     "Qwen/Qwen3-VL-2B-Instruct": {
-      "Qwen_Qwen3-VL-2B-Instruct_gl256_2cc6b810_bf0915960a35ab18": {
+      "Qwen_Qwen3-VL-2B-Instruct_gl256_2cc6b810_4790011bac995cdf": {
         "identity": {
           "model": "Qwen/Qwen3-VL-2B-Instruct",
           "endpoint": "/v1/chat/completions",
           "dataset_name": "custom_image",
           "dataset": "/efficient-transformers/tests/nightly_pipeline/vllm_llm_benchmark/inputs/vlm_inputs.jsonl",
-          "dataset_sha256": "7b0b3e22a0bb6ea0ffa071200bf41e44772d95031b91539eec8a31a17126e8de",
-          "reference_inputs_sha256": "9ad55f10410380f3820651092a428c18e7b829d873eeb8f59aa9f9842b63edd0",
+          "dataset_sha256": "f950d17e24766eb5b088af87c4ab5a412a9608a7530d5de07f96a23cfda5d67e",
+          "reference_inputs_sha256": "3ba28fbe09a5ea76b678c9ef8c9bab2868abf31bb23c820226b99e46c75448df",
           "prompts": [
-            "Describe this image."
+            "Describe this image in detail."
           ],
           "generation_parameters": {
             "trust_remote_code": false,
@@ -3728,62 +3698,30 @@
         },
         "model": "Qwen/Qwen3-VL-2B-Instruct",
         "prompts": [
-          "Describe this image."
+          "Describe this image in detail."
         ],
         "generated_texts": [
-          "This is a photograph of a vintage, light turquoise Volkswagen Beetle parked on a paved street in front of a yellow stucco building. The car is positioned at a slight angle, showcasing its side profile.\n\nKey features of the image include:\n- **The Car**: The vehicle is a classic Volkswagen Beetle, recognizable by its rounded, bulbous body and distinctive rounded headlights. It has a two-tone paint job, with the main body being a light turquoise or mint green, and a white stripe running along the lower side. The car has a chrome-finished hubcap on each wheel, and the tires appear to be in good condition. The windows are tinted, and the car's body shows some signs of wear and age.\n- **The Setting**: The car is parked on a gray, paved street made of rectangular stone tiles. Behind the car is a yellow stucco wall with two wooden doors. The door on the left is a double door with arched panels, while the door on the right is a single, solid wooden door. Both doors are framed with white trim.\n- **Lighting and Atmosphere**: The scene is illuminated by natural daylight, which casts soft shadows. The overall atmosphere is calm and nostalgic, with the vintage car and the simple, warm"
+          "This is a detailed description of the image:\n\nThe image captures a vintage, light turquoise Volkswagen Beetle parked on a paved street in front of a weathered, yellow stucco building. The car is positioned at a slight angle, showcasing its side profile. It has a classic, rounded design with a two-tone paint job: the main body is a vibrant, minty turquoise, while the roof and the lower section of the doors are a contrasting white. The car's chrome hubcaps are visible on both wheels, which are fitted with black tires. A thin, silver-colored side skirt runs along the lower body, just above the wheel wells.\n\nThe vehicle is parked on a gray, paved surface made of rectangular stone tiles. The building behind it has a simple, rustic appearance. The wall is painted a pale yellow or cream color, with a noticeable texture. Two wooden doors are set into the wall. The door on the left is a smaller, double-leaf door with a dark brown finish and arched, recessed panels. The door on the right is a larger, single-leaf door with a similar dark brown finish and a more traditional, rectangular design. Both doors are framed by white trim, which contrasts with the yellow wall. The top of the image shows a"
         ],
         "is_encoder_decoder": false,
         "device": "cpu",
         "dtype": "torch.float32",
         "config_fp": "2cc6b810",
         "gen_len": 256,
-        "timestamp": "2026-11-03T16:17:50.829710+00:00"
-      }
-    },
-    "Qwen/Qwen2.5-VL-3B-Instruct": {
-      "Qwen_Qwen2.5-VL-3B-Instruct_gl256_03cd2e32_367293a7646d5e66": {
-        "identity": {
-          "model": "Qwen/Qwen2.5-VL-3B-Instruct",
-          "endpoint": "/v1/chat/completions",
-          "dataset_name": "custom_image",
-          "dataset": "/efficient-transformers/tests/nightly_pipeline/vllm_llm_benchmark/inputs/vlm_inputs.jsonl",
-          "dataset_sha256": "7b0b3e22a0bb6ea0ffa071200bf41e44772d95031b91539eec8a31a17126e8de",
-          "reference_inputs_sha256": "9ad55f10410380f3820651092a428c18e7b829d873eeb8f59aa9f9842b63edd0",
-          "prompts": [
-            "Describe this image."
-          ],
-          "generation_parameters": {
-            "trust_remote_code": false,
-            "max_new_tokens": 256
-          }
-        },
-        "model": "Qwen/Qwen2.5-VL-3B-Instruct",
-        "prompts": [
-          "Describe this image."
-        ],
-        "generated_texts": [
-          "The image depicts a vintage Volkswagen Beetle parked on a paved street in front of a building with a yellow wall and wooden doors. The car is painted in a light blue color, and it appears to be in good condition, suggesting it might be well-maintained or restored. The Beetle has a classic design with rounded edges, a small front grille, and round headlights. The vehicle's wheels have a distinctive pattern, and the overall appearance gives off a nostalgic vibe. The background includes a portion of the building's exterior, which features a white-framed window and a door, adding to the urban setting."
-        ],
-        "is_encoder_decoder": false,
-        "device": "cpu",
-        "dtype": "torch.float32",
-        "config_fp": "03cd2e32",
-        "gen_len": 256,
-        "timestamp": "2026-11-04T01:28:47.639982+00:00"
+        "timestamp": "2026-11-13T22:29:06.303464+00:00"
       }
     },
     "Qwen/Qwen3-VL-30B-A3B-Instruct": {
-      "Qwen_Qwen3-VL-30B-A3B-Instruct_gl256_51eb7d25_fe4d286cee1453d2": {
+      "Qwen_Qwen3-VL-30B-A3B-Instruct_gl256_51eb7d25_b9e54ccb03a75893": {
         "identity": {
           "model": "Qwen/Qwen3-VL-30B-A3B-Instruct",
           "endpoint": "/v1/chat/completions",
           "dataset_name": "custom_image",
           "dataset": "/efficient-transformers/tests/nightly_pipeline/vllm_llm_benchmark/inputs/vlm_inputs.jsonl",
-          "dataset_sha256": "7b0b3e22a0bb6ea0ffa071200bf41e44772d95031b91539eec8a31a17126e8de",
-          "reference_inputs_sha256": "9ad55f10410380f3820651092a428c18e7b829d873eeb8f59aa9f9842b63edd0",
+          "dataset_sha256": "f950d17e24766eb5b088af87c4ab5a412a9608a7530d5de07f96a23cfda5d67e",
+          "reference_inputs_sha256": "3ba28fbe09a5ea76b678c9ef8c9bab2868abf31bb23c820226b99e46c75448df",
           "prompts": [
-            "Describe this image."
+            "Describe this image in detail."
           ],
           "generation_parameters": {
             "trust_remote_code": false,
@@ -3792,17 +3730,49 @@
         },
         "model": "Qwen/Qwen3-VL-30B-A3B-Instruct",
         "prompts": [
-          "Describe this image."
+          "Describe this image in detail."
         ],
         "generated_texts": [
-          "Of course, here is a detailed description of the image.\n\nThis is a side-profile photograph of a classic, light turquoise Volkswagen Beetle parked on a paved street. The car is the central focus of the image, positioned in the foreground and occupying the majority of the frame.\n\n-   **The Car:** The vehicle is a vintage Volkswagen Beetle, likely from the 1960s or 1970s, characterized by its iconic rounded shape. It is painted a vibrant, light turquoise or mint green color. The paint appears to be in good condition, with a glossy finish that reflects the ambient light. The car features a two-tone design, with a white or very light-colored panel running along the side, just below the windows. It has a black side mirror, a chrome front bumper, and classic hubcaps with a silver center and a green outer ring that matches the car's body color. The windows are tinted dark, obscuring the interior.\n\n-   **The Setting:** The Beetle is parked on a street paved with large, rectangular, grey stone or concrete blocks. The car is positioned on the edge of the pavement, next to a curb.\n\n-   **The Background:** Behind the car is a weathered, textured wall painted a warm,"
+          "This is a detailed description of the image provided.\n\nThe image captures a classic, light turquoise Volkswagen Beetle parked on a paved street, viewed from the side. The car is the central focus of the composition, positioned in the foreground and occupying a significant portion of the frame.\n\n**The Car:**\n- **Model and Color:** The vehicle is a vintage Volkswagen Beetle, recognizable by its iconic rounded body shape, curved fenders, and distinctive headlights. It is painted a vibrant, light turquoise or mint green color, which appears to be a two-tone finish with a white or very light-colored panel running along the side, just below the windows.\n- **Condition and Details:** The car appears to be in excellent condition, with a glossy, well-maintained paint job that reflects the surrounding light. It features chrome hubcaps with a distinctive VW logo in the center, and the tires are black with visible treads. A black side skirt runs along the bottom of the car. The windows are dark-tinted, obscuring the interior. The side mirror is a simple, chrome-finished unit.\n\n**The Background and Setting:**\n- **Building:** The Beetle is parked in front of a weathered, yellow stucco wall of a building. The wall shows signs of"
         ],
         "is_encoder_decoder": false,
         "device": "cpu",
         "dtype": "torch.float32",
         "config_fp": "51eb7d25",
         "gen_len": 256,
-        "timestamp": "2026-11-04T05:15:30.895597+00:00"
+        "timestamp": "2026-11-13T23:34:58.339710+00:00"
+      }
+    },
+    "Qwen/Qwen2.5-VL-3B-Instruct": {
+      "Qwen_Qwen2.5-VL-3B-Instruct_gl256_03cd2e32_47eda0931243ae6f": {
+        "identity": {
+          "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+          "endpoint": "/v1/chat/completions",
+          "dataset_name": "custom_image",
+          "dataset": "/efficient-transformers/tests/nightly_pipeline/vllm_llm_benchmark/inputs/vlm_inputs.jsonl",
+          "dataset_sha256": "f950d17e24766eb5b088af87c4ab5a412a9608a7530d5de07f96a23cfda5d67e",
+          "reference_inputs_sha256": "3ba28fbe09a5ea76b678c9ef8c9bab2868abf31bb23c820226b99e46c75448df",
+          "prompts": [
+            "Describe this image in detail."
+          ],
+          "generation_parameters": {
+            "trust_remote_code": false,
+            "max_new_tokens": 256
+          }
+        },
+        "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+        "prompts": [
+          "Describe this image in detail."
+        ],
+        "generated_texts": [
+          "The image depicts a vintage Volkswagen Beetle parked on a paved street. The car is painted in a light turquoise color with white trim around the windows and doors. The Beetle has a classic design, featuring rounded edges, a small front grille, and round headlights. The vehicle's wheels have a distinctive five-spoke design, which is characteristic of older Volkswagen models.\n\nThe background shows a yellow wall with a wooden door and window frame. The door appears to be made of wood and has a simple, rustic design. The window frame is also wooden and matches the door. The overall setting suggests a quaint, possibly Mediterranean or Latin American, street scene. The pavement is made of stone tiles, adding to the charming, old-world feel of the location."
+        ],
+        "is_encoder_decoder": false,
+        "device": "cpu",
+        "dtype": "torch.float32",
+        "config_fp": "03cd2e32",
+        "gen_len": 256,
+        "timestamp": "2026-11-14T00:03:56.026877+00:00"
       }
     }
   }
