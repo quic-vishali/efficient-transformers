@@ -340,6 +340,20 @@ def _comparison_results(rows: list[dict], previous_rows: list[dict]) -> dict[int
     return results
 
 
+def _summary_counts(rows: list[dict]) -> dict[str, int]:
+    """Count report outcomes, treating warnings as passed tests."""
+    validation_warnings = sum(1 for row in rows if row.get("_failure_type") == "validation")
+    performance_warnings = sum(1 for row in rows if row.get("_failure_type") == "comparison")
+    return {
+        "passed": sum(1 for row in rows if (row.get("status") or "").upper() == "PASS")
+        + validation_warnings
+        + performance_warnings,
+        "failures": sum(1 for row in rows if row.get("_failure_type") == "inference"),
+        "validation_warnings": validation_warnings,
+        "performance_warnings": performance_warnings,
+    }
+
+
 def _comparison_headers_html(fields=COMPARISON_FIELDS) -> str:
     headers = []
     for _, label in fields:
@@ -516,6 +530,7 @@ def generate_html_report(
         comparison_results,
         comparison_build_number,
     )
+    summary_counts = _summary_counts(rows)
     if previous_rows:
         baseline = f" build #{comparison_build_number}" if comparison_build_number else ""
         comparison_message = (
@@ -705,7 +720,7 @@ def generate_html_report(
             margin-bottom: 20px;
         }}
         .summary-cell {{
-            width: 20%;
+            width: 25%;
             padding: 15px;
             background-color: #f0f7ff;
             border: 1px solid #b3d9ff;
@@ -838,23 +853,19 @@ def generate_html_report(
                 <table class="summary-table">
                     <tr>
                         <td class="summary-cell">
-                            <div class="summary-card-value">{len(rows)}</div>
-                            <div class="summary-card-label">Total Tests</div>
-                        </td>
-                        <td class="summary-cell">
-                            <div class="summary-card-value">{sum(1 for r in rows if (r.get("status") or "").upper() == "PASS")}</div>
+                            <div class="summary-card-value">{summary_counts["passed"]}</div>
                             <div class="summary-card-label">Passed</div>
                         </td>
                         <td class="summary-cell">
-                            <div class="summary-card-value">{sum(1 for r in rows if r.get("_failure_type") == "inference")}</div>
-                            <div class="summary-card-label">Inference Failures</div>
+                            <div class="summary-card-value">{summary_counts["failures"]}</div>
+                            <div class="summary-card-label">Failures</div>
                         </td>
                         <td class="summary-cell">
-                            <div class="summary-card-value">{sum(1 for r in rows if r.get("_failure_type") == "validation")}</div>
+                            <div class="summary-card-value">{summary_counts["validation_warnings"]}</div>
                             <div class="summary-card-label">Validation Warnings</div>
                         </td>
                         <td class="summary-cell">
-                            <div class="summary-card-value">{sum(1 for r in rows if r.get("_failure_type") == "comparison")}</div>
+                            <div class="summary-card-value">{summary_counts["performance_warnings"]}</div>
                             <div class="summary-card-label">Performance Warnings</div>
                         </td>
                     </tr>
