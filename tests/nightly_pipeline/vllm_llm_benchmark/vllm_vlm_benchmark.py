@@ -37,9 +37,20 @@ LATEST_MODELS = {
 }
 
 
+VLM_SKIPPED_MODELS = {
+    # Skippind due to the issue: QRANIUMSW-65570
+    "Qwen/Qwen3.5-0.8B",
+    "Qwen/Qwen3.6-27B",
+    "Qwen/Qwen3.6-35B-A3B",
+    # QRANIUMSW-65573
+    "google/gemma-4-E2B-it",
+    "google/gemma-4-26B-A4B-it",
+}
+
+
 def main() -> int:
     args = build_arg_parser("Run VLM vLLM QAIC benchmark CSV rows.").parse_args()
-    return run_benchmarks(args, LATEST_MODELS)
+    return run_benchmarks(args, LATEST_MODELS, additional_skipped_models=VLM_SKIPPED_MODELS)
 
 
 if __name__ == "__main__":

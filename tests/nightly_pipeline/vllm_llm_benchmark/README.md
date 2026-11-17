@@ -12,6 +12,7 @@ subprocess orchestration from `vllm_benchmark_common.py`:
 
 Each script defines its own `LATEST_MODELS` curated set; `SKIPPED_MODELS`
 (the >70B hardware-capability exclusion) is shared and applied to all four.
+The VLM runner also has a VLM-only skip list for models currently failing todownload in the nightly.
 
 The runners are CSV-driven. Each input CSV owns one serving mode and produces
 one output CSV:
@@ -531,13 +532,19 @@ blocking CSV.
 
 ## Model Filtering
 
-After `--rows` selects which CSV rows are in play, two model-name filters are
+After `--rows` selects which CSV rows are in play, three model-name filters are
 applied, in order:
 
 1. **`SKIPPED_MODELS`** (always enforced, no override): a hardcoded set of
    models too large to run in this pipeline (>70B real params) — currently
    `zai-org/GLM-4.5` (~355B, MoE) and `hpcai-tech/grok-1` (~314B).
-2. **`LATEST_MODELS_ONLY`** (`--latest-models-only`, default `true`): when
+2. **VLM-only download skip list** (always enforced, no override):
+   `VLM_SKIPPED_MODELS` in `vllm_vlm_benchmark.py` currently contains
+   `Qwen/Qwen3.5-0.8B`, `Qwen/Qwen3.6-27B`, and
+   `Qwen/Qwen3.6-35B-A3B`, along with the two Gemma models
+   `google/gemma-4-E2B-it` and `google/gemma-4-26B-A4B-it`, which have been failing model downloads in the nightly. This list only affects VLM
+   benchmark rows.
+3. **`LATEST_MODELS_ONLY`** (`--latest-models-only`, default `true`): when
    enabled, restricts runs to the curated `LATEST_MODELS` set defined in the
    runner script for the domain being run (`vllm_llm_benchmark.py`,
    `vllm_embedding_benchmark.py`, `vllm_audio_benchmark.py`, or
@@ -547,5 +554,6 @@ applied, in order:
 `zai-org/GLM-4.5` is in both LLM's `LATEST_MODELS` and `SKIPPED_MODELS` — the
 skip-list always wins, so it is excluded regardless of the latest-only flag.
 
-Skipped rows are logged to stdout with the reason and do not appear in the
-output CSV, matching how `enabled=false` rows are already excluded silently.
+Skipped rows are logged to stdout with the applicable skip-list name and do
+not appear in the output CSV, matching how `enabled=false` rows are already
+excluded silently.

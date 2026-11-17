@@ -14,9 +14,10 @@ This module holds every piece of logic that does not vary by model domain
 subprocess management, benchmark-result parsing, and output-row writing.
 
 Each domain-specific runner script (vllm_llm_benchmark.py,
-vllm_embedding_benchmark.py, vllm_audio_benchmark.py) imports
+vllm_embedding_benchmark.py, vllm_audio_benchmark.py, vllm_vlm_benchmark.py) imports
 `build_arg_parser` and `run_benchmarks` from here and supplies only its own
-`LATEST_MODELS` curated set and CLI description.
+`LATEST_MODELS` curated set and CLI description, plus any domain-specific
+skip list.
 """
 
 from __future__ import annotations
@@ -2725,7 +2726,10 @@ def build_arg_parser(description: str) -> argparse.ArgumentParser:
     parser.add_argument(
         "--latest-models-only",
         default="true",
-        help="If true (default), restrict to the curated LATEST_MODELS list. SKIPPED_MODELS is always excluded.",
+        help=(
+            "If true (default), restrict to the curated LATEST_MODELS list. "
+            "Global and runner-specific model skip lists are always enforced."
+        ),
     )
     parser.add_argument(
         "--results-dir",
@@ -2828,11 +2832,16 @@ def update_device_group_in_additional_config(row: dict, device_group_override: s
         pass
 
 
-def run_benchmarks(args, latest_models: set[str]) -> int:
+def run_benchmarks(
+    args,
+    latest_models: set[str],
+    additional_skipped_models: set[str] | frozenset[str] | None = None,
+) -> int:
     input_csv = Path(args.input_csv)
     output_csv = Path(args.output_csv)
     rows = read_csv_rows(input_csv)
     selected = set(parse_rows_spec(args.rows, len(rows)))
+    additional_skipped_models = additional_skipped_models or set()
     latest_only = parse_bool(args.latest_models_only, default=True)
     disagg_mode = getattr(args, "disagg_mode", "ALL")
     specialization_mode = getattr(args, "specialization_mode", "ALL")
@@ -2854,6 +2863,9 @@ def run_benchmarks(args, latest_models: set[str]) -> int:
         model = value(row, "model")
         if model in SKIPPED_MODELS:
             print(f"Skipping row {row['_data_row']} ({model}): in SKIPPED_MODELS (>70B).")
+            continue
+        if model in additional_skipped_models:
+            print(f"Skipping row {row['_data_row']} ({model}): in runner-specific model skip list.")
             continue
         if latest_only and model not in latest_models:
             print(f"Skipping row {row['_data_row']} ({model}): not in LATEST_MODELS (latest-only mode).")
