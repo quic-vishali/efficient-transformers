@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import csv
 import html
+import importlib.metadata
 import json
 import math
 import re
@@ -61,6 +62,9 @@ HTML_ENVIRONMENT_FIELDS = {
     "qeff_branch",
     "qaic_sdk_version",
     "jenkins_node",
+    "torch_version",
+    "transformers_version",
+    "build_duration_s",
 }
 REPORT_INTERNAL_FIELDS = set()
 REPORT_REASON_MAX_CHARS = 600
@@ -93,6 +97,27 @@ def _is_empty_or_na(raw: object) -> bool:
 def _display_value(row: dict, field: str, default: str = "N/A") -> str:
     raw = row.get(field)
     return default if _is_missing(raw) else str(raw)
+
+
+def _installed_package_version(distribution: str) -> str:
+    try:
+        return importlib.metadata.version(distribution)
+    except importlib.metadata.PackageNotFoundError:
+        return "N/A"
+
+
+def _format_build_duration(raw: object) -> str:
+    seconds = _numeric_value(str(raw or ""))
+    if seconds is None:
+        return "N/A"
+    total_seconds = max(0, int(round(seconds)))
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    if hours:
+        return f"{hours}h {minutes}m {seconds}s"
+    if minutes:
+        return f"{minutes}m {seconds}s"
+    return f"{seconds}s"
 
 
 def _display_reason(raw: object) -> str:
@@ -493,6 +518,7 @@ def generate_html_report(
     previous_csv_path: Path | list[Path] | None = None,
     comparison_build_number: str = "",
     jenkins_node: str = "",
+    build_duration_seconds: str = "",
 ) -> int:
     """Generate an HTML report from the consolidated published CSV."""
     if not csv_path.exists():
@@ -510,6 +536,16 @@ def generate_html_report(
         environment_metadata = {field: str(rows[0].get(field, "") or "") for field in HTML_ENVIRONMENT_FIELDS}
     if jenkins_node:
         environment_metadata["jenkins_node"] = str(jenkins_node)
+    if _is_missing(environment_metadata.get("torch_version")):
+        environment_metadata["torch_version"] = _installed_package_version("torch")
+    if _is_missing(environment_metadata.get("transformers_version")):
+        environment_metadata["transformers_version"] = _installed_package_version("transformers")
+    if build_duration_seconds:
+        environment_metadata["build_duration_s"] = str(build_duration_seconds)
+    if not comparison_build_number:
+        comparison_build_number = str(rows[0].get("comparison_build_number") or "")
+        if _is_missing(comparison_build_number):
+            comparison_build_number = ""
     _write_environment_metadata(csv_path, environment_metadata)
 
     _backfill_server_errors(rows, csv_path)
@@ -551,6 +587,12 @@ def generate_html_report(
         "qeff_branch": _display_value(environment_metadata, "qeff_branch"),
         "qaic_sdk_version": _display_value(environment_metadata, "qaic_sdk_version"),
         "jenkins_node": html.escape(_display_value(environment_metadata, "jenkins_node")),
+        "torch_version": html.escape(_display_value(environment_metadata, "torch_version")),
+        "transformers_version": html.escape(_display_value(environment_metadata, "transformers_version")),
+        "build_duration": html.escape(_format_build_duration(environment_metadata.get("build_duration_s"))),
+        "comparison_build_number": html.escape(
+            f"Build #{comparison_build_number}" if comparison_build_number else "N/A"
+        ),
         "build_url": build_url,
     }
 
@@ -834,8 +876,28 @@ def generate_html_report(
                     </tr>
                     <tr>
                         <td style="width: 50%; padding: 10px; background-color: #f9f9f9; border-left: 4px solid #667eea; border-bottom: 1px solid #eee;">
+                            <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600;">PyTorch Version</div>
+                            <div style="font-size: 13px; font-weight: 500; color: #333; font-family: 'Courier New', monospace; word-break: break-all;">{env_info["torch_version"]}</div>
+                        </td>
+                        <td style="width: 50%; padding: 10px; background-color: #f9f9f9; border-left: 4px solid #667eea; border-bottom: 1px solid #eee;">
+                            <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600;">Transformers Version</div>
+                            <div style="font-size: 13px; font-weight: 500; color: #333; font-family: 'Courier New', monospace; word-break: break-all;">{env_info["transformers_version"]}</div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="width: 50%; padding: 10px; background-color: #f9f9f9; border-left: 4px solid #667eea; border-bottom: 1px solid #eee;">
                             <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600;">Jenkins Node</div>
                             <div style="font-size: 13px; font-weight: 500; color: #333; font-family: 'Courier New', monospace; word-break: break-all;">{env_info["jenkins_node"]}</div>
+                        </td>
+                        <td style="width: 50%; padding: 10px; background-color: #f9f9f9; border-left: 4px solid #667eea; border-bottom: 1px solid #eee;">
+                            <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600;">Total Build Duration</div>
+                            <div style="font-size: 13px; font-weight: 500; color: #333; font-family: 'Courier New', monospace; word-break: break-all;">{env_info["build_duration"]}</div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="width: 50%; padding: 10px; background-color: #f9f9f9; border-left: 4px solid #667eea; border-bottom: 1px solid #eee;">
+                            <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600;">Comparison Build</div>
+                            <div style="font-size: 13px; font-weight: 500; color: #333; font-family: 'Courier New', monospace; word-break: break-all;">{env_info["comparison_build_number"]}</div>
                         </td>
                         <td style="width: 50%; padding: 10px; background-color: #f9f9f9; border-left: 4px solid #667eea; border-bottom: 1px solid #eee;">
                             <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600;">Build URL</div>
@@ -1002,6 +1064,11 @@ def main() -> int:
         help="Build number represented by --previous-csv (optional)",
     )
     parser.add_argument("--jenkins-node", default="", help="Jenkins agent node name")
+    parser.add_argument(
+        "--build-duration-seconds",
+        default="",
+        help="Elapsed Jenkins build duration in seconds (optional)",
+    )
     args = parser.parse_args()
 
     previous_csv_paths = [Path(path) for path in args.previous_csv]
@@ -1012,6 +1079,7 @@ def main() -> int:
         previous_csv_paths,
         args.comparison_build_number,
         args.jenkins_node,
+        args.build_duration_seconds,
     )
 
 

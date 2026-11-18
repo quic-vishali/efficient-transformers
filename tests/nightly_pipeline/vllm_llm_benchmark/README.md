@@ -12,7 +12,7 @@ subprocess orchestration from `vllm_benchmark_common.py`:
 
 Each script defines its own `LATEST_MODELS` curated set; `SKIPPED_MODELS`
 (the >70B hardware-capability exclusion) is shared and applied to all four.
-The VLM runner also has a VLM-only skip list for models currently failing todownload in the nightly.
+The VLM runner also has a VLM-only skip list for models currently failing to download in the nightly.
 
 The runners are CSV-driven. Each input CSV owns one serving mode and produces
 one output CSV:
@@ -86,14 +86,16 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/merge_published_results.py \
   --output vllm_llm_results/consolidated_published_results.csv
 ```
 
-This merges the selected `*_results.csv` files (from LLM, embedding, audio, VLM categories)
+This merges the selected `*_results.csv` files (from LLM, embedding, audio, and VLM categories)
 into one file with row-level fields including model, model_category, config_name,
 config_summary, status, previous/current QPC total size, previous/current
 export/compile timings, qpc_count, qpc_sizes_mb, mean_ttft_s, mean_tpot_s,
 mean_itl_s, decode_TPS, request_throughput_req_s, server_command,
-client_command, comparison_build_number, vllm_exec_time_s, and reason. The five common
-environment fields are removed from the final CSV and shown once at the top of the
-HTML report. Model categories
+client_command, comparison_build_number, vllm_exec_time_s, and reason. The four shared
+branch/SDK fields (`vllm_qaic_branch`, `qaic_disagg_branch`, `qeff_branch`, and
+`qaic_sdk_version`) are removed from the final CSV and shown once at the top of the
+HTML report. Additional report-only metadata is stored in an environment sidecar.
+Model categories
 are auto-detected based on config_name. The five `*_export_compile_time_s` columns
 are populated only for the fields relevant to that row's server type — e.g. a
 non-disagg (`api_server`) row only fills `export_compile_time_s`, while a disagg
@@ -143,8 +145,12 @@ cosine_threshold=0.95
 
 The result CSV records `response_file`, `validation_status`,
 `validation_score`, and `validation_error`. Failed or errored validation is
-reported as `validation_failed`. Jenkins archives the response JSON files and
-the server/client logs.
+reported as `validation_failed`. Response JSON files and server/client logs are
+written under the build's results directory; Jenkins archives the consolidated
+CSV, HTML report, and environment metadata sidecar, but not those per-request files.
+Validation failures remain visible in the CSV and HTML report, but by themselves
+do not fail the Jenkins benchmark stage or overall build. Server, client, and
+other benchmark execution failures still fail the stage.
 
 ## HTML Report Generation
 
@@ -157,14 +163,19 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/generate_html_report.py \
 ```
 
 For a local comparison against a previous consolidated CSV, add
-`--previous-csv /path/to/previous/consolidated_published_results.csv`. Rows with
+`--previous-csv /path/to/previous/consolidated_published_results.csv` and
+`--comparison-build-number 123`. Jenkins defaults to the preceding build unless
+`COMPARE_BUILD_NUMBER` selects another one. Jenkins also passes
+`--build-duration-seconds` when it generates the report. Rows with
 an absolute change greater than 5% in QPC size or export/compile timing, a TTFT
 increase greater than 5%, or a decode TPS decrease greater than 5% are marked
 `WARNING` in the merged status column and include the previous value, current
 value, percentage change, and comparison reason.
 
 The HTML report includes:
-- **Environment Information**: Branch and QAIC SDK details, plus the Jenkins node
+- **Environment Information**: Branch and QAIC SDK details, PyTorch and Transformers
+  versions from the shared venv, Jenkins node, elapsed build duration, and the
+  selected comparison build number
 - **Test Results Summary**: Total tests, passed tests, inference failures, validation failures, and performance-comparison warnings counted separately
 - **Detailed Test Results**: Table with model name, category, config, status, per-stage
   export/compile times (export/compile, prefill MDP, prefill, decode, encode), previous
@@ -180,26 +191,36 @@ QPC count and per-QPC size-list fields remain available in the CSV but are not
 previous-value comparison fields and are omitted from the HTML table. The HTML
 table includes only the previous/current QPC total size pair.
 The generator also writes `<csv>.environment.json` beside the consolidated CSV;
-this preserves the common environment values when the report is generated again.
+this preserves branch/SDK details, Jenkins node, PyTorch and Transformers versions,
+and build duration when the report is generated again. The comparison build number
+remains in the consolidated CSV.
 
 ## Jenkins Flow
 
+The Jenkins pipeline uses one shared Python environment at
+`vllm_llm_workspace/venv` for standard and weight-free benchmarks; it does not
+create a separate Dynamo venv or run a separate weight-free dependency-preparation
+stage. The package versions in the shared environment are used for both benchmark
+types. With `SKIP_INSTALL=true`, Jenkins reuses the existing shared venv.
+
 The Jenkins pipeline:
 
-1. Creates or reuses a Python venv.
+1. Creates or reuses the shared Python venv.
 2. Clones `https://github.com/qualcomm/vllm-qaic.git`.
 3. Runs `scripts/install.sh aot`, which installs QEfficient internally.
 4. Clones and installs `qaic-disagg`.
-5. Runs the selected LLM/embedding/audio/VLM config CSVs.
+5. Runs the selected LLM/embedding/audio/VLM config CSVs using the shared venv.
 6. Runs `merge_published_results.py` once for all standard and weight-free CSVs.
 7. Runs `generate_html_report.py` to render one `benchmark_report.html` containing all rows.
-8. Archives `vllm_llm_results/**/*.csv` and `vllm_llm_results/**/*.log`.
-9. Emails the combined report inline when available and attaches the consolidated CSV
+   The displayed build duration is measured from the start of container setup through
+   completion of benchmark stages, immediately before report generation.
+8. Archives the build's CSV files, HTML report, and `.environment.json` metadata sidecar.
+9. Emails the combined report inline when available and attaches the HTML report and consolidated CSV
    to `EMAIL_RECIPIENTS`, if set — this fires from the pipeline's
    `post { always { ... } }` block regardless of whether the overall build
    passed or failed, as long as the HTML report file exists (the subject line
    includes the build status). If the report could not be generated at all,
-   a plain-text fallback failure notification is sent instead.
+   a fallback notification with a link to the Jenkins build is sent instead.
 
 Use `DRY_RUN=true` and `ROWS_DEFAULT=1` to verify the gpt2 command and output
 CSV/log generation on a Jenkins agent without consuming QAIC runtime. The

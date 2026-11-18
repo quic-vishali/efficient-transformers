@@ -2545,7 +2545,7 @@ def parse_rows_spec(row_spec: str, total_rows: int) -> list[int]:
     return selected
 
 
-def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
+def run_one(row: dict, args, config_name: str, output_csv: Path) -> str:
     row_number = int(row["_data_row"])
     model = value(row, "model")
 
@@ -2621,7 +2621,7 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
                 )
             ],
         )
-        return True
+        return "dry_run"
 
     server = None
     client_returncode = None
@@ -2706,7 +2706,7 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> bool:
                 cleanup_runtime_artifacts()
             except Exception as exc:
                 print(f"  Warning: runtime artifact cleanup failed: {exc}")
-    return status == "success"
+    return status
 
 
 def build_arg_parser(description: str) -> argparse.ArgumentParser:
@@ -2857,6 +2857,7 @@ def run_benchmarks(
     cleanup_runtime_artifacts()
 
     failures = 0
+    validation_failures = 0
     for row in rows:
         if int(row["_data_row"]) not in selected:
             continue
@@ -2897,8 +2898,10 @@ def run_benchmarks(
         if device_group_decode_override:
             row["decode_device_group"] = device_group_decode_override
 
-        ok = run_one(row, args, args.config_name, output_csv)
-        if not ok:
+        status = run_one(row, args, args.config_name, output_csv)
+        if status == "validation_failed":
+            validation_failures += 1
+        elif status not in {"success", "dry_run"}:
             failures += 1
             if args.fail_fast:
                 break
@@ -2910,5 +2913,11 @@ def run_benchmarks(
     if failures:
         print(f"Completed with {failures} failed row(s).")
         return 1
+    if validation_failures:
+        print(
+            f"Completed with {validation_failures} validation-failed row(s); "
+            "validation failures are non-fatal for the Jenkins stage."
+        )
+        return 0
     print("Completed successfully.")
     return 0

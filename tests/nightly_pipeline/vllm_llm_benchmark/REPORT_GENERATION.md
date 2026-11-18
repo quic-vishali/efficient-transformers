@@ -4,11 +4,11 @@ This document describes the complete workflow for generating and distributing be
 
 ## Overview
 
-The vLLM QAIC benchmark pipeline now includes automated report generation and email distribution:
+The vLLM QAIC benchmark pipeline generates one consolidated HTML report per build and can email it:
 
 1. **Benchmark Execution**: Run all benchmark categories (LLM, embedding, audio, VLM)
 2. **CSV Consolidation**: Merge standard and weight-free result CSVs into one consolidated published CSV
-3. **HTML Report Generation**: Create a professional HTML report for each available result set
+3. **HTML Report Generation**: Create one HTML report combining all available benchmark results
 4. **Email Distribution**: Send the report to specified email recipients
 
 ## Workflow Steps
@@ -33,11 +33,11 @@ After all benchmark stages complete, the "Generate Report" stage automatically:
    - Standard and weight-free result CSVs are consolidated into `consolidated_published_results.csv`
    - The `config_name` field preserves the variant, such as `weight_free` for LLM and `weight_free/<mode>` for VLM
    - The optional `--input-files` argument can select a subset, but Jenkins passes all result CSVs for the single report
-   - Includes the benchmark, comparison, and `vllm_exec_time_s` fields. The common environment fields `vllm_qaic_branch`, `qaic_disagg_branch`, `qeff_branch`, and `qaic_sdk_version` are shown once at the top of the HTML report instead of being repeated in every CSV row.
+   - Includes the benchmark, comparison, and `vllm_exec_time_s` fields. The shared branch/SDK fields `vllm_qaic_branch`, `qaic_disagg_branch`, `qeff_branch`, and `qaic_sdk_version` are shown once at the top of the HTML report instead of being repeated in every CSV row.
 
 2. **Generates HTML report** using `generate_html_report.py`:
    - Creates a professional HTML report with styling
-   - Includes environment information (branch details, SDK version, and Jenkins node)
+   - Includes environment information (branch details, SDK version, PyTorch/Transformers versions from the shared venv, Jenkins node, elapsed build duration, and selected comparison build number)
    - Includes test results summary with separate inference-failure, validation-failure, and performance-warning counts
    - Includes detailed test results table with timing and performance metrics
    - Compares each matching row with the selected comparison build; rows with an absolute change greater than 5% in QPC total size or export/compile timing, a TTFT increase greater than 5%, or a decode TPS decrease greater than 5% are marked `WARNING` in amber with the comparison reason shown
@@ -45,20 +45,20 @@ After all benchmark stages complete, the "Generate Report" stage automatically:
    - Displays comparable metrics as adjacent previous/current columns, such as `Previous QPC Size` and `Current QPC Size`
    - Reports `vllm_exec_time_s` immediately before the failure reason; it measures from server launch until client completion
    - Keeps QPC count and per-QPC size-list fields in the CSV, while showing only the previous/current QPC total size pair in the HTML table
-   - Stores shared environment values, including the Jenkins node, in a sidecar `<csv>.environment.json` file and archives it with the report artifacts so report regeneration retains them
+   - Stores branch/SDK details, Jenkins node, PyTorch/Transformers versions, and build duration in a sidecar `<csv>.environment.json` file and archives it so report regeneration retains them; the comparison build number remains in the consolidated CSV
 
 ### Step 3: Email Distribution (Automatic)
 
-If `EMAIL_RECIPIENTS` parameter is set:
+If `EMAIL_RECIPIENTS` parameter is set, Jenkins emails the inline report whether the build passed or failed, provided the report was generated:
 
-- **On Success**: Sends the combined standard/weight-free report inline with the single consolidated CSV attached
-- **On Failure**: Sends failure notification with build details link
+- **Report available**: Sends the combined HTML report inline and attaches the HTML report and consolidated CSV
+- **Report unavailable**: Sends a fallback notification with a link to the build
 
 ## Jenkins Configuration
 
 ### Parameters
 
-Add the following parameter to your Jenkins job:
+The Jenkinsfile already defines this parameter; configure its value in the Jenkins job if email delivery is wanted:
 
 ```groovy
 string(name: 'EMAIL_RECIPIENTS', defaultValue: '', description: 'Email recipients for benchmark report (comma-separated). Empty = no email sent.')
@@ -89,7 +89,13 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/generate_html_report.py \
   --output /path/to/benchmark_report.html
 ```
 
-For a local comparison, add `--previous-csv` with the previous consolidated CSV. Multiple previous CSVs can be supplied by repeating the option when comparing against older separate standard and weight-free reports.
+For a local comparison, add `--previous-csv` with the previous consolidated CSV and `--comparison-build-number` with its build number. Multiple previous CSVs can be supplied by repeating the option when comparing against older separate standard and weight-free reports. Jenkins supplies `--build-duration-seconds` after all benchmark stages complete; it measures elapsed time from the start of container setup through benchmark completion, just before report generation. The report generator reads PyTorch and Transformers versions from the Python environment in which it runs.
+
+Run the focused report test with:
+
+```bash
+pytest tests/nightly_pipeline/vllm_llm_benchmark/test_generate_html_report.py
+```
 
 ## Report Contents
 
@@ -100,7 +106,9 @@ Displays:
 - QAIC Disagg Branch / Commit
 - QEff Branch / Commit
 - QAIC SDK Version
-- Jenkins node
+- PyTorch and Transformers versions from the shared benchmark environment
+- Jenkins node and elapsed build duration
+- Comparison build number
 
 ### Test Results Summary
 
@@ -131,16 +139,17 @@ Columns:
 The email includes:
 - Subject: `vLLM QAIC Benchmark Report - Build #<BUILD_NUMBER>`
 - Body: Full HTML report rendered directly in the email (not as attachment)
-- Attachments: 
+- Attachments:
+  - `benchmark_report.html` - Consolidated HTML report
   - `consolidated_published_results.csv` - Standard and weight-free consolidated results data
 
 ## Troubleshooting
 
 ### Report not generated
 
-1. Check that all benchmark stages completed successfully
-2. Verify the results directory contains `*_results.csv` files
-3. Check Jenkins logs for the "Generate Report" stage
+1. Verify the build results directory contains at least one `*_results.csv` file
+2. Check Jenkins logs for the "Generate Report" stage and any merge/generator errors
+3. Benchmark failures do not by themselves prevent report generation when result CSVs exist
 
 ### Email not sent
 
