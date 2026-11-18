@@ -141,3 +141,10 @@ def ensure_torch_fx_import_compatibility():
 
 
 ensure_torch_fx_import_compatibility()
+
+# Install before callers load Molmo's remote processor through Transformers'
+# AutoProcessor. The filter only changes dependency scanning for Molmo's image
+# preprocessing module.
+from QEfficient.transformers.models.molmo.compat import install_legacy_molmo_processor_import_compat  # noqa: E402
+
+install_legacy_molmo_processor_import_compat()

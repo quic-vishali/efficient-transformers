@@ -4370,32 +4370,45 @@ class QEFFAutoModelForCausalLM(QEFFBaseModel):
         fp8_retain_weights = kwargs.pop("fp8_retain_weights", False)
         if enable_proxy:
             prepare_proxy_config(pretrained_model_name_or_path, kwargs)
-        if layerwise:
-            warnings.warn(
-                "layerwise export is deprecated and will be removed in a future release. "
-                "Use weight-free export (weight_free=True) instead, which provides "
-                "the same memory benefit without the complexity of per-window re-export.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            # Layer-wise mode: build the outer model on the meta device. The
-            # caller still gets a typed wrapper, but no checkpoint weights are
-            # pulled into RAM. compile()/export() rebuilds a real per-window
-            # model internally via the layer-wise driver.
-            model = _build_meta_model(cls._hf_auto_class, pretrained_model_name_or_path, kwargs)
-        elif weight_free:
-            # Weight-free mode: build the model on the meta device so no
-            # checkpoint weights are ever materialized here. The real weights
-            # are supplied later at export time via pretrained_model_name_or_path.
-            model = _build_meta_model(cls._hf_auto_class, pretrained_model_name_or_path, kwargs)
-        elif cls is QEFFAutoModelForCausalLM and "DFlash2DraftModel" in _peek_architectures(
-            pretrained_model_name_or_path, kwargs
-        ):
-            from QEfficient.transformers.models.dflash2_draft.modeling_dflash2_draft import DFlash2ForCausalLM
 
-            model = DFlash2ForCausalLM.from_pretrained(pretrained_model_name_or_path, *args, **kwargs)
+        from QEfficient.transformers.models.molmo.compat import is_molmo_model_reference
+        is_molmo = is_molmo_model_reference(pretrained_model_name_or_path, kwargs.get("config"))
+
+        def load_model():
+            if layerwise:
+                warnings.warn(
+                    "layerwise export is deprecated and will be removed in a future release. "
+                    "Use weight-free export (weight_free=True) instead, which provides "
+                    "the same memory benefit without the complexity of per-window re-export.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                # Layer-wise mode: build the outer model on the meta device. The
+                # caller still gets a typed wrapper, but no checkpoint weights are
+                # pulled into RAM. compile()/export() rebuilds a real per-window
+                # model internally via the layer-wise driver.
+                return _build_meta_model(cls._hf_auto_class, pretrained_model_name_or_path, kwargs)
+            elif weight_free:
+                # Weight-free mode: build the model on the meta device so no
+                # checkpoint weights are ever materialized here. The real weights
+                # are supplied later at export time via pretrained_model_name_or_path.
+                return _build_meta_model(cls._hf_auto_class, pretrained_model_name_or_path, kwargs)
+            elif cls is QEFFAutoModelForCausalLM and "DFlash2DraftModel" in _peek_architectures(
+                pretrained_model_name_or_path, kwargs
+            ):
+                from QEfficient.transformers.models.dflash2_draft.modeling_dflash2_draft import DFlash2ForCausalLM
+
+                model = DFlash2ForCausalLM.from_pretrained(pretrained_model_name_or_path, *args, **kwargs)
+            return cls._hf_auto_class.from_pretrained(pretrained_model_name_or_path, *args, **kwargs)
+
+        if is_molmo:
+            # Legacy remote Molmo code does not call post_init(), which Transformers v5 now requires.
+            from QEfficient.transformers.models.molmo.compat import legacy_remote_molmo_compat
+
+            with legacy_remote_molmo_compat():
+                model = load_model()
         else:
-            model = cls._hf_auto_class.from_pretrained(pretrained_model_name_or_path, *args, **kwargs)
+            model = load_model()
         if qaic_config is not None:
             qaic_config["pretrained_model_name_or_path"] = pretrained_model_name_or_path
 

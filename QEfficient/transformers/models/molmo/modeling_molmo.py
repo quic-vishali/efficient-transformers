@@ -28,6 +28,14 @@ def _non_meta_init_device(config) -> torch.device:
         return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
+def _get_molmo_config_dtype(config) -> torch.dtype:
+    """Return the model dtype across HF configs and Molmo's nested dataclass config."""
+    dtype = getattr(config, "dtype", None)
+    if isinstance(dtype, str):
+        dtype = getattr(torch, dtype, None)
+    return dtype if isinstance(dtype, torch.dtype) else torch.float32
+
+
 def eager_attention_forward(
     module: nn.Module,
     q: torch.Tensor,
@@ -115,7 +123,7 @@ def qeff_apply_rotary_pos_emb(q, k, cos, sin, position_ids, config, unsqueeze_di
 
 
 def scaled_dot_product_attention(
-    query, key, value, attn_mask=None, dropout_p=0.0, is_causal=False, scale=None, enable_gqa=False
+    query, key, value, attn_mask=None, dropout_p=0.0, is_causal=False, scale=None, enable_gqa=False, training=False
 ) -> torch.Tensor:
     L, S = query.size(-2), key.size(-2)
     scale_factor = 1 / math.sqrt(query.size(-1)) if scale is None else scale
@@ -139,7 +147,7 @@ def scaled_dot_product_attention(
     attn_weight = query @ key.transpose(-2, -1) * scale_factor
     attn_weight += attn_bias
     attn_weight = torch.softmax(attn_weight, dim=-1)
-    attn_weight = torch.dropout(attn_weight, dropout_p, train=True)
+    attn_weight = torch.dropout(attn_weight, dropout_p, train=training)
     return attn_weight @ value
 
 
@@ -154,11 +162,12 @@ class QEffMolmoRotaryEmbedding(nn.Module):
         super().__init__()
         dim = config.d_model // config.n_heads
 
-        # TODO: Config does not have torch_dtype or dtype (fp32 Only in encoder)
         self.inv_freq = 1.0 / (config.rope_theta ** (torch.arange(0, dim, 2, device=device, dtype=torch.float) / dim))
         self.original_max_seq_len = config.max_position_embeddings or config.max_sequence_length
         self._set_cos_sin_cache(
-            seq_len=self.original_max_seq_len, device=_non_meta_init_device(config), dtype=config.torch_dtype
+            seq_len=self.original_max_seq_len,
+            device=_non_meta_init_device(config),
+            dtype=_get_molmo_config_dtype(config),
         )
 
     def _set_cos_sin_cache(self, seq_len, device, dtype):
@@ -224,6 +233,7 @@ class QEffMultiHeadDotProductAttention(nn.Module):
                 xv.transpose(1, 2).contiguous(),
                 is_causal=False,
                 dropout_p=self.config.vision_backbone.attention_dropout,
+                training=self.training,
             ).transpose(1, 2)
         else:
             raise NotImplementedError(self.config.attention_type)
@@ -565,6 +575,7 @@ class QEffMolmoEncoderWrapper(nn.Module):
     def __init__(self, model):
         super().__init__()
         self.model = model
+        self.config = model.config
 
     def get_submodules_for_export(self) -> Type[nn.Module]:
         """
@@ -979,14 +990,15 @@ class QEffMolmoModel(nn.Module):
         # Define inputs
         vision_inputs = {}
         lang_inputs = {}
-        vision_inputs["pixel_values"] = torch.zeros((inputs_shapes["pixel_values"]), dtype=self.config.torch_dtype)
-        vision_inputs["image_masks"] = torch.zeros((inputs_shapes["image_masks"]), dtype=self.config.torch_dtype)
+        config_dtype = _get_molmo_config_dtype(self.config)
+        vision_inputs["pixel_values"] = torch.zeros((inputs_shapes["pixel_values"]), dtype=config_dtype)
+        vision_inputs["image_masks"] = torch.zeros((inputs_shapes["image_masks"]), dtype=config_dtype)
         vision_inputs["image_input_idx"] = torch.zeros((inputs_shapes["image_input_idx"]), dtype=torch.int32)
 
         vision_inputs["valid_idx"] = torch.zeros((inputs_shapes["valid_idx"]), dtype=torch.int64)
 
         lang_inputs["input_ids"] = torch.zeros((inputs_shapes["input_ids"]), dtype=torch.int64)
-        lang_inputs["vision_embeds"] = torch.zeros((inputs_shapes["vision_embeds"]), dtype=self.config.torch_dtype)
+        lang_inputs["vision_embeds"] = torch.zeros((inputs_shapes["vision_embeds"]), dtype=config_dtype)
         lang_inputs["position_ids"] = (
             torch.arange(prefill_seq_len, dtype=torch.int64)
             .view(1, prefill_seq_len)
@@ -1007,7 +1019,7 @@ class QEffMolmoModel(nn.Module):
         lang_inputs["past_key_values"] = [[] for _ in range(self.model.config.n_layers)]
         for i in range(self.model.config.n_layers):
             for kv in ["key", "value"]:
-                lang_inputs["past_key_values"][i].append(torch.zeros(kv_cache_shape, dtype=self.config.torch_dtype))
+                lang_inputs["past_key_values"][i].append(torch.zeros(kv_cache_shape, dtype=config_dtype))
 
         if comp_ctx_lengths is not None:
             lang_inputs["comp_ctx_lengths"] = torch.randint(0, 100, (40,), dtype=torch.int64)
@@ -1030,12 +1042,12 @@ class QEffMolmoModel(nn.Module):
             IOInfo(name="attention_mask", datatype=torch.int64, shape=("batch_size", "seq_len")),
             IOInfo(
                 name="pixel_values",
-                datatype=self.config.torch_dtype,
+                datatype=_get_molmo_config_dtype(self.config),
                 shape=("batch_size", "num_images", "img_tile", "img_size"),
             ),
             IOInfo(
                 name="image_masks",
-                datatype=self.config.torch_dtype,
+                datatype=_get_molmo_config_dtype(self.config),
                 shape=("batch_size", "num_images", "img_tile"),
             ),
             IOInfo(
