@@ -762,7 +762,7 @@ def generate_html_report(
             margin-bottom: 20px;
         }}
         .summary-cell {{
-            width: 25%;
+            width: 20%;
             padding: 15px;
             background-color: #f0f7ff;
             border: 1px solid #b3d9ff;
@@ -914,6 +914,10 @@ def generate_html_report(
                 <div class="section-title">Test Results Summary</div>
                 <table class="summary-table">
                     <tr>
+                        <td class="summary-cell">
+                            <div class="summary-card-value">{summary_counts["total"]}</div>
+                            <div class="summary-card-label">Total Tests</div>
+                        </td>
                         <td class="summary-cell">
                             <div class="summary-card-value">{summary_counts["passed"]}</div>
                             <div class="summary-card-label">Passed</div>

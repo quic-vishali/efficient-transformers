@@ -38,10 +38,6 @@ LATEST_MODELS = {
 
 
 VLM_SKIPPED_MODELS = {
-    # Skippind due to the issue: QRANIUMSW-65570
-    "Qwen/Qwen3.5-0.8B",
-    "Qwen/Qwen3.6-27B",
-    "Qwen/Qwen3.6-35B-A3B",
     # QRANIUMSW-65573
     "google/gemma-4-E2B-it",
     "google/gemma-4-26B-A4B-it",

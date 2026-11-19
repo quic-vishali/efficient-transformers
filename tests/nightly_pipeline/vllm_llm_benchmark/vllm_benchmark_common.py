@@ -1861,6 +1861,11 @@ def _golden_identity(row: dict, base_dir: str) -> dict:
     if not dataset.is_absolute():
         dataset = Path(base_dir) / dataset
     try:
+        dataset_identity = Path(os.path.relpath(dataset, base_dir)).as_posix()
+    except ValueError:
+        # Relative paths cannot be computed across filesystem drives.
+        dataset_identity = str(dataset)
+    try:
         dataset_bytes = dataset.read_bytes()
     except OSError:
         dataset_bytes = str(dataset).encode("utf-8")
@@ -1889,7 +1894,7 @@ def _golden_identity(row: dict, base_dir: str) -> dict:
         "model": value(row, "model"),
         "endpoint": value(row, "endpoint"),
         "dataset_name": value(row, "dataset_name"),
-        "dataset": str(dataset),
+        "dataset": dataset_identity,
         "dataset_sha256": hashlib.sha256(dataset_bytes).hexdigest(),
         "reference_inputs_sha256": reference_dataset_sha256,
         "prompts": prompts,
@@ -1900,8 +1905,10 @@ def _golden_identity(row: dict, base_dir: str) -> dict:
 def _golden_key(row: dict, base_dir: str) -> tuple[str, str, str, str, dict]:
     identity = _golden_identity(row, base_dir)
     key_identity = dict(identity)
-    # Keep the raw file digest for diagnostics and legacy lookup, but key on
-    # the canonical PyTorch inputs so unused JSONL fields do not fork goldens.
+    # Keep dataset paths and the raw file digest for diagnostics, but key on
+    # the canonical PyTorch inputs so checkout paths and unused JSONL fields
+    # do not fork goldens.
+    key_identity.pop("dataset", None)
     key_identity.pop("dataset_sha256", None)
     encoded = json.dumps(key_identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
     digest = hashlib.sha256(encoded).hexdigest()[:16]
@@ -1973,6 +1980,10 @@ def _golden_identity_matches(candidate: object, expected: dict) -> bool:
         result.pop("config", None)
         result.pop("dataset_sha256", None)
         result.pop("reference_inputs_sha256", None)
+        # Dataset location is not part of the reference output identity. The
+        # input digest above (or the raw dataset digest for legacy entries)
+        # already establishes that the consumed inputs are the same.
+        result.pop("dataset", None)
         # Both OpenAI text-generation endpoints use the same PyTorch reference
         # inputs and generation path. The endpoint distinguishes the serving
         # API, not the expected Hugging Face output, so let either endpoint
