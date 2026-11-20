@@ -39,8 +39,8 @@ LATEST_MODELS = {
 
 VLM_SKIPPED_MODELS = {
     # QRANIUMSW-65573
-    "google/gemma-4-E2B-it",
-    "google/gemma-4-26B-A4B-it",
+    # "google/gemma-4-E2B-it",
+    # "google/gemma-4-26B-A4B-it",
 }
 
 

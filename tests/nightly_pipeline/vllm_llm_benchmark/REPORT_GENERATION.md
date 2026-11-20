@@ -43,7 +43,7 @@ After all benchmark stages complete, the "Generate Report" stage automatically:
    - Compares each matching row with the selected comparison build; rows with an absolute change greater than 5% in QPC total size or export/compile timing, a TTFT increase greater than 5%, or a decode TPS decrease greater than 5% are marked `WARNING` in amber with the comparison reason shown
    - Writes `N/A` for metrics that are not applicable to a model, and `-` for a successful row with no failure or comparison reason, in both the consolidated CSV and HTML table
    - Displays comparable metrics as adjacent previous/current columns, such as `Previous QPC Size` and `Current QPC Size`
-   - Reports `vllm_exec_time_s` immediately before the failure reason; it measures from server launch until client completion
+   - Reports the QAIC vLLM execution duration immediately before the failure reason in hours/minutes/seconds; it measures from server launch until client completion. The consolidated CSV retains the raw `vllm_exec_time_s` value in seconds.
    - Keeps QPC count and per-QPC size-list fields in the CSV, while showing only the previous/current QPC total size pair in the HTML table
    - Stores branch/SDK details, Jenkins node, PyTorch/Transformers versions, and build duration in a sidecar `<csv>.environment.json` file and archives it so report regeneration retains them; the comparison build number remains in the consolidated CSV
 

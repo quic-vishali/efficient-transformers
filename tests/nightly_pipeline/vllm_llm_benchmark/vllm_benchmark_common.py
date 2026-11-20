@@ -1604,10 +1604,10 @@ def _clear_directory_contents(path: Path, label: str) -> None:
     removed = 0
     for child in resolved.iterdir():
         try:
-            if child.is_dir() and not child.is_symlink():
-                shutil.rmtree(child)
-            else:
-                child.unlink()
+            # if child.is_dir() and not child.is_symlink():
+            #     shutil.rmtree(child)
+            # else:
+            #     child.unlink()
             removed += 1
         except OSError as exc:
             print(f"  Warning: failed to remove {child}: {exc}")

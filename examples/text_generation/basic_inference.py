@@ -42,7 +42,7 @@ def main():
     parser.add_argument(
         "--device-group",
         type=lambda device_ids: [int(x) for x in device_ids.strip("[]").split(",")],
-        default=None,
+        default=[10, 12],
         help="Device IDs (comma-separated) e.g. [0,1]",
     )
     parser.add_argument(
@@ -135,6 +135,7 @@ def main():
 
     print(f"\nPrompt: {args.prompt}")
     print(f"Generated: {exec_info.generated_texts[0]}")
+    print(exec_info)
 
     if args.profiling_type is not None:
         output_dir = (

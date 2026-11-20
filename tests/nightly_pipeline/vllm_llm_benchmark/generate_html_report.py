@@ -106,8 +106,8 @@ def _installed_package_version(distribution: str) -> str:
         return "N/A"
 
 
-def _format_build_duration(raw: object) -> str:
-    seconds = _numeric_value(str(raw or ""))
+def _format_duration(raw: object) -> str:
+    seconds = _numeric_value("" if raw is None else str(raw))
     if seconds is None:
         return "N/A"
     total_seconds = max(0, int(round(seconds)))
@@ -370,6 +370,7 @@ def _summary_counts(rows: list[dict]) -> dict[str, int]:
     validation_warnings = sum(1 for row in rows if row.get("_failure_type") == "validation")
     performance_warnings = sum(1 for row in rows if row.get("_failure_type") == "comparison")
     return {
+        "total": len(rows),
         "passed": sum(1 for row in rows if (row.get("status") or "").upper() == "PASS")
         + validation_warnings
         + performance_warnings,
@@ -589,7 +590,7 @@ def generate_html_report(
         "jenkins_node": html.escape(_display_value(environment_metadata, "jenkins_node")),
         "torch_version": html.escape(_display_value(environment_metadata, "torch_version")),
         "transformers_version": html.escape(_display_value(environment_metadata, "transformers_version")),
-        "build_duration": html.escape(_format_build_duration(environment_metadata.get("build_duration_s"))),
+        "build_duration": html.escape(_format_duration(environment_metadata.get("build_duration_s"))),
         "comparison_build_number": html.escape(
             f"Build #{comparison_build_number}" if comparison_build_number else "N/A"
         ),
@@ -960,7 +961,7 @@ def generate_html_report(
                             <th style="text-align: right;">TPOT (s)</th>
                             <th style="text-align: right;">ITL (s)</th>
                             <th style="text-align: right;">Throughput (req/s)</th>
-                            <th style="text-align: right;">QAIC vLLM execution time (s)</th>
+                            <th style="text-align: right;">QAIC vLLM execution time (h m s)</th>
                             <th style="text-align: left;">Validation</th>
                             <th style="text-align: right;" title="Validation passes when cosine similarity is at least {COSINE_SIMILARITY_THRESHOLD:.2f}">Cosine Similarity Score</th>
                             <th style="text-align: left;">Note</th>
@@ -1009,7 +1010,7 @@ def generate_html_report(
                             <td class="metric">{_display_value(row, "mean_tpot_s")}</td>
                             <td class="metric">{_display_value(row, "mean_itl_s")}</td>
                             <td class="metric">{_display_value(row, "request_throughput_req_s")}</td>
-                            <td class="metric">{_display_value(row, "vllm_exec_time_s")}</td>
+                            <td class="metric">{_format_duration(row.get("vllm_exec_time_s"))}</td>
                             <td style="text-align: left;">{_display_value(row, "validation_status")}</td>
                             <td class="metric">{_display_value(row, "validation_score")}</td>
                             <td class="{reason_class}">{html.escape(reason) or "-"}</td>
