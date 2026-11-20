@@ -370,6 +370,7 @@ def _summary_counts(rows: list[dict]) -> dict[str, int]:
     validation_warnings = sum(1 for row in rows if row.get("_failure_type") == "validation")
     performance_warnings = sum(1 for row in rows if row.get("_failure_type") == "comparison")
     return {
+        "total": len(rows),
         "passed": sum(1 for row in rows if (row.get("status") or "").upper() == "PASS")
         + validation_warnings
         + performance_warnings,

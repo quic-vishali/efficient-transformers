@@ -123,12 +123,16 @@ is also written to `response.txt`.
 
 For PyTorch-backed validation, embedding responses are compared as native
 vectors using cosine similarity. Text responses are compared exactly first;
-when they differ, both sides are encoded with the fixed
-`sentence-transformers/all-MiniLM-L6-v2` encoder and compared using cosine
-similarity. Text cosine uses `text_cosine_threshold` (or
+when they differ, both sides are encoded with
+`Qwen/Qwen3-Embedding-0.6B` using Hugging Face Transformers (no
+`sentence-transformers` dependency), left padding, and final-token pooling.
+Embeddings are L2-normalized before cosine scoring. Inputs are capped at 8192
+tokens, bounded by the model and tokenizer limits; longer inputs are truncated
+from the right (preserving the start of the text) with a warning. Transformers
+4.51.0 or newer is required. Text cosine uses `text_cosine_threshold` (or
 `cosine_threshold`), defaulting to `0.98`. A semantic fallback pass is
-reported as `passed_cosine`. Set `VLLM_TEXT_VALIDATION_MODEL` to use a
-different fixed encoder.
+reported as `passed_cosine`. Set `VLLM_TEXT_VALIDATION_MODEL` to override the
+encoder; overrides must be compatible with final-token pooling.
 
 For standalone validation, use `validation_method=string` for substring
 matching or `validation_method=cosine` for numeric vectors, with
@@ -488,9 +492,9 @@ Test VLM with separate device group overrides:
 ```bash
 python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_vlm_benchmark.py \
   --config-name vlm \
-  --input-csv tests/nightly_pipeline/vllm_llm_benchmark/configs/vlm_configs.csv \
+  --input-csv tests/nightly_pipeline/vllm_llm_benchmark/configs/vlm_weight_free_configs.csv \
   --output-csv /tmp/test_vlm.csv \
-  --rows 1 \
+  --rows 4 \
   --latest-models-only false \
   --results-dir /tmp \
   --base-dir . \
