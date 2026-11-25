@@ -966,6 +966,10 @@ def launch_server(
     write_log_header(log_path, command, "Server Command")
     env = os.environ.copy()
     env.setdefault("PYTHONUNBUFFERED", "1")
+    # The server runs from the repository root, which contains a QEfficient
+    # source tree. Prevent Python from preferring that checkout over the
+    # QEfficient package installed in this virtual environment.
+    env["PYTHONSAFEPATH"] = "1"
 
     process = subprocess.Popen(
         command,
@@ -1604,10 +1608,10 @@ def _clear_directory_contents(path: Path, label: str) -> None:
     removed = 0
     for child in resolved.iterdir():
         try:
-            # if child.is_dir() and not child.is_symlink():
-            #     shutil.rmtree(child)
-            # else:
-            #     child.unlink()
+            if child.is_dir() and not child.is_symlink():
+                shutil.rmtree(child)
+            else:
+                child.unlink()
             removed += 1
         except OSError as exc:
             print(f"  Warning: failed to remove {child}: {exc}")
