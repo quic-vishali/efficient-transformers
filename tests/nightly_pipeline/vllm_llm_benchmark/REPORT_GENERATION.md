@@ -20,7 +20,7 @@ Execute the benchmark pipeline with your desired configurations:
 ```bash
 # Via Jenkins UI or CLI
 # Set parameters:
-# - RUN_DEFAULT=true, RUN_EMBEDDING=true, RUN_AUDIO=true, RUN_VLM=true
+# - RUN_LLM=true, RUN_EMBEDDING=true, RUN_AUDIO=true, RUN_VLM=true
 # - COMPARE_BUILD_NUMBER=123 (optional; empty compares with the previous build)
 # - EMAIL_RECIPIENTS=team@example.com (comma-separated for multiple recipients)
 ```

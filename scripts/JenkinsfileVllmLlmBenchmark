@@ -1,23 +1,19 @@
-def configCsv(String configName) {
-    return "tests/nightly_pipeline/vllm_llm_benchmark/configs/llm_${configName}_configs.csv"
-}
-
-def runLlmConfig(String configName, String rowSpec, String deviceGroup = '') {
+def runLlmConfig(String rowSpec) {
     def dryRunArg = params.DRY_RUN ? '--dry-run' : ''
     def failFastArg = params.FAIL_FAST ? '--fail-fast' : ''
     def latestModelsOnlyArg = params.LATEST_MODELS_ONLY ? 'true' : 'false'
-    def outputCsv = "${env.VLLM_LLM_RESULTS_DIR}/llm_${configName}_results.csv"
+    def outputCsv = "${env.VLLM_LLM_RESULTS_DIR}/llm_results.csv"
 
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         withEnv([
-            "CONFIG_NAME=${configName}",
-            "INPUT_CSV=${configCsv(configName)}",
+            "CONFIG_NAME=llm",
+            "INPUT_CSV=tests/nightly_pipeline/vllm_llm_benchmark/configs/llm_configs.csv",
             "OUTPUT_CSV=${outputCsv}",
             "ROWS_TO_RUN=${rowSpec ?: 'ALL'}",
             "DRY_RUN_ARG=${dryRunArg}",
             "FAIL_FAST_ARG=${failFastArg}",
             "LATEST_MODELS_ONLY_ARG=${latestModelsOnlyArg}",
-            "DEVICE_GROUP_OVERRIDE=${deviceGroup ?: ''}",
+            "DEVICE_GROUP_OVERRIDE=",
         ]) {
             // BENCHMARK_SCRIPT/VENV_DIR/etc are already set inside the container via
             // `docker run -e` (Start Container stage); only the per-invocation values are
@@ -123,16 +119,16 @@ SCRIPT
     }
 }
 
-def runVlmConfig(String rowSpec, String deviceGroupEncode = '', String deviceGroupPrefill = '', String deviceGroupDecode = '', String inputCsv = 'tests/nightly_pipeline/vllm_llm_benchmark/configs/vlm_configs.csv', String resultName = 'vlm') {
+def runVlmConfig(String rowSpec, String deviceGroupEncode = '', String deviceGroupPrefill = '', String deviceGroupDecode = '') {
     def dryRunArg = params.DRY_RUN ? '--dry-run' : ''
     def failFastArg = params.FAIL_FAST ? '--fail-fast' : ''
     def latestModelsOnlyArg = params.LATEST_MODELS_ONLY ? 'true' : 'false'
-    def outputCsv = "${env.VLLM_LLM_RESULTS_DIR}/${resultName}_results.csv"
+    def outputCsv = "${env.VLLM_LLM_RESULTS_DIR}/vlm_results.csv"
 
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         withEnv([
-            "CONFIG_NAME=${resultName}",
-            "INPUT_CSV=${inputCsv}",
+            "CONFIG_NAME=vlm",
+            "INPUT_CSV=tests/nightly_pipeline/vllm_llm_benchmark/configs/vlm_configs.csv",
             "OUTPUT_CSV=${outputCsv}",
             "ROWS_TO_RUN=${rowSpec ?: 'ALL'}",
             "DRY_RUN_ARG=${dryRunArg}",
@@ -202,35 +198,20 @@ pipeline {
         string(name: 'QAIC_DISAGG_BRANCH', defaultValue: '282ad107e558fb9754ad68c255bfced05375c663', description: 'qaic-disagg branch/tag/commit SHA/ref to install')
         password(name: 'HF_TOKEN', defaultValue: '', description: 'HuggingFace token for gated models. Optional - leave empty to reuse the HF_TOKEN already exported in the Jenkins agent host environment.')
         string(name: 'HF_HOME', defaultValue: '', description: 'Host HuggingFace cache directory. Empty = ${HOME}/.cache/huggingface')
-        string(name: 'DEVICE_GROUP_DEFAULT', defaultValue: '', description: 'Device group for default LLM configs (e.g., "0,1,2,3"). Empty = use CSV values.')
-        string(name: 'DEVICE_GROUP_CCL', defaultValue: '', description: 'Device group for CCL LLM configs. Empty = use CSV values.')
-        string(name: 'DEVICE_GROUP_BLOCKING', defaultValue: '', description: 'Device group for blocking LLM configs. Empty = use CSV values.')
-        string(name: 'DEVICE_GROUP_DISAGG_PD_PREFILL', defaultValue: '', description: 'Device group for disagg PD prefill stage. Empty = use CSV values.')
-        string(name: 'DEVICE_GROUP_DISAGG_PD_DECODE', defaultValue: '', description: 'Device group for disagg PD decode stage. Empty = use CSV values.')
         string(name: 'DEVICE_GROUP_EMBEDDING', defaultValue: '', description: 'Device group for embedding configs. Empty = use CSV values.')
         string(name: 'DEVICE_GROUP_AUDIO', defaultValue: '', description: 'Device group for audio configs. Empty = use CSV values.')
         string(name: 'DEVICE_GROUP_VLM_ENCODE', defaultValue: '', description: 'Device group for VLM encode stage. Empty = use CSV values.')
         string(name: 'DEVICE_GROUP_VLM_PREFILL', defaultValue: '', description: 'Device group for VLM prefill stage. Empty = use CSV values.')
         string(name: 'DEVICE_GROUP_VLM_DECODE', defaultValue: '', description: 'Device group for VLM decode stage. Empty = use CSV values.')
         string(name: 'SERVER_READY_TIMEOUT_MINUTES', defaultValue: '360', description: 'Server compile/load timeout per row')
-        string(name: 'ROWS_DEFAULT', defaultValue: 'ALL', description: 'Default config data rows: ALL, 1, 1:4, or 1,3. Row 1 is gpt2 smoke.')
-        string(name: 'ROWS_CCL', defaultValue: 'ALL', description: 'CCL config data rows')
-        string(name: 'ROWS_BLOCKING', defaultValue: 'ALL', description: 'Blocking config data rows')
-        string(name: 'ROWS_DISAGG_PD', defaultValue: 'ALL', description: 'Disagg PD config data rows')
+        string(name: 'ROWS_LLM', defaultValue: 'ALL', description: 'Unified disaggregated LLM config data rows: ALL, 1, 1:4, or 1,3.')
         string(name: 'ROWS_EMBEDDING', defaultValue: 'ALL', description: 'Embedding config data rows')
         string(name: 'ROWS_AUDIO', defaultValue: 'ALL', description: 'Audio config data rows')
         string(name: 'ROWS_VLM', defaultValue: 'ALL', description: 'VLM config data rows')
-        string(name: 'ROWS_WEIGHT_FREE_LLM', defaultValue: 'ALL', description: 'Weight-free LLM config data rows')
-        string(name: 'ROWS_WEIGHT_FREE_VLM', defaultValue: 'ALL', description: 'Weight-free VLM config data rows')
-        booleanParam(name: 'RUN_DEFAULT', defaultValue: true, description: 'Run default CB + subfunction LLM configs')
-        booleanParam(name: 'RUN_CCL', defaultValue: true, description: 'Run CCL-enabled LLM configs')
-        booleanParam(name: 'RUN_BLOCKING', defaultValue: true, description: 'Run blocking LLM configs')
-        booleanParam(name: 'RUN_DISAGG_PD', defaultValue: true, description: 'Run PD disaggregated LLM configs')
+        booleanParam(name: 'RUN_LLM', defaultValue: true, description: 'Run unified disaggregated LLM configs')
         booleanParam(name: 'RUN_EMBEDDING', defaultValue: true, description: 'Run embedding model configs')
         booleanParam(name: 'RUN_AUDIO', defaultValue: true, description: 'Run audio model configs')
         booleanParam(name: 'RUN_VLM', defaultValue: true, description: 'Run VLM model configs')
-        booleanParam(name: 'RUN_WEIGHT_FREE_LLM', defaultValue: true, description: 'Run weight-free LLM configs')
-        booleanParam(name: 'RUN_WEIGHT_FREE_VLM', defaultValue: true, description: 'Run weight-free VLM configs')
         booleanParam(name: 'SKIP_INSTALL', defaultValue: false, description: 'Reuse an already installed venv/repos in BENCH_ROOT')
         booleanParam(name: 'DRY_RUN', defaultValue: false, description: 'Only build commands/log stubs/output CSV rows')
         booleanParam(name: 'FORCE_KILL_QAIC', defaultValue: false, description: 'Force-kill matching QAIC server process groups even when owned by another Jenkins run')
@@ -238,7 +219,7 @@ pipeline {
         booleanParam(name: 'LATEST_MODELS_ONLY', defaultValue: true, description: 'Restrict runs to the curated LATEST_MODELS list (models >70B are always skipped regardless of this flag)')
         booleanParam(name: 'CLEAN_WORKSPACE_AFTER_RUN', defaultValue: false, description: 'Delete the Jenkins workspace after the build finishes (does not affect the persistent HF/results caches under ${HOME}/.cache)')
         string(name: 'COMPARE_BUILD_NUMBER', defaultValue: '', description: 'Build number to compare in the report. Empty = compare with the previous build.')
-        string(name: 'EMAIL_RECIPIENTS', defaultValue: 'vishsent@qti.qualcomm.com', description: 'Email recipients for benchmark report (comma-separated). Empty = no email sent.')
+        string(name: 'EMAIL_RECIPIENTS', defaultValue: 'vishsent@qti.qualcomm.com,cloud.ml@qti.qualcomm.com', description: 'Email recipients for benchmark report (comma-separated). Empty = no email sent.')
     }
 
     environment {
@@ -256,6 +237,10 @@ pipeline {
         AUDIO_BENCHMARK_SCRIPT = "/efficient-transformers/tests/nightly_pipeline/vllm_llm_benchmark/vllm_audio_benchmark.py"
         VLM_BENCHMARK_SCRIPT = "/efficient-transformers/tests/nightly_pipeline/vllm_llm_benchmark/vllm_vlm_benchmark.py"
         QEFF_HOME = "/efficient-transformers/vllm_llm_workspace/qeff_models"
+        // Weight-free export transforms checkpoints before ONNX export. Keep the
+        // generated checkpoint outside HF_HOME: shared model snapshots can be
+        // intentionally read-only.
+        QEFF_CHECKPOINT_HOME = "/efficient-transformers/vllm_llm_workspace/qeff_models/checkpoints"
         // HF_HOME is the path used inside the container. HF_HOME_HOST is the optional
         // host path supplied by Jenkins and is resolved in Start Container.
         HF_HOME = '/root/.cache/huggingface'
@@ -278,11 +263,6 @@ pipeline {
         QEFF_BRANCH = "${params.QEFF_BRANCH}"
         SKIP_INSTALL = "${params.SKIP_INSTALL}"
         SERVER_READY_TIMEOUT_MINUTES = "${params.SERVER_READY_TIMEOUT_MINUTES}"
-        DEVICE_GROUP_DEFAULT = "${params.DEVICE_GROUP_DEFAULT}"
-        DEVICE_GROUP_CCL = "${params.DEVICE_GROUP_CCL}"
-        DEVICE_GROUP_BLOCKING = "${params.DEVICE_GROUP_BLOCKING}"
-        DEVICE_GROUP_DISAGG_PD_PREFILL = "${params.DEVICE_GROUP_DISAGG_PD_PREFILL}"
-        DEVICE_GROUP_DISAGG_PD_DECODE = "${params.DEVICE_GROUP_DISAGG_PD_DECODE}"
         DEVICE_GROUP_EMBEDDING = "${params.DEVICE_GROUP_EMBEDDING}"
         DEVICE_GROUP_AUDIO = "${params.DEVICE_GROUP_AUDIO}"
         DEVICE_GROUP_VLM_ENCODE = "${params.DEVICE_GROUP_VLM_ENCODE}"
@@ -335,6 +315,7 @@ pipeline {
                         -e AUDIO_BENCHMARK_SCRIPT="${AUDIO_BENCHMARK_SCRIPT}" \
                         -e VLM_BENCHMARK_SCRIPT="${VLM_BENCHMARK_SCRIPT}" \
                         -e QEFF_HOME="${QEFF_HOME}" \
+                        -e QEFF_CHECKPOINT_HOME="${QEFF_CHECKPOINT_HOME}" \
                         -e HF_HOME="${HF_HOME}" \
                         -e PYTHON_BIN="${PYTHON_BIN}" \
                         -e VLLM_QAIC_REPO="${VLLM_QAIC_REPO}" \
@@ -519,38 +500,11 @@ SCRIPT
             }
         }
 
-        stage('Run Default LLM') {
-            when { expression { params.RUN_DEFAULT } }
+        stage('Run LLM') {
+            when { expression { params.RUN_LLM } }
             steps {
                 script {
-                    runLlmConfig('default', params.ROWS_DEFAULT, params.DEVICE_GROUP_DEFAULT)
-                }
-            }
-        }
-
-        stage('Run CCL LLM') {
-            when { expression { params.RUN_CCL } }
-            steps {
-                script {
-                    runLlmConfig('ccl', params.ROWS_CCL, params.DEVICE_GROUP_CCL)
-                }
-            }
-        }
-
-        stage('Run Blocking LLM') {
-            when { expression { params.RUN_BLOCKING } }
-            steps {
-                script {
-                    runLlmConfig('blocking', params.ROWS_BLOCKING, params.DEVICE_GROUP_BLOCKING)
-                }
-            }
-        }
-
-        stage('Run Disagg PD LLM') {
-            when { expression { params.RUN_DISAGG_PD } }
-            steps {
-                script {
-                    runLlmConfig('disagg_pd', params.ROWS_DISAGG_PD, params.DEVICE_GROUP_DISAGG_PD_PREFILL)
+                    runLlmConfig(params.ROWS_LLM)
                 }
             }
         }
@@ -577,31 +531,11 @@ SCRIPT
             when { expression { params.RUN_VLM } }
             steps {
                 script {
-                    runVlmConfig(params.ROWS_VLM, params.DEVICE_GROUP_VLM_ENCODE, params.DEVICE_GROUP_VLM_PREFILL, params.DEVICE_GROUP_VLM_DECODE)
-                }
-            }
-        }
-
-        stage('Run Weight-Free LLM') {
-            when { expression { params.RUN_WEIGHT_FREE_LLM } }
-            steps {
-                script {
-                    runLlmConfig('weight_free', params.ROWS_WEIGHT_FREE_LLM)
-                }
-            }
-        }
-
-        stage('Run Weight-Free VLM') {
-            when { expression { params.RUN_WEIGHT_FREE_VLM } }
-            steps {
-                script {
                     runVlmConfig(
-                        params.ROWS_WEIGHT_FREE_VLM,
+                        params.ROWS_VLM,
                         params.DEVICE_GROUP_VLM_ENCODE,
                         params.DEVICE_GROUP_VLM_PREFILL,
-                        params.DEVICE_GROUP_VLM_DECODE,
-                        'tests/nightly_pipeline/vllm_llm_benchmark/configs/vlm_weight_free_configs.csv',
-                        'vlm_weight_free'
+                        params.DEVICE_GROUP_VLM_DECODE
                     )
                 }
             }
@@ -620,13 +554,9 @@ SCRIPT
                     def previousResultsCsv = compareBuildNumber
                         ? "${env.HOME}/.cache/vllm_llm_results/${compareBuildNumber}/consolidated_published_results.csv"
                         : ''
-                    def previousWeightFreeResultsCsv = compareBuildNumber
-                        ? "${env.HOME}/.cache/vllm_llm_results/${compareBuildNumber}/weight_free_consolidated_published_results.csv"
-                        : ''
                     withEnv([
                         "COMPARE_BUILD_NUMBER=${compareBuildNumber}",
                         "PREVIOUS_RESULTS_CSV=${previousResultsCsv}",
-                        "PREVIOUS_WEIGHT_FREE_RESULTS_CSV=${previousWeightFreeResultsCsv}",
                         "BUILD_START_TIME_MS=${env.BUILD_START_TIME_MS ?: ''}",
                         "JENKINS_NODE_NAME=${env.NODE_NAME ?: 'N/A'}"
                     ]) {
@@ -636,7 +566,6 @@ SCRIPT
                             -e BUILD_URL="${BUILD_URL}" \
                             -e COMPARE_BUILD_NUMBER="${COMPARE_BUILD_NUMBER:-}" \
                             -e PREVIOUS_RESULTS_CSV="${PREVIOUS_RESULTS_CSV:-}" \
-                            -e PREVIOUS_WEIGHT_FREE_RESULTS_CSV="${PREVIOUS_WEIGHT_FREE_RESULTS_CSV:-}" \
                             -e BUILD_START_TIME_MS="${BUILD_START_TIME_MS:-}" \
                             -e JENKINS_NODE_NAME="${JENKINS_NODE_NAME}" \
                             ${BUILD_TAG} bash -s <<'SCRIPT'
@@ -659,16 +588,7 @@ else
     echo "No standard consolidated CSV found for build #${COMPARE_BUILD_NUMBER:-N/A}."
 fi
 
-if [[ -n "${PREVIOUS_WEIGHT_FREE_RESULTS_CSV:-}" && -f "${PREVIOUS_WEIGHT_FREE_RESULTS_CSV}" ]]; then
-    PREVIOUS_CSV_ARG+=(--previous-csv "${PREVIOUS_WEIGHT_FREE_RESULTS_CSV}")
-    echo "Comparing weight-free rows with build #${COMPARE_BUILD_NUMBER}: ${PREVIOUS_WEIGHT_FREE_RESULTS_CSV}"
-else
-    echo "No weight-free consolidated CSV found for build #${COMPARE_BUILD_NUMBER:-N/A}."
-fi
-
-# Merge every benchmark variant into one consolidated CSV. The result rows retain
-# their variant in config_name (for example, weight_free/... for VLM), so the
-# report and comparison logic can keep standard and weight-free rows distinct.
+# Merge every benchmark category into one consolidated CSV.
 shopt -s nullglob
 RESULT_CSVS=()
 for result_csv in "${VLLM_LLM_RESULTS_DIR}"/*_results.csv; do

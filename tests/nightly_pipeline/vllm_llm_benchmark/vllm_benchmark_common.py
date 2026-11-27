@@ -438,12 +438,6 @@ def build_api_server_command(row: dict, args) -> list[str]:
     add_value_arg(cmd, "--max-model-len", row, "max_model_len", "CL")
     add_value_arg(cmd, "--kv-cache-dtype", row, "kv_cache_dtype")
     add_value_arg(cmd, "--host", row, "host")
-    add_value_arg(
-        cmd,
-        "--long-prefill-token-threshold",
-        row,
-        "long_prefill_token_threshold",
-    )
     add_value_arg(cmd, "--quantization", row, "quantization")
     add_value_arg(cmd, "--max-num-seqs", row, "max_num_seqs", "BS")
     add_value_arg(cmd, "--dtype", row, "dtype")
@@ -492,18 +486,7 @@ def build_disagg_server_command(row: dict, args) -> list[str]:
     add_value_arg(cmd, "--encode-max-num-seqs", row, "encode_max_num_seqs", "VBS")
     add_value_arg(cmd, "--prefill-max-num-seqs", row, "prefill_max_num_seqs", "PBS")
     add_value_arg(cmd, "--decode-max-num-seqs", row, "decode_max_num_seqs", "DBS")
-    add_value_arg(
-        cmd,
-        "--decode-long-prefill-token-threshold",
-        row,
-        "decode_long_prefill_token_threshold",
-    )
-    add_value_arg(
-        cmd,
-        "--prefill-long-prefill-token-threshold",
-        row,
-        "prefill_long_prefill_token_threshold",
-    )
+    add_value_arg(cmd, "--max-num-batched-tokens", row, "max_num_batched_tokens")
     add_value_arg(
         cmd,
         "--prefill-max-num-batched-tokens",
@@ -573,8 +556,14 @@ def build_disagg_server_command(row: dict, args) -> list[str]:
     add_value_arg(cmd, "--dtype", row, "dtype")
     add_value_arg(cmd, "--kv-cache-dtype", row, "kv_cache_dtype")
     add_value_arg(cmd, "--quantization", row, "quantization")
-    add_value_arg(cmd, "--tool-call-parser", row, "tool_call_parser")
-    add_bool_arg(cmd, "--enable-auto-tool-choice", row, "enable_auto_tool_choice")
+    tool_call_parser = value(row, "tool_call_parser")
+    enable_auto_tool_choice = parse_bool(row.get("enable_auto_tool_choice"), default=False)
+    if enable_auto_tool_choice and not tool_call_parser:
+        raise BenchmarkError("enable_auto_tool_choice=true requires a non-empty tool_call_parser")
+    if tool_call_parser:
+        cmd.extend(["--tool-call-parser", tool_call_parser])
+    if enable_auto_tool_choice:
+        cmd.append("--enable-auto-tool-choice")
     add_bool_arg(cmd, "--enable-log-outputs", row, "enable_log_outputs")
     add_value_arg(cmd, "--reasoning-parser", row, "reasoning_parser")
     # qaic_disagg accepts the vLLM generation config spelling, but current
@@ -2571,19 +2560,25 @@ def run_one(row: dict, args, config_name: str, output_csv: Path) -> str:
     elif config_name == "embedding":
         # Embedding: use pooling_method
         effective_config_name = value(row, "pooling_method", default="unknown")
-    elif config_name == "vlm" or config_name.startswith("vlm_"):
-        # VLM: keep the run variant in the effective name.  Without this,
-        # vlm_weight_free rows are indistinguishable from regular VLM rows
-        # after consolidation because both used only the mode tuple.
-        variant = config_name.removeprefix("vlm_")
+    elif config_name == "vlm":
+        # Keep weight-free rows distinct after standard and weight-free VLM
+        # rows are combined in the same CSV and Jenkins stage.
+        variant = "weight_free" if parse_bool(row.get("weight_free"), default=False) else ""
         specs = value(row, "specialization_mode", default="single")
         blocking = "blocking" if parse_bool(row.get("enable_blocking"), default=False) else "non_blocking"
         ccl = "ccl" if parse_bool(row.get("enable_ccl"), default=False) else "non_ccl"
         disagg_mode = value(row, "disagg_mode", default="single")
         mode_name = f"{specs}/{blocking}/{ccl}/{disagg_mode}"
         effective_config_name = f"{variant}/{mode_name}" if variant else mode_name
+    elif config_name == "llm":
+        # The unified LLM CSV is entirely weight-free, blocked, PD-disaggregated
+        # serving. Surface that in published reports just as VLM does.
+        variant = "weight_free" if parse_bool(row.get("weight_free"), default=False) else ""
+        blocking = "blocking" if parse_bool(row.get("enable_blocking"), default=False) else "non_blocking"
+        mode_name = f"{blocking}/non_ccl/PD"
+        effective_config_name = f"{variant}/{mode_name}" if variant else mode_name
     else:
-        # LLM: use config_name as-is (default, ccl, blocking, disagg_pd)
+        # Preserve explicit names used by non-unified legacy/custom runners.
         effective_config_name = config_name
 
     run_id = f"{row_number:03d}_{sanitize_name(model)}_{sanitize_name(effective_config_name)}"

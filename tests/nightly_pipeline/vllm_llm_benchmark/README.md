@@ -19,10 +19,7 @@ one output CSV:
 
 | Mode | Input CSV | Output CSV |
 | --- | --- | --- |
-| default CB + subfunction | `configs/llm_default_configs.csv` | `llm_default_results.csv` |
-| CCL enabled | `configs/llm_ccl_configs.csv` | `llm_ccl_results.csv` |
-| blocking | `configs/llm_blocking_configs.csv` | `llm_blocking_results.csv` |
-| disagg PD | `configs/llm_disagg_pd_configs.csv` | `llm_disagg_pd_results.csv` |
+| LLM EPD (subfunction, weight-free, blocking) | `configs/llm_configs.csv` | `llm_results.csv` |
 | embedding | `configs/embedding_configs.csv` | `embedding_results.csv` |
 | audio | `configs/audio_configs.csv` | `audio_results.csv` |
 | VLM | `configs/vlm_configs.csv` | `vlm_results.csv` |
@@ -34,16 +31,16 @@ writing without starting vLLM or using QAIC devices:
 
 ```bash
 python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_llm_benchmark.py \
-  --config-name default \
-  --input-csv tests/nightly_pipeline/vllm_llm_benchmark/configs/llm_default_configs.csv \
-  --output-csv /tmp/vllm_llm_smoke/llm_default_results.csv \
+  --config-name llm \
+  --input-csv tests/nightly_pipeline/vllm_llm_benchmark/configs/llm_configs.csv \
+  --output-csv /tmp/vllm_llm_smoke/llm_results.csv \
   --results-dir /tmp/vllm_llm_smoke \
-  --rows 47 \
+  --rows 1 \
   --dry-run
 ```
 
-Row 1 in the default CSV is `openai-community/gpt2`, intended for a quick smoke
-check before running all rows.
+Row 1 in the unified LLM CSV is `openai/gpt-oss-20b`, intended for a quick
+smoke check before running all rows.
 
 The embedding and audio runners work the same way:
 
@@ -66,10 +63,10 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_audio_benchmark.py \
 
 python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_vlm_benchmark.py \
   --config-name vlm \
-  --input-csv tests/nightly_pipeline/vllm_llm_benchmark/configs/vlm_weight_free_configs.csv \
+  --input-csv tests/nightly_pipeline/vllm_llm_benchmark/configs/vlm_configs.csv \
   --output-csv vllm_vlm_smoke/vlm_results.csv \
   --results-dir vllm_vlm_smoke \
-  --rows 2 \
+  --rows 3 \
   --dry-run
 ```
 
@@ -77,7 +74,7 @@ python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_vlm_benchmark.py \
 
 After all benchmark categories complete, run `merge_published_results.py` to generate
 a consolidated published CSV with only the key fields for team distribution. Jenkins
-merges standard and weight-free results into one consolidated CSV. The generic
+merges all selected benchmark results into one consolidated CSV. The generic
 command below merges the files it finds in a local results directory:
 
 ```bash
@@ -204,10 +201,9 @@ remains in the consolidated CSV.
 ## Jenkins Flow
 
 The Jenkins pipeline uses one shared Python environment at
-`vllm_llm_workspace/venv` for standard and weight-free benchmarks; it does not
-create a separate Dynamo venv or run a separate weight-free dependency-preparation
-stage. The package versions in the shared environment are used for both benchmark
-types. With `SKIP_INSTALL=true`, Jenkins reuses the existing shared venv.
+`vllm_llm_workspace/venv` for all benchmarks. It does not create a separate
+weight-free environment or dependency-preparation stage. With
+`SKIP_INSTALL=true`, Jenkins reuses the existing shared venv.
 
 The Jenkins pipeline:
 
@@ -216,7 +212,7 @@ The Jenkins pipeline:
 3. Runs `scripts/install.sh aot`, which installs QEfficient internally.
 4. Clones and installs `qaic-disagg`.
 5. Runs the selected LLM/embedding/audio/VLM config CSVs using the shared venv.
-6. Runs `merge_published_results.py` once for all standard and weight-free CSVs.
+6. Runs `merge_published_results.py` once for all selected benchmark CSVs.
 7. Runs `generate_html_report.py` to render one `benchmark_report.html` containing all rows.
    The displayed build duration is measured from the start of container setup through
    completion of benchmark stages, immediately before report generation.
@@ -228,17 +224,22 @@ The Jenkins pipeline:
    includes the build status). If the report could not be generated at all,
    a fallback notification with a link to the Jenkins build is sent instead.
 
-Use `DRY_RUN=true` and `ROWS_DEFAULT=1` to verify the gpt2 command and output
+Use `DRY_RUN=true` and `ROWS_LLM=1` to verify the unified LLM command and output
 CSV/log generation on a Jenkins agent without consuming QAIC runtime. The
 embedding, audio, and VLM stages have their own `ROWS_EMBEDDING`/`ROWS_AUDIO`/
 `ROWS_VLM` and `RUN_EMBEDDING`/`RUN_AUDIO`/`RUN_VLM` params for the same
 purpose.
 
-The Jenkins pipeline has two VLM stages only: `Run VLM` and `Run Weight-Free
-VLM`. Each stage runs all eligible rows from its corresponding CSV; the
-disaggregation, specialization, and blocking columns describe each row's
-runtime configuration and are not separate Jenkins benchmark types. Use
-`ROWS_VLM` or `ROWS_WEIGHT_FREE_VLM` when a specific row subset is needed.
+The Jenkins pipeline has one LLM stage: `Run LLM`. It runs all eligible rows
+from `llm_configs.csv`. Every LLM row is prefill/decode disaggregated and has
+subfunctions, direct `pretrained_extra_args.weight_free=true`, and direct
+`qaic_config.enable_blocking=true` in its prefill and decode overrides. Use
+`ROWS_LLM` when a specific row subset is needed.
+
+The Jenkins pipeline has one VLM stage: `Run VLM`. It runs all eligible rows
+from `vlm_configs.csv`. Every VLM row is EPD and has subfunctions, direct
+`pretrained_extra_args.weight_free=true`, and blocking enabled. Use `ROWS_VLM`
+when a specific row subset is needed.
 
 ## HuggingFace Cache Configuration
 
@@ -256,205 +257,39 @@ This is useful when:
 The cache is bind-mounted into the Docker container at the same path, so models
 downloaded during one run are available to subsequent runs without re-downloading.
 
+Weight-free exports stage transformed checkpoints under `QEFF_CHECKPOINT_HOME`
+(configured by the Jenkins pipeline beneath `QEFF_HOME`). This keeps the shared
+HuggingFace cache read-only-safe.
+
 ## Device Group Configuration
 
-Device groups specify which QAIC devices are allocated to each benchmark run. They can be configured in two ways:
+Device groups are configured in the CSVs:
 
-### CSV-based Configuration (Default)
+| Category | CSV device fields |
+| --- | --- |
+| LLM (PD) | `prefill_device_group`, `decode_device_group` |
+| Embedding / audio | `additional_config.device_group` |
+| VLM (EPD) | `encode_device_group`, `prefill_device_group`, `decode_device_group` |
 
-Each config CSV includes device group columns that specify which devices to use:
-
-| Category | Single-Device | Disaggregated |
-| --- | --- | --- |
-| **LLM (default/CCL/blocking)** | `device_group` (col 7) | N/A |
-| **LLM (disagg_pd)** | N/A | `prefill_device_group` (col 9), `decode_device_group` (col 10) |
-| **Embedding** | `additional_config` JSON | N/A |
-| **Audio** | `additional_config` JSON | N/A |
-| **VLM** | N/A | `encode_device_group` (col 14), `prefill_device_group` (col 15), `decode_device_group` (col 16) |
-
-Example values:
-- Single device: `0` or `1`
-- Multiple devices: `0,1,2,3` or `2,3`
-- Empty: uses default or falls back to `additional_config`
-
-### Jenkins Parameter Override
-
-Jenkins parameters allow overriding device groups for an entire benchmark run without modifying CSVs:
-
-| Parameter | Applies To | Example |
-| --- | --- | --- |
-| `DEVICE_GROUP_DEFAULT` | LLM default configs | `0,1,2,3` |
-| `DEVICE_GROUP_CCL` | LLM CCL configs | `0,1` |
-| `DEVICE_GROUP_BLOCKING` | LLM blocking configs | `2,3` |
-| `DEVICE_GROUP_DISAGG_PD_PREFILL` | LLM disagg PD prefill stage | `0,1` |
-| `DEVICE_GROUP_DISAGG_PD_DECODE` | LLM disagg PD decode stage | `2,3` |
-| `DEVICE_GROUP_EMBEDDING` | Embedding configs | `0` |
-| `DEVICE_GROUP_AUDIO` | Audio configs | `0` |
-| `DEVICE_GROUP_VLM_ENCODE` | VLM encode stage | `0` |
-| `DEVICE_GROUP_VLM_PREFILL` | VLM prefill stage | `1` |
-| `DEVICE_GROUP_VLM_DECODE` | VLM decode stage | `2,3` |
-
-When a Jenkins parameter is set (non-empty), it **overrides** the corresponding CSV column for all rows in that benchmark run. When empty (default), CSV values are used.
-
-**Use case:** Test the same model configs on different device allocations without creating new CSV rows.
-
-### Device Group Override Implementation
-
-Device group overrides work in two ways:
-
-**Method 1: Direct Column Override** (LLM default/CCL/blocking, VLM)
-- Device group is in a dedicated CSV column
-- Override directly replaces the column value
-- Example: `device_group` column → override value
-
-**Method 2: JSON Override** (Embedding, Audio)
-- Device group is in `additional_config` JSON
-- Override parses JSON, updates field, re-serializes
-- Example: `{"device_group": [0], ...}` → `{"device_group": [1], ...}`
-
-**Method 3: Separate Stage Overrides** (LLM disagg_pd, VLM)
-- Separate device group columns for each stage
-- Each stage can be overridden independently
-- Example: `prefill_device_group` and `decode_device_group` overridden separately
-
-## Dry-Run Testing
-
-A comprehensive dry-run test suite validates device group overrides across all 7 categories:
-
-```bash
-# Run all tests (recommended)
-python3 dry_run_test.py
-
-# Or use bash script
-bash DRY_RUN_TEST.sh
-```
-
-Each test:
-- Runs with a single row from the config CSV
-- Applies specified device group override
-- Runs in dry-run mode (no actual server/client execution)
-- Validates command generation
-- Checks output CSV creation
-
-### Test Coverage
-
-| # | Category | Override | Test |
-|---|----------|----------|------|
-| 1 | LLM Default | `device_group="0,1"` | ✅ |
-| 2 | LLM CCL | `device_group="0,1"` | ✅ |
-| 3 | LLM Blocking | `device_group="2,3"` | ✅ |
-| 4 | LLM Disagg PD | `prefill="0,1"`, `decode="2,3"` | ✅ |
-| 5 | Embedding | `device_group="0"` (JSON) | ✅ |
-| 6 | Audio | `device_group="0"` (JSON) | ✅ |
-| 7 | VLM | `encode="0"`, `prefill="1"`, `decode="2,3"` | ✅ |
-
-### Expected Output
-
-```
-==================================================
-Dry-Run Test: All Categories with Device Group Overrides
-==================================================
-
-Test Results:
-✓ llm_default
-✓ llm_ccl
-✓ llm_blocking
-✓ llm_disagg_pd
-✓ embedding
-✓ audio
-✓ vlm
-
-Passed: 7/7
-Failed: 0/7
-
-✓ No errors found in logs
-```
-
-### Verifying Device Group Overrides
-
-Check generated commands:
-```bash
-grep "Server command" /tmp/vllm_dry_run_test/llm_default_output.log
-# Should include: --additional-config '{"device_group": [0, 1], ...}'
-```
-
-Check output CSV:
-```bash
-head -5 /tmp/vllm_dry_run_test/llm_default_results.csv
-# Should have device_group column with overridden value
-```
-
-Check for errors:
-```bash
-grep -r "ERROR\|FAILED\|Traceback" /tmp/vllm_dry_run_test/*.log
-# Should return nothing if all tests passed
-```
+The unified LLM stage always uses its CSV device groups. Jenkins retains
+per-category overrides for embedding, audio, and per-stage VLM allocation.
+Use a per-row dry run to validate the command before a hardware run.
 
 ### Manual Testing
 
-Test a single category manually:
+Test the unified disaggregated LLM configuration manually:
 
 ```bash
 python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_llm_benchmark.py \
-  --config-name default \
-  --input-csv tests/nightly_pipeline/vllm_llm_benchmark/configs/llm_default_configs.csv \
-  --output-csv test/test_llm_default.csv \
-  --rows 47 \
+  --config-name llm \
+  --input-csv tests/nightly_pipeline/vllm_llm_benchmark/configs/llm_configs.csv \
+  --output-csv test/test_llm.csv \
+  --rows 1 \
   --latest-models-only false \
   --results-dir test \
   --base-dir . \
   --python-bin python3 \
   --server-ready-timeout-s 3600 \
-  --device-group-override "0,1" \
-  --dry-run
-```
-
-Test CCL LLM with device group override:
-```bash
-python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_llm_benchmark.py \
-  --config-name ccl \
-  --input-csv tests/nightly_pipeline/vllm_llm_benchmark/configs/llm_ccl_configs.csv \
-  --output-csv /tmp/test_llm_ccl.csv \
-  --rows 1 \
-  --latest-models-only false \
-  --results-dir /tmp \
-  --base-dir . \
-  --python-bin python3 \
-  --server-ready-timeout-s 3600 \
-  --device-group-override "0,1" \
-  --dry-run
-```
-
-Test blocking LLM with device group override:
-```bash
-python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_llm_benchmark.py \
-  --config-name blocking \
-  --input-csv tests/nightly_pipeline/vllm_llm_benchmark/configs/llm_blocking_configs.csv \
-  --output-csv /tmp/test_llm_blocking.csv \
-  --rows 1 \
-  --latest-models-only false \
-  --results-dir /tmp \
-  --base-dir . \
-  --python-bin python3 \
-  --server-ready-timeout-s 3600 \
-  --device-group-override "2,3" \
-  --dry-run
-```
-
-Test disaggregated prefill-decode LLM with separate device group overrides:
-```bash
-python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_llm_benchmark.py \
-  --config-name disagg_pd \
-  --input-csv tests/nightly_pipeline/vllm_llm_benchmark/configs/llm_disagg_pd_configs.csv \
-  --output-csv /tmp/test_llm_disagg_pd.csv \
-  --rows 1 \
-  --latest-models-only false \
-  --results-dir /tmp \
-  --base-dir . \
-  --python-bin python3 \
-  --server-ready-timeout-s 3600 \
-  --device-group-prefill-override "0,1" \
-  --device-group-decode-override "2,3" \
   --dry-run
 ```
 
@@ -494,9 +329,9 @@ Test VLM with separate device group overrides:
 ```bash
 python3 tests/nightly_pipeline/vllm_llm_benchmark/vllm_vlm_benchmark.py \
   --config-name vlm \
-  --input-csv tests/nightly_pipeline/vllm_llm_benchmark/configs/vlm_weight_free_configs.csv \
+  --input-csv tests/nightly_pipeline/vllm_llm_benchmark/configs/vlm_configs.csv \
   --output-csv /tmp/test_vlm.csv \
-  --rows 4 \
+  --rows 3 \
   --latest-models-only false \
   --results-dir /tmp \
   --base-dir . \
@@ -518,20 +353,16 @@ Common columns:
 - `server_extra_args`, `client_extra_args` for mode-specific flags not yet
   modeled as first-class columns
 
-For `server_type=api_server`, the runner builds
-`python -m vllm.entrypoints.openai.api_server`. The `additional_config` JSON is
-constructed from columns such as `device_group`, `use_onnx_subfunctions`,
-`ccl_enabled`, `comp_ctx_lengths_prefill`, `comp_ctx_lengths_decode`, and the
-blocking columns.
+For `server_type=api_server`, used by applicable embedding and audio rows, the
+runner builds `python -m vllm.entrypoints.openai.api_server`. Its
+`additional_config` JSON is constructed from the corresponding CSV fields.
 
 For `server_type=qaic_disagg`, the runner builds `python -m qaic_disagg` using
 the PD columns such as `prefill_device_group`, `decode_device_group`,
-`prefill_override_qaic_config`, and `decode_override_qaic_config`. VLM rows
-additionally use the encode-stage columns (`encode_port`,
-`encode_device_group`, `encode_max_num_seqs`, `encode_override_qaic_config`)
-for EPD layouts; ED rows leave the prefill columns blank, and PD rows leave
-the encode columns blank — `qaic_disagg`'s CLI flags for the omitted stage are
-simply not passed.
+`prefill_override_qaic_config`, and `decode_override_qaic_config`. The unified
+LLM CSV uses this PD layout. VLM rows use the encode-stage columns
+(`encode_port`, `encode_device_group`, `encode_max_num_seqs`, and
+`encode_override_qaic_config`) as well, for their EPD layout.
 
 The embedding CSV (`configs/embedding_configs.csv`) has four rows per model,
 one per `pooling_method` (`mean`, `avg`, `cls`, `max`), passed through the
@@ -543,19 +374,12 @@ The audio CSV (`configs/audio_configs.csv`) has one row per whisper model and
 uses the client columns `dataset_path`, `hf_subset`, `hf_split`, and
 `hf_output_len` for the `hf` dataset backend.
 
-The VLM CSV (`configs/vlm_configs.csv`) has one row per (model, disagg_mode,
-specialization_mode, blocking_mode) combination. Rows tagged
-`*_verified` reproduce a user-supplied example command token-for-token
-(modulo host/port/paths); rows tagged `*_inferred_unverified` are best-effort
-constructions for combinations no example was supplied for, and should be
-validated against real hardware output before being treated as a golden
-reference. Multi-specialization rows set `random_mm_limit_mm_per_prompt`,
-`random_mm_bucket_config` (a Python-tuple-keyed literal, not JSON — passed
-through to `vllm bench serve --random-mm-bucket-config` verbatim), and the
-server-side `limit_mm_per_prompt` JSON column. Blocking rows embed a nested
-`qaic_config":{"enable_blocking":true,...}` block inside the relevant
-`*_override_qaic_config` column, the same mechanism used by the existing LLM
-blocking CSV.
+The unified VLM CSV (`configs/vlm_configs.csv`) has one EPD row per model.
+Every populated stage override explicitly sets `use_onnx_subfunctions=true`,
+`pretrained_extra_args.weight_free=true`, and the rows set
+`enable_blocking=true`. VLM device groups are split across encode, prefill,
+and decode stages; its server-side `limit_mm_per_prompt` JSON field limits
+multimodal input per request.
 
 ## Model Filtering
 
